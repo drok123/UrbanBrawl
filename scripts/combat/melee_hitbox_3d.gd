@@ -36,9 +36,8 @@ func deactivate() -> void:
 func _resolve_existing_overlaps() -> void:
 	if not monitoring:
 		return
-	for body in get_overlapping_bodies():
-		if body is Node3D:
-			_try_hit(body as Node3D)
+	for body: Node3D in get_overlapping_bodies():
+		_try_hit(body)
 
 func _on_body_entered(body: Node3D) -> void:
 	_try_hit(body)
@@ -67,13 +66,17 @@ func _try_hit(body: Node3D) -> void:
 	var combat_hit: CombatHit = CombatHit.new()
 	combat_hit.source = _source
 	combat_hit.ability_id = _ability.ability_id
-	combat_hit.weapon_id = &"unarmed"
-	combat_hit.damage_type = &"blunt"
-	combat_hit.hit_location = &"body"
+	combat_hit.weapon_id = _ability.weapon_id
+	combat_hit.damage_type = _ability.damage_type
+	combat_hit.hit_location = _ability.hit_location
 	combat_hit.damage = _ability.damage
 	combat_hit.impulse = push * _ability.knockback
 	combat_hit.wall_stun_window = _ability.wall_stun_window
 	combat_hit.hitstop = _ability.hitstop
+	combat_hit.gore_power = _ability.gore_power
+	if _source.has_method("get_weapon_rarity_id"):
+		var rarity_value: Variant = _source.call("get_weapon_rarity_id")
+		combat_hit.weapon_rarity = StringName(str(rarity_value))
 
 	if supports_new_pipeline:
 		body.call("receive_hit", combat_hit)
