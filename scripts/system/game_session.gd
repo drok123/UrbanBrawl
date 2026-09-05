@@ -32,6 +32,7 @@ var player_faction: int = Faction.NONE
 var current_territory: int = Territory.NEUTRAL
 var heat: int = 0
 var evidence: int = 0
+var police_case_value: int = 0
 var contraband_units: int = 0
 
 var _weapon_equipped: bool = false
@@ -166,6 +167,10 @@ func spend_contraband(amount: int) -> bool:
 	contraband_units -= amount
 	state_changed.emit()
 	return true
+
+func add_case_value(amount: int) -> void:
+	police_case_value += maxi(amount, 0)
+	state_changed.emit()
 
 func start_grow_cycle(duration: float = 25.0) -> bool:
 	if grow_cycle_left > 0.0 or grow_ready_units > 0:
