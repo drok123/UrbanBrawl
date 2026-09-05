@@ -66,6 +66,7 @@ func _ready() -> void:
 	health = max_health
 	_reset_combat_cooldowns()
 	_setup_hitbox()
+	call_deferred("_restore_session_loadout")
 
 func _physics_process(delta: float) -> void:
 	if _dead:
@@ -89,7 +90,7 @@ func _physics_process(delta: float) -> void:
 
 	if _stun_left <= 0.0:
 		_advance_combat_state(delta)
-		_handle_weapon_input()
+		_handle_interaction_input()
 		_handle_combat_input()
 
 	if _stun_left > 0.0:
@@ -172,13 +173,25 @@ func _update_movement(delta: float, speed_multiplier: float = 1.0) -> void:
 func _movement_input() -> Vector2:
 	return Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 
-func _handle_weapon_input() -> void:
+func _handle_interaction_input() -> void:
 	if not Input.is_action_just_pressed(&"interact"):
 		return
 	if _current_ability != null or _dash_time_left > 0.0 or _stun_left > 0.0 or _dead:
 		return
 
+	var interactable: Node3D = _nearest_world_interactable()
 	var pickup: WorldWeaponPickup3D = _nearest_weapon_pickup()
+	var interactable_distance_sq: float = INF
+	var pickup_distance_sq: float = INF
+	if interactable != null:
+		interactable_distance_sq = global_position.distance_squared_to(interactable.global_position)
+	if pickup != null:
+		pickup_distance_sq = global_position.distance_squared_to(pickup.global_position)
+
+	if interactable != null and interactable_distance_sq <= pickup_distance_sq:
+		interactable.call("interact", self)
+		return
+
 	if pickup != null:
 		var profile: WeaponCombatProfile = pickup.get_profile()
 		if profile == null:
@@ -192,6 +205,19 @@ func _handle_weapon_input() -> void:
 
 	if _equipped_item != null:
 		drop_equipped_weapon()
+
+func _nearest_world_interactable() -> Node3D:
+	var nearest: Node3D = null
+	var best_distance_sq: float = interaction_radius * interaction_radius
+	for node: Node in get_tree().get_nodes_in_group("world_interactable"):
+		var interactable: Node3D = node as Node3D
+		if interactable == null or not interactable.has_method("interact"):
+			continue
+		var distance_sq: float = global_position.distance_squared_to(interactable.global_position)
+		if distance_sq <= best_distance_sq:
+			best_distance_sq = distance_sq
+			nearest = interactable
+	return nearest
 
 func _nearest_weapon_pickup() -> WorldWeaponPickup3D:
 	var nearest: WorldWeaponPickup3D = null
@@ -242,6 +268,22 @@ func drop_equipped_weapon(drop_distance: float = 1.25) -> void:
 	var forward: Vector3 = -global_transform.basis.z.normalized()
 	pickup.global_position = global_position + forward * drop_distance
 	pickup.global_position.y = 0.18
+
+func take_equipped_weapon_for_storage() -> Dictionary:
+	if _equipped_item == null or _equipped_profile == null:
+		return {}
+	var result: Dictionary = {
+		"item": _equipped_item,
+		"profile": _equipped_profile,
+	}
+	_set_unarmed_loadout()
+	return result
+
+func get_equipped_item() -> Item:
+	return _equipped_item
+
+func get_equipped_profile() -> WeaponCombatProfile:
+	return _equipped_profile
 
 func _set_unarmed_loadout() -> void:
 	_equipped_item = null
@@ -546,6 +588,11 @@ func get_weapon_rarity_id() -> StringName:
 		return &"common"
 	return StringName(WeaponItemRules.rarity_name(_equipped_item).to_lower())
 
+func _restore_session_loadout() -> void:
+	var session: Node = get_node_or_null("/root/GameSession")
+	if session != null and session.has_method("restore_player"):
+		session.call("restore_player", self)
+
 func _update_aim(delta: float) -> void:
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera == null:
@@ -560,7 +607,10 @@ func _update_aim(delta: float) -> void:
 	if hit.is_empty():
 		return
 
-	aim_point = hit.position
+	var hit_position_value: Variant = hit.get("position", global_position)
+	if not hit_position_value is Vector3:
+		return
+	aim_point = hit_position_value as Vector3
 	var flat_direction: Vector3 = aim_point - global_position
 	flat_direction.y = 0.0
 	if flat_direction.length_squared() < 0.0001:
