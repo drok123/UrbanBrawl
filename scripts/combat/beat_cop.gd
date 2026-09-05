@@ -277,8 +277,9 @@ func _try_bust() -> void:
 	var seized_weapon: String = _seize_nearby_weapon()
 	var package: Dictionary = GameSession.create_evidence_package(_active_crime_event, seized_units, seized_weapon)
 	GameSession.register_bust()
+	GameSession.queue_arrest_return(0.65, 100)
 	var case_value: int = int(package.get("case_value", 0)) if not package.is_empty() else 0
-	_flash_status("BUST  +%d CASE  SEIZED %d" % [case_value, seized_units])
+	_flash_status("ARREST  +%d CASE  SEIZED %d" % [case_value, seized_units])
 	_engaged = false
 	_response_left = 0.0
 	_active_crime_event = {}
