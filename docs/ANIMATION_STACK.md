@@ -1,87 +1,130 @@
 # Urban Brawl — Animation Stack
 
-## Preferred long-term library: Quaternius Universal Animation Library 1 + 2
+## Current prototype visual
+
+Urban Brawl currently uses a native procedural humanoid generated from Godot primitive meshes.
+
+This remains useful as:
+- a zero-dependency fallback/debug character
+- a headless/server-safe stand-in
+- a way to validate combat logic without waiting on imported art
+
+It is **not** the preferred final presentation path.
+
+The old KayKit Rogue/Barbarian experiment is retired and should not be treated as an active dependency or target rig.
+
+## Preferred production character family: Quaternius Universal Base Characters
 
 License: CC0
-
-Use these as the primary animation source once the standard packs are imported into the project.
 
 Why:
-- 250+ combined humanoid animations
-- 8-direction locomotion
-- unarmed combat
-- armed melee combat and multi-hit combos
-- one- and two-handed gun animation coverage
-- dodge / parkour / movement actions
-- hit / death / interaction coverage
-- root-motion and non-root-motion exports
-- explicitly built for humanoid retargeting and tested with Godot
+- neutral humanoid base rather than fantasy-specific baked gear
+- male/female regular, superhero and teen proportions
+- animation-friendly topology
+- humanoid rig
+- hairstyle variation
+- explicitly compatible with the Universal Animation Library
+- glTF/FBX exports suitable for Godot
 
-Urban Brawl should prefer the non-root-motion exports for normal player locomotion because CharacterBody3D remains authoritative over movement and collision. Root motion can still be evaluated for bespoke takedowns, executions or scripted heist moments later.
+The visible player, cops, guards and civilians should migrate to this rig family before bespoke final character art is considered.
 
-## Automated prototype rig: KayKit Character Pack — Adventurers
+The combat controller remains authoritative; imported characters are presentation.
 
-Repository: `KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0`
-Pinned commit: `672074b73ba276876a19e8816ecdc5241817ab47`
+## Preferred animation library: Quaternius Universal Animation Library 1 + 2
+
 License: CC0
 
-The dependency installer copies the GLTF character set into:
+Use these as the primary animation source.
 
-`res://assets/third_party/kaykit_adventurers/`
+Combined they provide more than 250 humanoid animations covering:
+- 8-direction locomotion
+- idle / walk / jog / sprint
+- unarmed combat
+- armed melee combat and multi-hit combos
+- one- and two-handed gun actions
+- dodge / parkour / movement actions
+- hit reactions
+- death/down actions
+- interactions and miscellaneous movement
 
-The combat lab currently loads `Barbarian.glb` as the player visual. Collision and combat remain owned by the existing CharacterBody3D; the imported rig is presentation only.
+2026 updates added/fixed root-motion exports and synchronized 8-direction locomotion. Godot-specific exports are provided and the rigs are designed for retargeting.
 
-Useful built-in animation names include:
-- `Idle`
-- `Walking_A`
-- `Running_A`
-- `Dodge_Forward`, `Dodge_Backward`, `Dodge_Left`, `Dodge_Right`
-- `Hit_A`, `Hit_B`
-- `Death_A`, `Death_B`
-- `Unarmed_Idle`
-- `Unarmed_Melee_Attack_Punch_A`
-- `Unarmed_Melee_Attack_Punch_B`
-- `Unarmed_Melee_Attack_Kick`
-- `2H_Melee_Idle`
-- `2H_Melee_Attack_Chop`
-- `2H_Melee_Attack_Slice`
-- `2H_Melee_Attack_Stab`
-- `2H_Melee_Attack_Spin`
-- `1H_Ranged_Aiming`, `1H_Ranged_Shoot`, `1H_Ranged_Reload`
-- `2H_Ranged_Aiming`, `2H_Ranged_Shoot`, `2H_Ranged_Reload`
+### Movement authority rule
 
-## Runtime architecture
+Prefer non-root-motion locomotion for ordinary gameplay.
 
-`scripts/animation/combat_animation_driver_3d.gd` is deliberately library-agnostic.
-
-It:
-1. loads the configured humanoid scene at runtime;
-2. finds its AnimationPlayer automatically;
-3. hides the graybox capsule only after a valid rig loads;
-4. maps Urban Brawl combat states to animation aliases;
-5. falls back through aliases when a library uses different clip names.
-
-The combat controller stays authoritative over:
+`CharacterBody3D` remains authoritative over:
 - movement
 - collision
-- attack timing
-- active hit windows
-- hitstop
-- damage
-- cooldowns
+- knockback
+- dash motion
+- combat displacement
 
-Animations are presentation and should follow combat timing, never redefine it.
+Root motion may be used later for tightly controlled bespoke actions such as takedowns, executions or scripted heist moments.
+
+## Hit reaction architecture
+
+The current `HitReactionController3D` balance/stumble/fallback system is part of Urban Brawl's combat feel and should remain.
+
+When production skeletons replace the procedural mannequin, migrate the visual reaction layer from primitive-node pivots to an additive skeleton/AnimationTree layer.
+
+The decision logic remains custom:
+- recoil vs stumble vs fallback probability
+- hidden balance accumulation/decay
+- force/damage influence
+- randomized reaction variant
+- physical shove direction and magnitude
+
+Imported animation clips can improve the presentation of those decisions without owning them.
+
+## Runtime architecture target
+
+Combat gameplay should expose clean presentation state:
+
+```text
+movement state
+combat phase
+current ability / weapon style
+hit-reaction request
+fall/down/death state
+```
+
+The character presentation layer should combine:
+1. locomotion base animation
+2. attack/action animation
+3. additive hit/recoil layer
+4. optional aim/upper-body layer
+5. death/ragdoll handoff
+
+Animations follow gameplay timing; they do not redefine hit windows or damage.
 
 ## Retargeting rule
 
-Use Godot's humanoid SkeletonProfile / BoneMap retargeting for final character models. We should be able to change the visual character or animation library without rewriting player combat.
+Use Godot humanoid retargeting (`SkeletonProfileHumanoid` / BoneMap import configuration) so the gameplay layer is not tied to one mesh.
 
-## Next animation work
+The same Urban Brawl combat state should be able to drive:
+- Quaternius base characters
+- later custom faction outfits
+- civilian variants
+- future higher-detail replacement characters
 
-- validate KayKit scale / facing in the combat lab
-- tune blend times
-- synchronize attack playback speed to CombatAbility timing
-- attach held weapons to hand bones instead of the current procedural offset
-- add bot animation driver
-- import Quaternius UAL 1 + 2 and map the best Urban Brawl clips
-- later add ragdoll handoff and dismemberment-compatible skeleton setup
+without controller rewrites.
+
+## Weapon attachment rule
+
+Move from the current procedural hand anchor to skeleton hand-bone attachments when the production rig lands.
+
+Weapon ownership remains in the gameplay/inventory layer. The visual attachment is only presentation.
+
+## Near-term migration order
+
+1. import one Quaternius Universal Base Character as the reference rig
+2. import a narrow UAL locomotion subset
+3. prove Godot retargeting and 8-direction movement
+4. map unarmed/basic melee/pistol actions
+5. attach held weapons to hand bones
+6. migrate the current hit-reaction system to additive skeleton presentation
+7. replace player, bot, cop and territory-guard visuals through the same shared presenter
+8. expand animation coverage only after the shared pipeline is stable
+
+The goal is **one production character/animation pipeline**, not bespoke animation code per actor type.
