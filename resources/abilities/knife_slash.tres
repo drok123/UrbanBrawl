@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"basic"
+display_name = "Knife Slash"
+mode = 0
+weapon_id = &"knife"
+damage_type = &"slash"
+hit_location = &"body"
+gore_power = 0.72
+cooldown = 0.28
+windup = 0.07
+active_time = 0.06
+recovery = 0.12
+damage = 64.0
+range_distance = 1.22
+radius = 0.68
+knockback = 2.8
+hitstop = 0.032
+movement_multiplier = 0.72
+self_impulse = 1.0
+telegraph_shape = 0
+telegraph_color = Color(0.88, 0.22, 0.18, 0.20)
