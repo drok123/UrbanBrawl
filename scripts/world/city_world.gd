@@ -59,7 +59,7 @@ func _build_city() -> void:
 
 func _build_police_blocks() -> void:
 	_add_static_box(self, "PrecinctExterior", Vector3(12.0, 6.0, 10.0), Vector3(-39.0, 3.0, -8.0), Color(0.12, 0.19, 0.34, 1.0))
-	_add_static_box(self, "PoliceBlockA", Vector3(11.0, 5.0, 13.0), Vector3(-34.0, 2.5, -20.0), Color(0.18, 0.20, 0.24, 1.0))
+	_add_external_building("PoliceBlockA", Vector3(11.0, 5.0, 13.0), Vector3(-34.0, 2.5, -20.0), Color(0.18, 0.20, 0.24, 1.0))
 	_add_static_box(self, "PoliceBlockB", Vector3(10.0, 6.5, 12.0), Vector3(-20.0, 3.25, -9.0), Color(0.16, 0.18, 0.22, 1.0))
 	_add_static_box(self, "PoliceBlockC", Vector3(12.0, 4.5, 14.0), Vector3(-31.0, 2.25, 18.0), Color(0.20, 0.21, 0.23, 1.0))
 
@@ -76,6 +76,14 @@ func _build_arms_blocks() -> void:
 func _build_center_blocks() -> void:
 	_add_static_box(self, "CommonsKioskA", Vector3(4.0, 2.4, 4.0), Vector3(-1.0, 1.2, -11.0), Color(0.25, 0.24, 0.23, 1.0))
 	_add_static_box(self, "CommonsKioskB", Vector3(4.0, 2.4, 4.0), Vector3(1.0, 1.2, 11.0), Color(0.25, 0.24, 0.23, 1.0))
+
+func _add_external_building(node_name: String, size: Vector3, position_value: Vector3, color: Color) -> void:
+	var building: QuaterniusCityBuilding3D = QuaterniusCityBuilding3D.new()
+	building.name = node_name
+	building.target_size = size
+	building.fallback_color = color
+	building.position = position_value
+	add_child(building)
 
 func _add_visual_box(node_name: String, position_value: Vector3, size: Vector3, color: Color) -> void:
 	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
