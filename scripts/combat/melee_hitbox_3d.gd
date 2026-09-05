@@ -48,7 +48,12 @@ func _try_hit(body: Node3D) -> void:
 		return
 	if body == _source or _already_hit.has(body):
 		return
-	if not body.is_in_group("damageable") or not body.has_method("apply_hit"):
+	if not body.is_in_group("damageable"):
+		return
+
+	var supports_new_pipeline: bool = body.has_method("receive_hit")
+	var supports_legacy_pipeline: bool = body.has_method("apply_hit")
+	if not supports_new_pipeline and not supports_legacy_pipeline:
 		return
 
 	_already_hit.append(body)
@@ -59,13 +64,27 @@ func _try_hit(body: Node3D) -> void:
 		push = -_source.global_transform.basis.z
 	push = push.normalized()
 
-	body.call(
-		"apply_hit",
-		_ability.damage,
-		push * _ability.knockback,
-		_ability.wall_stun_window,
-		_ability.hitstop
-	)
+	var combat_hit: CombatHit = CombatHit.new()
+	combat_hit.source = _source
+	combat_hit.ability_id = _ability.ability_id
+	combat_hit.weapon_id = &"unarmed"
+	combat_hit.damage_type = &"blunt"
+	combat_hit.hit_location = &"body"
+	combat_hit.damage = _ability.damage
+	combat_hit.impulse = push * _ability.knockback
+	combat_hit.wall_stun_window = _ability.wall_stun_window
+	combat_hit.hitstop = _ability.hitstop
+
+	if supports_new_pipeline:
+		body.call("receive_hit", combat_hit)
+	else:
+		body.call(
+			"apply_hit",
+			combat_hit.damage,
+			combat_hit.impulse,
+			combat_hit.wall_stun_window,
+			combat_hit.hitstop
+		)
 
 	var impact_position: Vector3 = body.global_position + Vector3.UP * 0.7
 	hit_landed.emit(impact_position, _ability.hitstop)
