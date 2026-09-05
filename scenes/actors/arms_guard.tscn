@@ -1,0 +1,47 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/territory_guard.gd" id="1_guard"]
+[ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="2_animation"]
+
+[sub_resource type="StandardMaterial3D" id="LegacyMaterial"]
+albedo_color = Color(0.42, 0.19, 0.10, 1)
+roughness = 0.68
+
+[sub_resource type="CapsuleMesh" id="LegacyMesh"]
+material = SubResource("LegacyMaterial")
+radius = 0.48
+height = 1.9
+
+[sub_resource type="CapsuleShape3D" id="GuardShape"]
+radius = 0.48
+height = 1.9
+
+[node name="ArmsGuard" type="CharacterBody3D"]
+script = ExtResource("1_guard")
+display_name = "ARMS ENFORCER"
+home_territory = 1
+hostile_faction = 3
+listen_for_duty = true
+max_health = 420.0
+move_speed = 5.5
+observation_radius = 11.0
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("LegacyMesh")
+
+[node name="CharacterVisual" type="Node3D" parent="."]
+script = ExtResource("2_animation")
+body_color = Color(0.62, 0.26, 0.12, 1)
+accent_color = Color(0.18, 0.07, 0.03, 1)
+visual_offset = Vector3(0, -0.95, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("GuardShape")
+
+[node name="HealthLabel" type="Label3D" parent="."]
+position = Vector3(0, 1.65, 0)
+font_size = 34
+outline_size = 9
+pixel_size = 0.008
+billboard = 1
+text = "ARMS ENFORCER — TURF\n420 / 420"
