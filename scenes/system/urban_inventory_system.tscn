@@ -1,0 +1,39 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/inventory/InventorySystem.gd" id="1_system"]
+[ext_resource type="Script" path="res://scripts/inventory/InventoryItem.gd" id="2_item"]
+
+[node name="InventorySystem" type="Control" node_paths=PackedStringArray("held_item", "held_item_quantity")]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_system")
+items_path = "res://items/"
+player_inventory = "player_inventory"
+held_item = NodePath("HeldItem")
+held_item_quantity = NodePath("HeldItem/MarginContainer/Label")
+
+[node name="HeldItem" type="TextureRect" parent="."]
+visible = false
+z_index = 10
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+script = ExtResource("2_item")
+
+[node name="MarginContainer" type="MarginContainer" parent="HeldItem"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="HeldItem/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 2
+vertical_alignment = 2
