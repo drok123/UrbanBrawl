@@ -1,0 +1,92 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/street_blockout.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/world/world_portal_3d.gd" id="4_portal"]
+[ext_resource type="Script" path="res://scripts/world/weapon_vendor_stand_3d.gd" id="5_vendor"]
+[ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="6_hud"]
+[ext_resource type="Resource" path="res://items/baseball_bat.tres" id="7_bat_item"]
+[ext_resource type="Resource" path="res://resources/weapons/baseball_bat_profile.tres" id="8_bat_profile"]
+[ext_resource type="Resource" path="res://items/knife.tres" id="9_knife_item"]
+[ext_resource type="Resource" path="res://resources/weapons/knife_profile.tres" id="10_knife_profile"]
+[ext_resource type="Resource" path="res://items/pistol.tres" id="11_pistol_item"]
+[ext_resource type="Resource" path="res://resources/weapons/pistol_profile.tres" id="12_pistol_profile"]
+
+[node name="StreetBlock" type="Node3D"]
+script = ExtResource("1_world")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -35, 0)
+light_energy = 1.15
+shadow_enabled = true
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector3(0, 0.95, 7.6)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 15, 13)
+current = true
+script = ExtResource("3_camera")
+target_path = NodePath("../Player")
+
+[node name="HideoutDoor" type="Node3D" parent="."]
+position = Vector3(-10.6, 0, 7.2)
+script = ExtResource("4_portal")
+target_scene = "res://scenes/world/hideout.tscn"
+title = "YOUR HIDEOUT"
+subtitle = "F  GO HOME"
+marker_color = Color(0.32, 0.78, 0.48, 0.55)
+
+[node name="ActivityEntrance" type="Node3D" parent="."]
+position = Vector3(-10.6, 0, -5.0)
+script = ExtResource("4_portal")
+target_scene = "res://scenes/arena/combat_lab.tscn"
+title = "FFA WEAPON SCRAMBLE"
+subtitle = "F  ENTER ACTIVITY"
+marker_color = Color(0.82, 0.25, 0.22, 0.58)
+
+[node name="BatStand" type="Node3D" parent="."]
+position = Vector3(8.7, 0, 4.1)
+script = ExtResource("5_vendor")
+base_item = ExtResource("7_bat_item")
+combat_profile = ExtResource("8_bat_profile")
+price = 260
+stand_color = Color(0.24, 0.17, 0.12, 1)
+
+[node name="KnifeStand" type="Node3D" parent="."]
+position = Vector3(10.7, 0, 4.1)
+script = ExtResource("5_vendor")
+base_item = ExtResource("9_knife_item")
+combat_profile = ExtResource("10_knife_profile")
+price = 180
+stand_color = Color(0.19, 0.20, 0.22, 1)
+
+[node name="PistolStand" type="Node3D" parent="."]
+position = Vector3(12.7, 0, 4.1)
+script = ExtResource("5_vendor")
+base_item = ExtResource("11_pistol_item")
+combat_profile = ExtResource("12_pistol_profile")
+price = 520
+stand_color = Color(0.13, 0.14, 0.15, 1)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 1120.0
+offset_bottom = 82.0
+theme_override_font_sizes/font_size = 22
+script = ExtResource("6_hud")
+player_path = NodePath("../../Player")
+location_name = "SOUTH BLOCK — STREET DISTRICT"
+
+[node name="Instructions" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 92.0
+offset_right = 1280.0
+offset_bottom = 142.0
+theme_override_colors/font_color = Color(0.72, 0.76, 0.82, 1)
+theme_override_font_sizes/font_size = 17
+text = "F: interact / buy / enter    Street dealer is on the east sidewalk    FFA entrance + hideout door are on the west"
