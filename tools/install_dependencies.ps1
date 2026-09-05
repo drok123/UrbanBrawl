@@ -20,14 +20,6 @@ $dependencies = @(
         Zip = "https://codeload.github.com/bitbrain/beehave/zip/refs/tags/v2.9.3"
         Folder = "beehave-2.9.3"
         License = "https://raw.githubusercontent.com/bitbrain/beehave/v2.9.3/LICENSE"
-    },
-    @{
-        Name = "KayKit Character Pack - Adventurers"
-        Repo = "KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0"
-        Tag = "672074b73ba276876a19e8816ecdc5241817ab47"
-        License = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/LICENSE.txt"
-        Rogue = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb"
-        RogueTexture = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/rogue_texture.png"
     }
 )
 
@@ -74,14 +66,18 @@ Write-Host ""
 Reset-Directory $cacheRoot
 New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $projectRoot "addons") -Force | Out-Null
-New-Item -ItemType Directory -Path (Join-Path $projectRoot "assets\third_party") -Force | Out-Null
+
+# Remove the abandoned external prototype character pack if an older installer placed it.
+$legacyKaykit = Join-Path $projectRoot "assets\third_party\kaykit_adventurers"
+if (Test-Path $legacyKaykit) {
+    Write-Host "Removing obsolete KayKit prototype character files..." -ForegroundColor DarkGray
+    Remove-Item $legacyKaykit -Recurse -Force
+}
 
 # --- Oen44 inventory/itemization ---
 $inventoryRoot = Download-And-Expand $dependencies[0]
 
 Write-Host "Installing complete Oen44 runtime script set..." -ForegroundColor Green
-# InventoryModel directly references VendorInventory, so vendor/ is a required runtime
-# dependency even before Urban Brawl exposes vendor UI/gameplay.
 foreach ($folder in @("equipment", "inventory", "itemization", "tooltip", "vendor")) {
     $source = Join-Path $inventoryRoot ("scripts\" + $folder)
     $destination = Join-Path $projectRoot ("scripts\" + $folder)
@@ -112,7 +108,6 @@ foreach ($scene in $inventoryScenes) {
     Copy-Item $sourceScene (Join-Path $projectRoot ("scenes\" + $scene)) -Force
 }
 
-# Validate cross-folder class dependencies that GDScript resolves at parse time.
 $requiredInventoryFiles = @(
     "scripts\inventory\InventoryModel.gd",
     "scripts\vendor\VendorInventory.gd",
@@ -144,37 +139,8 @@ if (Test-Path $beehaveDestination) {
     Remove-Item $beehaveDestination -Recurse -Force
 }
 Copy-Item $beehaveSource $beehaveDestination -Recurse -Force
-
-# Beehave deliberately export-ignores the repository-root LICENSE from release ZIPs,
-# so retrieve the license separately from the exact pinned tag.
 Install-License $dependencies[1] "Beehave-LICENSE.txt"
 
-# --- KayKit temporary animated character prototype rig ---
-# Use the empty-handed Rogue instead of the Barbarian. The Barbarian model bakes axes
-# into the character visual, which conflicts with Urban Brawl's runtime equipment system.
-# This remains a temporary test rig while Quaternius Universal Base Characters becomes
-# the long-term neutral humanoid/retargeting foundation.
-Write-Host "Installing KayKit empty-handed humanoid test rig..." -ForegroundColor Green
-$kaykitDestination = Join-Path $projectRoot "assets\third_party\kaykit_adventurers"
-Reset-Directory $kaykitDestination
-
-$kaykitRogue = Join-Path $kaykitDestination "Rogue.glb"
-$kaykitTexture = Join-Path $kaykitDestination "rogue_texture.png"
-
-Write-Host "Downloading KayKit Rogue.glb..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $dependencies[2].Rogue -OutFile $kaykitRogue -UseBasicParsing
-Write-Host "Downloading KayKit rogue_texture.png..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $dependencies[2].RogueTexture -OutFile $kaykitTexture -UseBasicParsing
-
-if (-not (Test-Path $kaykitRogue) -or (Get-Item $kaykitRogue).Length -lt 100000) {
-    throw "KayKit install is incomplete or invalid; Rogue.glb was not downloaded correctly: $kaykitRogue"
-}
-if (-not (Test-Path $kaykitTexture) -or (Get-Item $kaykitTexture).Length -lt 1000) {
-    throw "KayKit install is incomplete or invalid; rogue_texture.png was not downloaded correctly: $kaykitTexture"
-}
-Install-License $dependencies[2] "KayKit-Adventurers-LICENSE.txt"
-
-# Clean temporary downloads after successful install.
 if (Test-Path $cacheRoot) {
     Remove-Item $cacheRoot -Recurse -Force
 }
@@ -183,8 +149,8 @@ Write-Host ""
 Write-Host "Dependencies installed successfully." -ForegroundColor Green
 Write-Host "  Oen44/Godot-Inventory @ v4.0.1a (equipment/inventory/itemization/tooltip/vendor)"
 Write-Host "  bitbrain/beehave @ v2.9.3"
-Write-Host "  KayKit Adventurers @ 672074b (Rogue.glb + texture, temporary neutral rig)"
 Write-Host ""
-Write-Host "Restart Godot after installation." -ForegroundColor Yellow
+Write-Host "Character visuals are now native procedural Urban Brawl code; no character asset download is required."
+Write-Host "Restart Godot after dependency changes." -ForegroundColor Yellow
 Write-Host ""
 Read-Host "Press Enter to close"
