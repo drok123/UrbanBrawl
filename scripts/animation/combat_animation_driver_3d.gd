@@ -186,15 +186,49 @@ func _adopt_held_weapon_visual() -> void:
 	if _weapon_anchor == null or _actor == null:
 		return
 	var held_weapon: Node3D = _actor.get_node_or_null("HeldWeapon") as Node3D
-	if held_weapon == null or held_weapon.get_parent() == _weapon_anchor:
+	if held_weapon == null:
 		return
-	held_weapon.reparent(_weapon_anchor, false)
-	held_weapon.position = Vector3(0.0, -0.08, 0.0)
-	held_weapon.rotation_degrees = Vector3(0.0, 0.0, -8.0)
+	if held_weapon.get_parent() != _weapon_anchor:
+		held_weapon.reparent(_weapon_anchor, false)
+		held_weapon.position = Vector3(0.0, -0.08, 0.0)
+		held_weapon.rotation_degrees = Vector3(0.0, 0.0, -8.0)
+	if _weapon_name().contains("PISTOL"):
+		_shape_pistol_visual(held_weapon)
+
+func _shape_pistol_visual(root: Node3D) -> void:
+	if bool(root.get_meta("pistol_shaped", false)):
+		return
+	root.set_meta("pistol_shaped", true)
+	for child: Node in root.get_children():
+		child.queue_free()
+
+	var material: StandardMaterial3D = StandardMaterial3D.new()
+	material.albedo_color = Color(0.19, 0.20, 0.23, 1.0)
+	material.metallic = 0.35
+	material.roughness = 0.48
+
+	var slide: MeshInstance3D = MeshInstance3D.new()
+	var slide_mesh: BoxMesh = BoxMesh.new()
+	slide_mesh.size = Vector3(0.15, 0.12, 0.46)
+	slide.mesh = slide_mesh
+	slide.position = Vector3(0.0, 0.0, -0.18)
+	slide.material_override = material
+	root.add_child(slide)
+
+	var grip: MeshInstance3D = MeshInstance3D.new()
+	var grip_mesh: BoxMesh = BoxMesh.new()
+	grip_mesh.size = Vector3(0.14, 0.34, 0.14)
+	grip.mesh = grip_mesh
+	grip.position = Vector3(0.0, -0.18, -0.03)
+	grip.rotation_degrees.x = -14.0
+	grip.material_override = material
+	root.add_child(grip)
 
 func _update_pose(delta: float, phase: String) -> void:
 	var speed: float = Vector3(_actor.velocity.x, 0.0, _actor.velocity.z).length()
 	var blend: float = clampf(pose_blend_speed * delta, 0.0, 1.0)
+	var weapon_name: String = _weapon_name()
+	var holding_pistol: bool = weapon_name.contains("PISTOL")
 
 	var root_rotation: Vector3 = Vector3.ZERO
 	var root_position: Vector3 = visual_offset
@@ -233,6 +267,39 @@ func _update_pose(delta: float, phase: String) -> void:
 		var active: bool = phase == "ACTIVE"
 		var windup: bool = phase == "WINDUP"
 		match _attack_style:
+			&"pistol_aimed":
+				torso_rotation.x = -0.04 if active else 0.02
+				left_shoulder_rotation.x = 1.34
+				right_shoulder_rotation.x = 1.42
+				left_shoulder_rotation.z = -0.16
+				right_shoulder_rotation.z = 0.12
+				left_elbow_rotation.x = -0.34
+				right_elbow_rotation.x = -0.18
+				if active:
+					torso_rotation.x -= 0.08
+					head_rotation.x = -0.04
+			&"pistol_whip":
+				if windup:
+					torso_rotation.y = -0.32
+					right_shoulder_rotation.x = -0.38
+					right_shoulder_rotation.z = 0.44
+				elif active:
+					torso_rotation.y = 0.42
+					right_shoulder_rotation.x = 1.12
+					right_shoulder_rotation.z = -0.32
+				else:
+					right_shoulder_rotation.x = 0.42
+				right_elbow_rotation.x = -0.42
+			&"pistol_basic":
+				left_shoulder_rotation.x = 1.18
+				right_shoulder_rotation.x = 1.34
+				left_shoulder_rotation.z = -0.12
+				right_shoulder_rotation.z = 0.10
+				left_elbow_rotation.x = -0.42
+				right_elbow_rotation.x = -0.22
+				if active:
+					torso_rotation.x = -0.10
+				right_shoulder_rotation.x += 0.10
 			&"bat_heavy":
 				if windup:
 					torso_rotation.y = -0.68
@@ -282,7 +349,12 @@ func _update_pose(delta: float, phase: String) -> void:
 				right_elbow_rotation.x = -0.44
 			&"knife_charge":
 				torso_rotation.x = 0.30 if active else 0.08
-				right_shoulder_rotation.x = 1.42 if active else -0.16 if windup else 0.18
+				if active:
+					right_shoulder_rotation.x = 1.42
+				elif windup:
+					right_shoulder_rotation.x = -0.16
+				else:
+					right_shoulder_rotation.x = 0.18
 				right_elbow_rotation.x = -0.12
 				left_shoulder_rotation.x = -0.42
 			&"knife_basic":
@@ -300,7 +372,12 @@ func _update_pose(delta: float, phase: String) -> void:
 				torso_rotation.x = 0.10
 				left_shoulder_rotation.x = -0.48
 				right_shoulder_rotation.x = -0.35
-				right_hip_rotation.x = 1.08 if active else -0.55 if windup else 0.20
+				if active:
+					right_hip_rotation.x = 1.08
+				elif windup:
+					right_hip_rotation.x = -0.55
+				else:
+					right_hip_rotation.x = 0.20
 				right_knee_rotation.x = 0.36 if active else 0.08
 			&"unarmed_charge":
 				torso_rotation.x = 0.34 if active else 0.12
@@ -322,20 +399,32 @@ func _update_pose(delta: float, phase: String) -> void:
 	elif speed > 0.45:
 		var gait: float = sin(_time * gait_speed)
 		var gait_abs: float = absf(gait)
-		left_shoulder_rotation.x = gait * 0.56
-		right_shoulder_rotation.x = -gait * 0.56
 		left_hip_rotation.x = -gait * 0.68
 		right_hip_rotation.x = gait * 0.68
 		left_knee_rotation.x = maxf(gait, 0.0) * 0.42
 		right_knee_rotation.x = maxf(-gait, 0.0) * 0.42
 		torso_rotation.z = gait * 0.035
 		root_position.y += gait_abs * 0.045
+		if holding_pistol:
+			left_shoulder_rotation.x = 0.86
+			right_shoulder_rotation.x = 0.94
+			left_elbow_rotation.x = -0.48
+			right_elbow_rotation.x = -0.34
+		else:
+			left_shoulder_rotation.x = gait * 0.56
+			right_shoulder_rotation.x = -gait * 0.56
 	else:
 		var breathe: float = sin(_time * 2.4)
 		torso_rotation.z = breathe * 0.012
-		left_shoulder_rotation.x = breathe * 0.025
-		right_shoulder_rotation.x = -breathe * 0.025
 		root_position.y += breathe * 0.012
+		if holding_pistol:
+			left_shoulder_rotation.x = 0.72 + breathe * 0.015
+			right_shoulder_rotation.x = 0.80 - breathe * 0.015
+			left_elbow_rotation.x = -0.52
+			right_elbow_rotation.x = -0.38
+		else:
+			left_shoulder_rotation.x = breathe * 0.025
+			right_shoulder_rotation.x = -breathe * 0.025
 
 	_blend_rotation(_model_root, root_rotation, blend)
 	_model_root.position = _model_root.position.lerp(root_position, blend)
@@ -354,6 +443,13 @@ func _resolve_attack_style() -> StringName:
 	var weapon_name: String = _weapon_name()
 	var heavy_pressed: bool = Input.is_action_pressed(&"cleave")
 	var charge_pressed: bool = Input.is_action_pressed(&"charge")
+
+	if weapon_name.contains("PISTOL"):
+		if heavy_pressed:
+			return &"pistol_aimed"
+		if charge_pressed:
+			return &"pistol_whip"
+		return &"pistol_basic"
 
 	if weapon_name.contains("BASEBALL BAT"):
 		if heavy_pressed:
@@ -376,6 +472,8 @@ func _resolve_attack_style() -> StringName:
 	return &"unarmed_basic"
 
 func _weapon_name() -> String:
+	if _actor != null and _actor.has_meta("equipped_weapon_name"):
+		return str(_actor.get_meta("equipped_weapon_name"))
 	if _actor != null and _actor.has_method("get_equipped_weapon_name"):
 		return str(_actor.call("get_equipped_weapon_name"))
 	return "UNARMED"
