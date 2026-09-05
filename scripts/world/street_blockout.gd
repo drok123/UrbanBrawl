@@ -1,6 +1,7 @@
 extends Node3D
 
 func _ready() -> void:
+	GameSession.set_territory(GameSession.Territory.POLICE)
 	_build_ground()
 	_build_blocks()
 	_build_dealer_corner()
@@ -39,8 +40,8 @@ func _build_dealer_corner() -> void:
 
 	_add_visual_box(dealer_root, Vector3(0.75, 1.15, 0.45), Vector3(0.0, 1.15, 0.0), Color(0.12, 0.12, 0.14, 1.0))
 	_add_visual_sphere(dealer_root, 0.28, Vector3(0.0, 1.95, 0.0), Color(0.20, 0.15, 0.12, 1.0))
-	_add_label("STREET ARMS DEALER\nNO MENU — BUY OFF THE TABLE", Vector3(10.6, 2.75, 2.2), Color(1.0, 0.70, 0.30, 1.0))
-	_add_label("BANK / HEIST SETUP\nCOMING THROUGH ACTIVITY SYSTEM", Vector3(-10.5, 2.1, -5.0), Color(0.56, 0.78, 1.0, 1.0))
+	_add_label("STREET ARMS DEALER\nPOLICE TERRITORY", Vector3(10.6, 2.75, 2.2), Color(1.0, 0.70, 0.30, 1.0))
+	_add_label("FFA ENTRANCE\nWEST SIDE", Vector3(-10.5, 2.1, -5.0), Color(0.56, 0.78, 1.0, 1.0))
 
 func _add_static_box(node_name: String, size: Vector3, position_value: Vector3, color: Color) -> void:
 	var body: StaticBody3D = StaticBody3D.new()
@@ -93,7 +94,8 @@ func _add_label(value: String, position_value: Vector3, color: Color) -> void:
 	label.text = value
 	label.position = position_value
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.font_size = 24
-	label.outline_size = 7
+	label.font_size = 32
+	label.outline_size = 9
+	label.pixel_size = 0.008
 	label.modulate = color
 	add_child(label)
