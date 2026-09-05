@@ -3,6 +3,7 @@ extends CharacterBody3D
 @export var move_speed: float = 7.0
 @export var acceleration: float = 30.0
 @export var rotation_speed: float = 18.0
+@export var interaction_radius: float = 2.2
 
 @export_category("Survivability")
 @export var max_health: float = 500.0
@@ -22,6 +23,10 @@ enum CombatPhase {
 	ACTIVE,
 	RECOVERY,
 }
+
+var _unarmed_basic: CombatAbility = preload("res://resources/abilities/basic_attack.tres") as CombatAbility
+var _unarmed_cleave: CombatAbility = preload("res://resources/abilities/heavy_cleave.tres") as CombatAbility
+var _unarmed_charge: CombatAbility = preload("res://resources/abilities/shoulder_charge.tres") as CombatAbility
 
 var basic_ability: CombatAbility = preload("res://resources/abilities/basic_attack.tres") as CombatAbility
 var cleave_ability: CombatAbility = preload("res://resources/abilities/heavy_cleave.tres") as CombatAbility
@@ -50,15 +55,16 @@ var _hitstop_left: float = 0.0
 
 var _hitbox: MeleeHitbox3D = null
 var _telegraph: MeshInstance3D = null
+var _held_weapon_visual: Node3D = null
+var _equipped_item: Item = null
+var _equipped_profile: WeaponCombatProfile = null
 
 func _ready() -> void:
 	add_to_group("damageable")
 	_ensure_input_actions()
 	_spawn_position = global_position
 	health = max_health
-	_cooldowns[basic_ability.ability_id] = 0.0
-	_cooldowns[cleave_ability.ability_id] = 0.0
-	_cooldowns[charge_ability.ability_id] = 0.0
+	_reset_combat_cooldowns()
 	_setup_hitbox()
 
 func _physics_process(delta: float) -> void:
@@ -83,6 +89,7 @@ func _physics_process(delta: float) -> void:
 
 	if _stun_left <= 0.0:
 		_advance_combat_state(delta)
+		_handle_weapon_input()
 		_handle_combat_input()
 
 	if _stun_left > 0.0:
@@ -120,10 +127,12 @@ func is_invulnerable() -> bool:
 	return _invulnerable_left > 0.0 or _dead
 
 func _die() -> void:
+	_cancel_current_ability()
+	if _equipped_item != null:
+		drop_equipped_weapon(0.75)
 	_dead = true
 	_respawn_left = respawn_delay
 	velocity = Vector3.ZERO
-	_cancel_current_ability()
 	_hitbox.deactivate()
 
 	var mesh: MeshInstance3D = get_node_or_null("Mesh") as MeshInstance3D
@@ -140,13 +149,14 @@ func _reset_after_death() -> void:
 	health = max_health
 	velocity = Vector3.ZERO
 	global_position = _spawn_position
+	_set_unarmed_loadout()
 
 	var mesh: MeshInstance3D = get_node_or_null("Mesh") as MeshInstance3D
 	if mesh != null:
 		mesh.scale = Vector3.ONE
 
 func _tick_cooldowns(delta: float) -> void:
-	for key in _cooldowns.keys():
+	for key: Variant in _cooldowns.keys():
 		_cooldowns[key] = maxf(float(_cooldowns[key]) - delta, 0.0)
 
 func _update_movement(delta: float, speed_multiplier: float = 1.0) -> void:
@@ -161,6 +171,122 @@ func _update_movement(delta: float, speed_multiplier: float = 1.0) -> void:
 
 func _movement_input() -> Vector2:
 	return Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
+
+func _handle_weapon_input() -> void:
+	if not Input.is_action_just_pressed(&"interact"):
+		return
+	if _current_ability != null or _dash_time_left > 0.0 or _stun_left > 0.0 or _dead:
+		return
+
+	var pickup: WorldWeaponPickup3D = _nearest_weapon_pickup()
+	if pickup != null:
+		var profile: WeaponCombatProfile = pickup.get_profile()
+		if profile == null:
+			return
+		if _equipped_item != null:
+			drop_equipped_weapon(0.75)
+		var item: Item = pickup.take_item()
+		if item != null:
+			equip_weapon(item, profile)
+		return
+
+	if _equipped_item != null:
+		drop_equipped_weapon()
+
+func _nearest_weapon_pickup() -> WorldWeaponPickup3D:
+	var nearest: WorldWeaponPickup3D = null
+	var best_distance_sq: float = interaction_radius * interaction_radius
+	for node: Node in get_tree().get_nodes_in_group("weapon_pickup"):
+		var pickup: WorldWeaponPickup3D = node as WorldWeaponPickup3D
+		if pickup == null or not pickup.is_available():
+			continue
+		var distance_sq: float = global_position.distance_squared_to(pickup.global_position)
+		if distance_sq <= best_distance_sq:
+			best_distance_sq = distance_sq
+			nearest = pickup
+	return nearest
+
+func equip_weapon(item: Item, profile: WeaponCombatProfile) -> bool:
+	if item == null or profile == null:
+		return false
+	if profile.basic_ability == null or profile.secondary_ability == null or profile.utility_ability == null:
+		return false
+
+	_equipped_item = item
+	_equipped_profile = profile
+	basic_ability = WeaponItemRules.resolved_ability(profile.basic_ability, item, profile)
+	cleave_ability = WeaponItemRules.resolved_ability(profile.secondary_ability, item, profile)
+	charge_ability = WeaponItemRules.resolved_ability(profile.utility_ability, item, profile)
+	_reset_combat_cooldowns()
+	_create_held_weapon_visual()
+	return true
+
+func drop_equipped_weapon(drop_distance: float = 1.25) -> void:
+	if _equipped_item == null or _equipped_profile == null:
+		return
+
+	var item_to_drop: Item = _equipped_item
+	var profile_to_drop: WeaponCombatProfile = _equipped_profile
+	_set_unarmed_loadout()
+
+	var pickup: WorldWeaponPickup3D = WorldWeaponPickup3D.new()
+	pickup.name = "DroppedWeapon"
+	pickup.base_item = item_to_drop.base
+	pickup.combat_profile = profile_to_drop
+	pickup.item_instance = item_to_drop
+
+	var parent_3d: Node3D = get_parent() as Node3D
+	if parent_3d == null:
+		return
+	parent_3d.add_child(pickup)
+	var forward: Vector3 = -global_transform.basis.z.normalized()
+	pickup.global_position = global_position + forward * drop_distance
+	pickup.global_position.y = 0.18
+
+func _set_unarmed_loadout() -> void:
+	_equipped_item = null
+	_equipped_profile = null
+	basic_ability = _unarmed_basic
+	cleave_ability = _unarmed_cleave
+	charge_ability = _unarmed_charge
+	_reset_combat_cooldowns()
+	_clear_held_weapon_visual()
+
+func _reset_combat_cooldowns() -> void:
+	_cooldowns[&"basic"] = 0.0
+	_cooldowns[&"cleave"] = 0.0
+	_cooldowns[&"charge"] = 0.0
+
+func _create_held_weapon_visual() -> void:
+	_clear_held_weapon_visual()
+	if _equipped_profile == null:
+		return
+
+	var root: Node3D = Node3D.new()
+	root.name = "HeldWeapon"
+	root.position = Vector3(0.46, 0.28, -0.38)
+	root.rotation_degrees = Vector3(0.0, 0.0, -28.0)
+	add_child(root)
+
+	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
+	var cylinder: CylinderMesh = CylinderMesh.new()
+	cylinder.top_radius = maxf(_equipped_profile.held_width * 0.42, 0.035)
+	cylinder.bottom_radius = maxf(_equipped_profile.held_width * 0.58, 0.045)
+	cylinder.height = _equipped_profile.held_length
+	cylinder.radial_segments = 12
+	mesh_instance.mesh = cylinder
+
+	var material: StandardMaterial3D = StandardMaterial3D.new()
+	material.albedo_color = _equipped_profile.held_color
+	material.roughness = 0.70
+	mesh_instance.material_override = material
+	root.add_child(mesh_instance)
+	_held_weapon_visual = root
+
+func _clear_held_weapon_visual() -> void:
+	if _held_weapon_visual != null and is_instance_valid(_held_weapon_visual):
+		_held_weapon_visual.queue_free()
+	_held_weapon_visual = null
 
 func _handle_combat_input() -> void:
 	if _current_ability != null or _dash_time_left > 0.0 or _stun_left > 0.0 or _dead:
@@ -400,6 +526,26 @@ func get_health() -> float:
 func get_max_health() -> float:
 	return max_health
 
+func get_ability_display_name(ability_id: StringName) -> String:
+	match ability_id:
+		&"basic":
+			return basic_ability.display_name.to_upper()
+		&"cleave":
+			return cleave_ability.display_name.to_upper()
+		&"charge":
+			return charge_ability.display_name.to_upper()
+	return "ABILITY"
+
+func get_equipped_weapon_name() -> String:
+	if _equipped_item == null or _equipped_item.base == null:
+		return "UNARMED"
+	return "%s %s" % [WeaponItemRules.rarity_name(_equipped_item).to_upper(), _equipped_item.base.name.to_upper()]
+
+func get_weapon_rarity_id() -> StringName:
+	if _equipped_item == null:
+		return &"common"
+	return StringName(WeaponItemRules.rarity_name(_equipped_item).to_lower())
+
 func _update_aim(delta: float) -> void:
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera == null:
@@ -434,6 +580,7 @@ func _ensure_input_actions() -> void:
 	_ensure_key_action(&"cleave", KEY_Q)
 	_ensure_key_action(&"charge", KEY_E)
 	_ensure_key_action(&"dash", KEY_SPACE)
+	_ensure_key_action(&"interact", KEY_F)
 	_ensure_mouse_action(&"basic_attack", MOUSE_BUTTON_LEFT)
 
 func _ensure_key_action(action: StringName, keycode: int) -> void:
