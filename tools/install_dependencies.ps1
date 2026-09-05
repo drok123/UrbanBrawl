@@ -26,8 +26,8 @@ $dependencies = @(
         Repo = "KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0"
         Tag = "672074b73ba276876a19e8816ecdc5241817ab47"
         License = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/LICENSE.txt"
-        Barbarian = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Barbarian.glb"
-        BarbarianTexture = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/barbarian_texture.png"
+        Rogue = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Rogue.glb"
+        RogueTexture = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/rogue_texture.png"
     }
 )
 
@@ -149,28 +149,28 @@ Copy-Item $beehaveSource $beehaveDestination -Recurse -Force
 # so retrieve the license separately from the exact pinned tag.
 Install-License $dependencies[1] "Beehave-LICENSE.txt"
 
-# --- KayKit animated character prototype rig ---
-# Do not use Expand-Archive for this dependency. Windows PowerShell 5.1's
-# Microsoft.PowerShell.Archive module can fail on the KayKit repository ZIP's
-# directory entries. Urban Brawl only needs the Barbarian GLB + its external texture,
-# so download those exact pinned files directly instead.
-Write-Host "Installing KayKit animated humanoid test rig..." -ForegroundColor Green
+# --- KayKit temporary animated character prototype rig ---
+# Use the empty-handed Rogue instead of the Barbarian. The Barbarian model bakes axes
+# into the character visual, which conflicts with Urban Brawl's runtime equipment system.
+# This remains a temporary test rig while Quaternius Universal Base Characters becomes
+# the long-term neutral humanoid/retargeting foundation.
+Write-Host "Installing KayKit empty-handed humanoid test rig..." -ForegroundColor Green
 $kaykitDestination = Join-Path $projectRoot "assets\third_party\kaykit_adventurers"
 Reset-Directory $kaykitDestination
 
-$kaykitBarbarian = Join-Path $kaykitDestination "Barbarian.glb"
-$kaykitTexture = Join-Path $kaykitDestination "barbarian_texture.png"
+$kaykitRogue = Join-Path $kaykitDestination "Rogue.glb"
+$kaykitTexture = Join-Path $kaykitDestination "rogue_texture.png"
 
-Write-Host "Downloading KayKit Barbarian.glb..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $dependencies[2].Barbarian -OutFile $kaykitBarbarian -UseBasicParsing
-Write-Host "Downloading KayKit barbarian_texture.png..." -ForegroundColor Cyan
-Invoke-WebRequest -Uri $dependencies[2].BarbarianTexture -OutFile $kaykitTexture -UseBasicParsing
+Write-Host "Downloading KayKit Rogue.glb..." -ForegroundColor Cyan
+Invoke-WebRequest -Uri $dependencies[2].Rogue -OutFile $kaykitRogue -UseBasicParsing
+Write-Host "Downloading KayKit rogue_texture.png..." -ForegroundColor Cyan
+Invoke-WebRequest -Uri $dependencies[2].RogueTexture -OutFile $kaykitTexture -UseBasicParsing
 
-if (-not (Test-Path $kaykitBarbarian) -or (Get-Item $kaykitBarbarian).Length -lt 100000) {
-    throw "KayKit install is incomplete or invalid; Barbarian.glb was not downloaded correctly: $kaykitBarbarian"
+if (-not (Test-Path $kaykitRogue) -or (Get-Item $kaykitRogue).Length -lt 100000) {
+    throw "KayKit install is incomplete or invalid; Rogue.glb was not downloaded correctly: $kaykitRogue"
 }
 if (-not (Test-Path $kaykitTexture) -or (Get-Item $kaykitTexture).Length -lt 1000) {
-    throw "KayKit install is incomplete or invalid; barbarian_texture.png was not downloaded correctly: $kaykitTexture"
+    throw "KayKit install is incomplete or invalid; rogue_texture.png was not downloaded correctly: $kaykitTexture"
 }
 Install-License $dependencies[2] "KayKit-Adventurers-LICENSE.txt"
 
@@ -183,7 +183,7 @@ Write-Host ""
 Write-Host "Dependencies installed successfully." -ForegroundColor Green
 Write-Host "  Oen44/Godot-Inventory @ v4.0.1a (equipment/inventory/itemization/tooltip/vendor)"
 Write-Host "  bitbrain/beehave @ v2.9.3"
-Write-Host "  KayKit Adventurers @ 672074b (Barbarian.glb + texture, direct download)"
+Write-Host "  KayKit Adventurers @ 672074b (Rogue.glb + texture, temporary neutral rig)"
 Write-Host ""
 Write-Host "Restart Godot after installation." -ForegroundColor Yellow
 Write-Host ""
