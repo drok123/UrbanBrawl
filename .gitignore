@@ -13,3 +13,24 @@ Thumbs.db
 # Local export/build output
 builds/
 exports/
+
+# Managed third-party dependencies installed by tools/install_dependencies.ps1
+# Oen44 Universal Inventory System
+scripts/equipment/
+scripts/inventory/
+scripts/itemization/
+scripts/tooltip/
+scenes/affix_pool.tscn
+scenes/equipment_slot.tscn
+scenes/inventory_slot.tscn
+scenes/inventory_system.tscn
+scenes/item_tooltip.tscn
+scenes/quantity_selector.tscn
+
+# Beehave
+addons/beehave/
+script_templates/beehave/
+
+# Dependency installer cache / licenses copied locally
+.third_party_cache/
+third_party_runtime/
