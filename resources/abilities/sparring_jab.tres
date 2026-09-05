@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"sparring_jab"
+display_name = "Sparring Jab"
+mode = 0
+cooldown = 0.72
+windup = 0.18
+active_time = 0.08
+recovery = 0.24
+damage = 42.0
+range_distance = 1.22
+radius = 0.82
+knockback = 3.8
+hitstop = 0.028
+movement_multiplier = 0.35
+self_impulse = 1.1
+telegraph_shape = 0
+telegraph_color = Color(0.95, 0.2, 0.16, 0.26)
