@@ -2,6 +2,7 @@ extends Node
 
 signal state_changed
 signal crime_committed(event: Dictionary)
+signal duty_committed(event: Dictionary)
 signal evidence_package_created(package: Dictionary)
 
 enum Faction {
@@ -37,10 +38,13 @@ var evidence: int = 0
 var police_case_value: int = 0
 var contraband_units: int = 0
 var busts: int = 0
+var arrests: int = 0
 
 var evidence_packages: Array[Dictionary] = []
 var last_crime_event: Dictionary = {}
+var last_duty_event: Dictionary = {}
 var _crime_serial: int = 0
+var _duty_serial: int = 0
 var _evidence_serial: int = 0
 
 var _weapon_equipped: bool = false
@@ -50,6 +54,9 @@ var _duty_flag_left: float = 0.0
 
 var grow_cycle_left: float = 0.0
 var grow_ready_units: int = 0
+
+var _arrest_return_left: float = -1.0
+var _arrest_fine_pending: int = 0
 
 func _process(delta: float) -> void:
 	_sync_weapon_flag_from_scene()
@@ -63,6 +70,12 @@ func _process(delta: float) -> void:
 		if grow_cycle_left <= 0.0:
 			grow_ready_units += 3
 			state_changed.emit()
+
+	if _arrest_return_left >= 0.0:
+		_arrest_return_left = maxf(_arrest_return_left - delta, 0.0)
+		if _arrest_return_left <= 0.0:
+			_arrest_return_left = -1.0
+			call_deferred("_finish_arrest_return")
 
 	if old_flag != get_flag_state():
 		state_changed.emit()
@@ -142,9 +155,29 @@ func _apply_crime_flag(heat_delta: int, evidence_delta: int, duration: float) ->
 	evidence += maxi(evidence_delta, 0)
 
 func flag_duty(duration: float = 30.0) -> void:
+	_apply_duty_flag(duration)
+	state_changed.emit()
+
+func commit_duty_action(kind: StringName, world_position: Vector3, duration: float = 30.0, metadata: Dictionary = {}) -> Dictionary:
+	_apply_duty_flag(duration)
+	_duty_serial += 1
+	var event: Dictionary = {
+		"id": _duty_serial,
+		"kind": kind,
+		"position": world_position,
+		"territory": current_territory,
+		"faction": player_faction,
+		"metadata": metadata.duplicate(true),
+		"timestamp_msec": Time.get_ticks_msec(),
+	}
+	last_duty_event = event.duplicate(true)
+	duty_committed.emit(event.duplicate(true))
+	state_changed.emit()
+	return event
+
+func _apply_duty_flag(duration: float) -> void:
 	_duty_flag_left = maxf(_duty_flag_left, maxf(duration, 0.0))
 	_combat_flag_left = maxf(_combat_flag_left, maxf(duration, 0.0))
-	state_changed.emit()
 
 func get_flag_state() -> int:
 	if _criminal_flag_left > 0.0:
@@ -248,6 +281,25 @@ func register_bust() -> void:
 	_combat_flag_left = maxf(_combat_flag_left, 4.0)
 	heat = maxi(heat - 3, 0)
 	state_changed.emit()
+
+func queue_arrest_return(delay: float = 0.65, fine_amount: int = 100) -> void:
+	arrests += 1
+	_arrest_fine_pending = maxi(fine_amount, 0)
+	_arrest_return_left = maxf(delay, 0.05)
+	state_changed.emit()
+
+func _finish_arrest_return() -> void:
+	var fine_paid: int = mini(cash, _arrest_fine_pending)
+	cash -= fine_paid
+	_arrest_fine_pending = 0
+	carried_item = null
+	carried_profile = null
+	_weapon_equipped = false
+	_criminal_flag_left = 0.0
+	_combat_flag_left = 0.0
+	_duty_flag_left = 0.0
+	state_changed.emit()
+	get_tree().change_scene_to_file("res://scenes/world/hideout.tscn")
 
 func start_grow_cycle(duration: float = 25.0) -> bool:
 	if grow_cycle_left > 0.0 or grow_ready_units > 0:
