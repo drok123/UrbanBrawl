@@ -39,9 +39,10 @@ func _build_visuals() -> void:
 	add_child(marker)
 
 	_label = Label3D.new()
-	_label.position = Vector3(0.0, 1.25, 0.0)
+	_label.position = Vector3(0.0, 1.45, 0.0)
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_label.font_size = 28
-	_label.outline_size = 7
+	_label.font_size = 42
+	_label.outline_size = 12
+	_label.pixel_size = 0.009
 	_label.text = get_interaction_prompt(null)
 	add_child(_label)
