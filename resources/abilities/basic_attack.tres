@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"basic"
+display_name = "Strike"
+mode = 0
+cooldown = 0.32
+windup = 0.075
+active_time = 0.07
+recovery = 0.14
+damage = 55.0
+range_distance = 1.28
+radius = 0.88
+knockback = 4.5
+hitstop = 0.035
+movement_multiplier = 0.58
+self_impulse = 1.6
+telegraph_shape = 0
+telegraph_color = Color(1, 0.64, 0.22, 0.22)
