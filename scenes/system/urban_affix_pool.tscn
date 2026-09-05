@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/itemization/AffixPool.gd" id="1_pool"]
+
+[node name="AffixPool" type="Node"]
+script = ExtResource("1_pool")
+affixes_path = "res://affixes/"
