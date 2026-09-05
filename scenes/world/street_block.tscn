@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/street_blockout.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
@@ -13,6 +13,7 @@
 [ext_resource type="Resource" path="res://items/pistol.tres" id="11_pistol_item"]
 [ext_resource type="Resource" path="res://resources/weapons/pistol_profile.tres" id="12_pistol_profile"]
 [ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="13_access"]
+[ext_resource type="Script" path="res://scripts/world/contraband_buyer_3d.gd" id="14_buyer"]
 
 [node name="StreetBlock" type="Node3D"]
 script = ExtResource("1_world")
@@ -47,6 +48,15 @@ title = "FFA WEAPON SCRAMBLE"
 subtitle = "F  ENTER ACTIVITY"
 marker_color = Color(0.82, 0.25, 0.22, 0.58)
 
+[node name="ContrabandBuyer" type="Node3D" parent="."]
+position = Vector3(8.8, 0, -5.8)
+script = ExtResource("14_buyer")
+units_per_sale = 1
+cash_per_unit = 180
+heat_per_sale = 8
+evidence_per_sale = 5
+criminal_flag_seconds = 30.0
+
 [node name="BatStand" type="Node3D" parent="."]
 position = Vector3(8.7, 0, 4.1)
 script = ExtResource("5_vendor")
@@ -79,26 +89,26 @@ prompt_label_path = NodePath("InteractionPrompt")
 [node name="Status" type="Label" parent="HUD"]
 offset_left = 30.0
 offset_top = 24.0
-offset_right = 1500.0
-offset_bottom = 112.0
+offset_right = 1570.0
+offset_bottom = 156.0
 theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 28
 script = ExtResource("6_hud")
 player_path = NodePath("../../Player")
-location_name = "SOUTH BLOCK — STREET DISTRICT"
+location_name = "SOUTH BLOCK — POLICE TERRITORY"
 
 [node name="Instructions" type="Label" parent="HUD"]
 offset_left = 30.0
-offset_top = 122.0
-offset_right = 1560.0
-offset_bottom = 176.0
+offset_top = 165.0
+offset_right = 1570.0
+offset_bottom = 225.0
 theme_override_colors/font_color = Color(0.88, 0.90, 0.94, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 22
-text = "F: interact / buy / enter    Dealer: east sidewalk    Hideout + FFA: west side    F11 or ALT+ENTER: fullscreen"
+theme_override_font_sizes/font_size = 21
+text = "CONTRABAND FACTION: sell product to the buyer on the northeast block. Sales pay cash + CRIMINAL FLAG + HEAT + EVIDENCE. Any equipped weapon = COMBAT FLAGGED."
 
 [node name="InteractionPrompt" type="Label" parent="HUD"]
 offset_left = 220.0
