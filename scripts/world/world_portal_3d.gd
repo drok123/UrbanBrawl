@@ -17,11 +17,17 @@ func interact(actor: Node) -> void:
 		return
 	if actor != null:
 		GameSession.capture_player(actor)
-	var error: Error = get_tree().change_scene_to_file(target_scene)
+	var resolved_target: String = target_scene
+	if GameSession.ffa_active:
+		GameSession.finish_ffa(false)
+		resolved_target = "res://scenes/world/city_world.tscn"
+	var error: Error = get_tree().change_scene_to_file(resolved_target)
 	if error != OK:
-		push_error("Failed to change scene to %s (error %d)" % [target_scene, error])
+		push_error("Failed to change scene to %s (error %d)" % [resolved_target, error])
 
 func get_interaction_prompt(_actor: Node) -> String:
+	if GameSession.ffa_active:
+		return "LEAVE FFA\nF  FORFEIT ROUND"
 	return "%s\n%s" % [title, subtitle]
 
 func _build_visuals() -> void:
