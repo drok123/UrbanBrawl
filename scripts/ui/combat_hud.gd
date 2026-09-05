@@ -25,7 +25,7 @@ func _process(delta: float) -> void:
 	if _ffa_finished:
 		_ffa_return_left = maxf(_ffa_return_left - delta, 0.0)
 		if _ffa_return_left <= 0.0:
-			get_tree().change_scene_to_file("res://scenes/world/street_block.tscn")
+			get_tree().change_scene_to_file("res://scenes/world/city_world.tscn")
 		return
 
 	if _player == null:
