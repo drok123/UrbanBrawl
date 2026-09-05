@@ -1,0 +1,129 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="2_camera"]
+
+[sub_resource type="StandardMaterial3D" id="FloorMaterial"]
+albedo_color = Color(0.16, 0.175, 0.19, 1)
+roughness = 0.92
+
+[sub_resource type="BoxMesh" id="FloorMesh"]
+material = SubResource("FloorMaterial")
+size = Vector3(28, 0.2, 20)
+
+[sub_resource type="BoxShape3D" id="FloorShape"]
+size = Vector3(28, 0.2, 20)
+
+[sub_resource type="StandardMaterial3D" id="WallMaterial"]
+albedo_color = Color(0.28, 0.3, 0.33, 1)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="WallMeshLong"]
+material = SubResource("WallMaterial")
+size = Vector3(28, 1.5, 0.7)
+
+[sub_resource type="BoxShape3D" id="WallShapeLong"]
+size = Vector3(28, 1.5, 0.7)
+
+[sub_resource type="BoxMesh" id="WallMeshShort"]
+material = SubResource("WallMaterial")
+size = Vector3(0.7, 1.5, 20)
+
+[sub_resource type="BoxShape3D" id="WallShapeShort"]
+size = Vector3(0.7, 1.5, 20)
+
+[sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
+albedo_color = Color(0.78, 0.82, 0.88, 1)
+metallic = 0.05
+roughness = 0.58
+
+[sub_resource type="CapsuleMesh" id="PlayerMesh"]
+material = SubResource("PlayerMaterial")
+radius = 0.48
+height = 1.9
+
+[sub_resource type="CapsuleShape3D" id="PlayerShape"]
+radius = 0.48
+height = 1.9
+
+[node name="CombatLab" type="Node3D"]
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -30, 0)
+light_energy = 1.15
+shadow_enabled = true
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("FloorMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("FloorShape")
+
+[node name="NorthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 0.75, -10)
+
+[node name="Mesh" type="MeshInstance3D" parent="NorthWall"]
+mesh = SubResource("WallMeshLong")
+
+[node name="Collision" type="CollisionShape3D" parent="NorthWall"]
+shape = SubResource("WallShapeLong")
+
+[node name="SouthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 0.75, 10)
+
+[node name="Mesh" type="MeshInstance3D" parent="SouthWall"]
+mesh = SubResource("WallMeshLong")
+
+[node name="Collision" type="CollisionShape3D" parent="SouthWall"]
+shape = SubResource("WallShapeLong")
+
+[node name="WestWall" type="StaticBody3D" parent="."]
+position = Vector3(-14, 0.75, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="WestWall"]
+mesh = SubResource("WallMeshShort")
+
+[node name="Collision" type="CollisionShape3D" parent="WestWall"]
+shape = SubResource("WallShapeShort")
+
+[node name="EastWall" type="StaticBody3D" parent="."]
+position = Vector3(14, 0.75, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="EastWall"]
+mesh = SubResource("WallMeshShort")
+
+[node name="Collision" type="CollisionShape3D" parent="EastWall"]
+shape = SubResource("WallShapeShort")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+position = Vector3(0, 0.95, 0)
+script = ExtResource("1_player")
+
+[node name="Mesh" type="MeshInstance3D" parent="Player"]
+mesh = SubResource("PlayerMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="Player"]
+shape = SubResource("PlayerShape")
+
+[node name="FacingMarker" type="MeshInstance3D" parent="Player"]
+position = Vector3(0, 0.15, -0.72)
+scale = Vector3(0.2, 0.2, 0.65)
+mesh = SubResource("PlayerMesh")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 15, 13)
+current = true
+script = ExtResource("2_camera")
+target_path = NodePath("../Player")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Instructions" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 560.0
+offset_bottom = 76.0
+theme_override_font_sizes/font_size = 20
+text = "URBAN BRAWL — COMBAT LAB\nWASD: move    Mouse: aim"
