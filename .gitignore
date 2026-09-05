@@ -1,0 +1,15 @@
+# Godot 4 generated files
+.godot/
+
+# Mono / C# build output if we add it later
+.mono/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+
+# Local export/build output
+builds/
+exports/
