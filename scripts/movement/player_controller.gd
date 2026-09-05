@@ -38,6 +38,7 @@ var _hitbox: MeleeHitbox3D = null
 var _telegraph: MeshInstance3D = null
 
 func _ready() -> void:
+	_ensure_input_actions()
 	_cooldowns[basic_ability.ability_id] = 0.0
 	_cooldowns[cleave_ability.ability_id] = 0.0
 	_cooldowns[charge_ability.ability_id] = 0.0
@@ -84,35 +85,25 @@ func _update_movement(delta: float, speed_multiplier: float = 1.0) -> void:
 	velocity.y = 0.0
 
 func _movement_input() -> Vector2:
-	var input: Vector2 = Vector2.ZERO
-	if Input.is_key_pressed(KEY_A):
-		input.x -= 1.0
-	if Input.is_key_pressed(KEY_D):
-		input.x += 1.0
-	if Input.is_key_pressed(KEY_W):
-		input.y -= 1.0
-	if Input.is_key_pressed(KEY_S):
-		input.y += 1.0
-	return input.normalized()
+	return Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 
 func _handle_combat_input() -> void:
 	if _current_ability != null or _dash_time_left > 0.0:
 		return
 
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and get_cooldown_remaining(&"basic") <= 0.0:
+	if Input.is_action_pressed(&"basic_attack") and get_cooldown_remaining(&"basic") <= 0.0:
 		_start_ability(basic_ability)
 		return
 
-	if Input.is_key_pressed(KEY_Q) and get_cooldown_remaining(&"cleave") <= 0.0:
+	if Input.is_action_just_pressed(&"cleave") and get_cooldown_remaining(&"cleave") <= 0.0:
 		_start_ability(cleave_ability)
 		return
 
-	# E is used for the shoulder charge because W remains movement.
-	if Input.is_key_pressed(KEY_E) and get_cooldown_remaining(&"charge") <= 0.0:
+	if Input.is_action_just_pressed(&"charge") and get_cooldown_remaining(&"charge") <= 0.0:
 		_start_ability(charge_ability)
 		return
 
-	if Input.is_key_pressed(KEY_SPACE) and _dash_cooldown_left <= 0.0:
+	if Input.is_action_just_pressed(&"dash") and _dash_cooldown_left <= 0.0:
 		_start_dash()
 
 func _start_ability(ability: CombatAbility) -> void:
@@ -310,7 +301,7 @@ func get_dash_cooldown_remaining() -> float:
 	return _dash_cooldown_left
 
 func get_combat_phase_name() -> String:
-	return CombatPhase.keys()[_combat_phase]
+	return str(CombatPhase.keys()[_combat_phase])
 
 func _update_aim(delta: float) -> void:
 	var camera: Camera3D = get_viewport().get_camera_3d()
@@ -337,3 +328,31 @@ func _update_aim(delta: float) -> void:
 
 	var target_yaw: float = atan2(-flat_direction.x, -flat_direction.z)
 	rotation.y = lerp_angle(rotation.y, target_yaw, clampf(rotation_speed * delta, 0.0, 1.0))
+
+func _ensure_input_actions() -> void:
+	_ensure_key_action(&"move_left", KEY_A)
+	_ensure_key_action(&"move_right", KEY_D)
+	_ensure_key_action(&"move_up", KEY_W)
+	_ensure_key_action(&"move_down", KEY_S)
+	_ensure_key_action(&"cleave", KEY_Q)
+	_ensure_key_action(&"charge", KEY_E)
+	_ensure_key_action(&"dash", KEY_SPACE)
+	_ensure_mouse_action(&"basic_attack", MOUSE_BUTTON_LEFT)
+
+func _ensure_key_action(action: StringName, keycode: int) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	if not InputMap.action_get_events(action).is_empty():
+		return
+	var event: InputEventKey = InputEventKey.new()
+	event.keycode = keycode
+	InputMap.action_add_event(action, event)
+
+func _ensure_mouse_action(action: StringName, button_index: int) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	if not InputMap.action_get_events(action).is_empty():
+		return
+	var event: InputEventMouseButton = InputEventMouseButton.new()
+	event.button_index = button_index
+	InputMap.action_add_event(action, event)
