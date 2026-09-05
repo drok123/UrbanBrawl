@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"charge"
+display_name = "Shoulder Charge"
+mode = 1
+cooldown = 3.6
+windup = 0.16
+active_time = 0.26
+recovery = 0.24
+damage = 82.0
+range_distance = 0.70
+radius = 0.72
+knockback = 11.5
+hitstop = 0.05
+wall_stun_window = 0.70
+movement_multiplier = 0.0
+charge_speed = 16.5
+telegraph_shape = 1
+telegraph_length = 4.8
+telegraph_color = Color(0.95, 0.72, 0.18, 0.24)
