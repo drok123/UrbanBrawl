@@ -9,6 +9,12 @@ config_version=5
 config/name="Urban Brawl"
 run/main_scene="res://scenes/arena/combat_lab.tscn"
 
+[autoload]
+
+InventorySystem="*res://scenes/system/urban_inventory_system.tscn"
+AffixPool="*res://scenes/system/urban_affix_pool.tscn"
+ItemTooltip="*res://scenes/item_tooltip.tscn"
+
 [display]
 
 window/size/viewport_width=1600
@@ -16,6 +22,10 @@ window/size/viewport_height=900
 window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/beehave/plugin.cfg")
 
 [rendering]
 
