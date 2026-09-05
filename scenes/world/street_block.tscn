@@ -17,6 +17,11 @@
 
 [node name="StreetBlock" type="Node3D"]
 script = ExtResource("1_world")
+territory_id = 3
+district_name = "SOUTH BLOCK"
+territory_label = "POLICE TERRITORY"
+contact_label = "STREET ARMS DEALER"
+contact_color = Color(1, 0.70, 0.30, 1)
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-52, -35, 0)
@@ -47,6 +52,22 @@ target_scene = "res://scenes/arena/combat_lab.tscn"
 title = "FFA WEAPON SCRAMBLE"
 subtitle = "F  ENTER ACTIVITY"
 marker_color = Color(0.82, 0.25, 0.22, 0.58)
+
+[node name="ContrabandTransit" type="Node3D" parent="."]
+position = Vector3(-2.8, 0, -8.2)
+script = ExtResource("4_portal")
+target_scene = "res://scenes/world/contraband_block.tscn"
+title = "NORTH BLOCK"
+subtitle = "F  CONTRABAND TERRITORY"
+marker_color = Color(0.22, 0.78, 0.36, 0.58)
+
+[node name="ArmsTransit" type="Node3D" parent="."]
+position = Vector3(2.8, 0, -8.2)
+script = ExtResource("4_portal")
+target_scene = "res://scenes/world/arms_block.tscn"
+title = "FOUNDRY BLOCK"
+subtitle = "F  ARMS TERRITORY"
+marker_color = Color(0.92, 0.42, 0.20, 0.58)
 
 [node name="ContrabandBuyer" type="Node3D" parent="."]
 position = Vector3(8.8, 0, -5.8)
@@ -108,7 +129,7 @@ theme_override_colors/font_color = Color(0.88, 0.90, 0.94, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 21
-text = "CONTRABAND FACTION: sell product to the buyer on the northeast block. Sales pay cash + CRIMINAL FLAG + HEAT + EVIDENCE. Any equipped weapon = COMBAT FLAGGED."
+text = "CONTRABAND sells here. NORTH BLOCK = contraband turf for ARMS gunrunning. FOUNDRY BLOCK = arms turf for POLICE interdiction. Equipped weapon = COMBAT FLAG."
 
 [node name="InteractionPrompt" type="Label" parent="HUD"]
 offset_left = 220.0
@@ -119,6 +140,5 @@ theme_override_colors/font_color = Color(1, 0.96, 0.78, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 34
-text = "F11 / ALT+ENTER   FULLSCREEN"
 horizontal_alignment = 1
 vertical_alignment = 1
