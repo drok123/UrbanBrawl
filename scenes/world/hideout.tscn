@@ -1,0 +1,58 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/hideout_blockout.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/world/world_portal_3d.gd" id="4_portal"]
+[ext_resource type="Script" path="res://scripts/world/stash_rack_3d.gd" id="5_stash"]
+[ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="6_hud"]
+
+[node name="Hideout" type="Node3D"]
+script = ExtResource("1_world")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -25, 0)
+light_energy = 1.05
+shadow_enabled = true
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector3(0, 0.95, 3.2)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 15, 13)
+current = true
+script = ExtResource("3_camera")
+target_path = NodePath("../Player")
+
+[node name="StashRack" type="Node3D" parent="."]
+position = Vector3(-5.4, 0, 0.7)
+script = ExtResource("5_stash")
+
+[node name="StreetExit" type="Node3D" parent="."]
+position = Vector3(0, 0, -5.4)
+script = ExtResource("4_portal")
+target_scene = "res://scenes/world/street_block.tscn"
+title = "HIDEOUT EXIT"
+subtitle = "F  GO TO STREET"
+marker_color = Color(0.20, 0.62, 1, 0.55)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 1050.0
+offset_bottom = 82.0
+theme_override_font_sizes/font_size = 22
+script = ExtResource("6_hud")
+player_path = NodePath("../../Player")
+location_name = "HIDEOUT — HOME TURF"
+
+[node name="Instructions" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 92.0
+offset_right = 1200.0
+offset_bottom = 142.0
+theme_override_colors/font_color = Color(0.72, 0.76, 0.82, 1)
+theme_override_font_sizes/font_size = 17
+text = "F: interact / stash / door    WASD: move    Mouse: aim    LMB/Q/E: fight    SPACE: dash"
