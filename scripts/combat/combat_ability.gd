@@ -4,6 +4,7 @@ extends Resource
 enum AbilityMode {
 	MELEE,
 	CHARGE,
+	RANGED,
 }
 
 enum TelegraphShape {
