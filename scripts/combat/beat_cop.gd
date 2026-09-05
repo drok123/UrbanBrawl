@@ -265,6 +265,8 @@ func _reset_after_death() -> void:
 	_flash_status("BACK ON PATROL")
 
 func _try_bust() -> void:
+	if GameSession.is_arrest_pending():
+		return
 	if not _engaged or _bust_processed or _target == null:
 		return
 	if not _is_target_down():
