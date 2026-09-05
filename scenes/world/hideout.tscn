@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/hideout_blockout.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/world/faction_terminal_3d.gd" id="8_faction"]
 [ext_resource type="Script" path="res://scripts/world/grow_operation_3d.gd" id="9_grow"]
 [ext_resource type="Script" path="res://scripts/world/police_case_board_3d.gd" id="10_case"]
+[ext_resource type="Script" path="res://scripts/world/police_warrant_desk_3d.gd" id="11_warrant"]
 
 [node name="Hideout" type="Node3D"]
 script = ExtResource("1_world")
@@ -41,6 +42,10 @@ cycle_seconds = 25.0
 position = Vector3(5.2, 0, 3.2)
 rotation_degrees = Vector3(0, -20, 0)
 script = ExtResource("10_case")
+
+[node name="PoliceWarrantDesk" type="Node3D" parent="."]
+position = Vector3(2.4, 0, 4.7)
+script = ExtResource("11_warrant")
 
 [node name="ArmsFaction" type="Node3D" parent="."]
 position = Vector3(-6.4, 0, 4.7)
