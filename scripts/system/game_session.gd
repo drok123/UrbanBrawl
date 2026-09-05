@@ -1,6 +1,8 @@
 extends Node
 
 signal state_changed
+signal crime_committed(event: Dictionary)
+signal evidence_package_created(package: Dictionary)
 
 enum Faction {
 	NONE,
@@ -34,6 +36,12 @@ var heat: int = 0
 var evidence: int = 0
 var police_case_value: int = 0
 var contraband_units: int = 0
+var busts: int = 0
+
+var evidence_packages: Array[Dictionary] = []
+var last_crime_event: Dictionary = {}
+var _crime_serial: int = 0
+var _evidence_serial: int = 0
 
 var _weapon_equipped: bool = false
 var _combat_flag_left: float = 0.0
@@ -105,11 +113,33 @@ func flag_combat(duration: float = 15.0) -> void:
 	state_changed.emit()
 
 func flag_crime(heat_delta: int = 5, evidence_delta: int = 3, duration: float = 30.0) -> void:
+	_apply_crime_flag(heat_delta, evidence_delta, duration)
+	state_changed.emit()
+
+func commit_crime(kind: StringName, world_position: Vector3, heat_delta: int = 5, evidence_delta: int = 3, duration: float = 30.0, metadata: Dictionary = {}) -> Dictionary:
+	_apply_crime_flag(heat_delta, evidence_delta, duration)
+	_crime_serial += 1
+	var event: Dictionary = {
+		"id": _crime_serial,
+		"kind": kind,
+		"position": world_position,
+		"territory": current_territory,
+		"faction": player_faction,
+		"heat": maxi(heat_delta, 0),
+		"evidence": maxi(evidence_delta, 0),
+		"metadata": metadata.duplicate(true),
+		"timestamp_msec": Time.get_ticks_msec(),
+	}
+	last_crime_event = event.duplicate(true)
+	crime_committed.emit(event.duplicate(true))
+	state_changed.emit()
+	return event
+
+func _apply_crime_flag(heat_delta: int, evidence_delta: int, duration: float) -> void:
 	_criminal_flag_left = maxf(_criminal_flag_left, maxf(duration, 0.0))
 	_combat_flag_left = maxf(_combat_flag_left, maxf(duration, 0.0))
 	heat += maxi(heat_delta, 0)
 	evidence += maxi(evidence_delta, 0)
-	state_changed.emit()
 
 func flag_duty(duration: float = 30.0) -> void:
 	_duty_flag_left = maxf(_duty_flag_left, maxf(duration, 0.0))
@@ -168,8 +198,50 @@ func spend_contraband(amount: int) -> bool:
 	state_changed.emit()
 	return true
 
+func seize_contraband(max_units: int = 999999) -> int:
+	var seized: int = mini(contraband_units, maxi(max_units, 0))
+	contraband_units -= seized
+	state_changed.emit()
+	return seized
+
 func add_case_value(amount: int) -> void:
 	police_case_value += maxi(amount, 0)
+	state_changed.emit()
+
+func create_evidence_package(crime_event: Dictionary, seized_units: int = 0, seized_weapon: String = "") -> Dictionary:
+	if crime_event.is_empty():
+		return {}
+	_evidence_serial += 1
+	var metadata_value: Variant = crime_event.get("metadata", {})
+	var metadata: Dictionary = metadata_value as Dictionary if metadata_value is Dictionary else {}
+	var event_evidence: int = int(crime_event.get("evidence", 0))
+	var event_value: int = int(metadata.get("street_value", 0))
+	var case_value: int = maxi(event_evidence * 2 + maxi(seized_units, 0) * 5 + int(round(float(event_value) / 80.0)), 1)
+	var package: Dictionary = {
+		"id": _evidence_serial,
+		"crime_id": int(crime_event.get("id", 0)),
+		"kind": crime_event.get("kind", &"unknown"),
+		"territory": int(crime_event.get("territory", Territory.NEUTRAL)),
+		"suspect_faction": int(crime_event.get("faction", Faction.NONE)),
+		"seized_units": maxi(seized_units, 0),
+		"seized_weapon": seized_weapon,
+		"case_value": case_value,
+		"confidence": 1.0,
+		"timestamp_msec": Time.get_ticks_msec(),
+		"metadata": metadata.duplicate(true),
+	}
+	evidence_packages.append(package)
+	if evidence_packages.size() > 24:
+		evidence_packages.pop_front()
+	add_case_value(case_value)
+	evidence_package_created.emit(package.duplicate(true))
+	return package
+
+func register_bust() -> void:
+	busts += 1
+	_criminal_flag_left = 0.0
+	_combat_flag_left = maxf(_combat_flag_left, 4.0)
+	heat = maxi(heat - 3, 0)
 	state_changed.emit()
 
 func start_grow_cycle(duration: float = 25.0) -> bool:
