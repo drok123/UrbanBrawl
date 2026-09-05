@@ -52,28 +52,17 @@ player_path = NodePath("../Player")
 prompt_label_path = NodePath("InteractionPrompt")
 
 [node name="Status" type="Label" parent="HUD"]
-offset_left = 30.0
-offset_top = 24.0
-offset_right = 1570.0
-offset_bottom = 156.0
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 900.0
+offset_bottom = 58.0
 theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 28
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
 script = ExtResource("5_hud")
 player_path = NodePath("../../Player")
-location_name = "FOUNDRY BLOCK — ARMS TERRITORY"
-
-[node name="Instructions" type="Label" parent="HUD"]
-offset_left = 30.0
-offset_top = 165.0
-offset_right = 1570.0
-offset_bottom = 225.0
-theme_override_colors/font_color = Color(0.88, 0.90, 0.94, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 21
-text = "POLICE FACTION: hit the illegal weapon cache to begin interdiction. Enforcement = DUTY FLAG + cash + CASE VALUE, so criminals can fight back."
+location_name = "FOUNDRY BLOCK"
 
 [node name="InteractionPrompt" type="Label" parent="HUD"]
 offset_left = 220.0
