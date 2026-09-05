@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="2_camera"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/weapons/world_weapon_pickup_3d.gd" id="6_pickup"]
 [ext_resource type="Resource" path="res://items/baseball_bat.tres" id="7_bat_item"]
 [ext_resource type="Resource" path="res://resources/weapons/baseball_bat_profile.tres" id="8_bat_profile"]
+[ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="9_animation"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.16, 0.175, 0.19, 1)
@@ -133,6 +134,9 @@ script = ExtResource("1_player")
 
 [node name="Mesh" type="MeshInstance3D" parent="Player"]
 mesh = SubResource("PlayerMesh")
+
+[node name="CharacterVisual" type="Node3D" parent="Player"]
+script = ExtResource("9_animation")
 
 [node name="Collision" type="CollisionShape3D" parent="Player"]
 shape = SubResource("PlayerShape")
