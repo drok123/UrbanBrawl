@@ -1,10 +1,16 @@
 extends Node3D
 
+@export var territory_id: int = 3
+@export var district_name: String = "SOUTH BLOCK"
+@export var territory_label: String = "POLICE TERRITORY"
+@export var contact_label: String = "STREET CONTACT"
+@export var contact_color: Color = Color(1.0, 0.70, 0.30, 1.0)
+
 func _ready() -> void:
-	GameSession.set_territory(GameSession.Territory.POLICE)
+	GameSession.set_territory(territory_id)
 	_build_ground()
 	_build_blocks()
-	_build_dealer_corner()
+	_build_contact_corner()
 
 func _build_ground() -> void:
 	_add_static_box("StreetFloor", Vector3(34.0, 0.2, 22.0), Vector3(0.0, -0.1, 0.0), Color(0.10, 0.105, 0.11, 1.0))
@@ -32,16 +38,16 @@ func _build_blocks() -> void:
 	_add_static_box("Dumpster", Vector3(2.0, 1.1, 1.2), Vector3(-10.3, 0.55, 4.2), Color(0.12, 0.24, 0.20, 1.0))
 	_add_static_box("ConcreteBarrier", Vector3(2.6, 0.7, 0.55), Vector3(5.2, 0.35, -2.0), Color(0.45, 0.45, 0.43, 1.0))
 
-func _build_dealer_corner() -> void:
-	var dealer_root: Node3D = Node3D.new()
-	dealer_root.name = "DealerSilhouette"
-	dealer_root.position = Vector3(10.6, 0.0, 2.2)
-	add_child(dealer_root)
+func _build_contact_corner() -> void:
+	var contact_root: Node3D = Node3D.new()
+	contact_root.name = "StreetContactSilhouette"
+	contact_root.position = Vector3(10.6, 0.0, 2.2)
+	add_child(contact_root)
 
-	_add_visual_box(dealer_root, Vector3(0.75, 1.15, 0.45), Vector3(0.0, 1.15, 0.0), Color(0.12, 0.12, 0.14, 1.0))
-	_add_visual_sphere(dealer_root, 0.28, Vector3(0.0, 1.95, 0.0), Color(0.20, 0.15, 0.12, 1.0))
-	_add_label("STREET ARMS DEALER\nPOLICE TERRITORY", Vector3(10.6, 2.75, 2.2), Color(1.0, 0.70, 0.30, 1.0))
-	_add_label("FFA ENTRANCE\nWEST SIDE", Vector3(-10.5, 2.1, -5.0), Color(0.56, 0.78, 1.0, 1.0))
+	_add_visual_box(contact_root, Vector3(0.75, 1.15, 0.45), Vector3(0.0, 1.15, 0.0), Color(0.12, 0.12, 0.14, 1.0))
+	_add_visual_sphere(contact_root, 0.28, Vector3(0.0, 1.95, 0.0), Color(0.20, 0.15, 0.12, 1.0))
+	_add_label("%s\n%s" % [contact_label, territory_label], Vector3(10.6, 2.75, 2.2), contact_color)
+	_add_label("%s\n%s" % [district_name, territory_label], Vector3(-10.5, 2.1, -5.0), Color(0.56, 0.78, 1.0, 1.0))
 
 func _add_static_box(node_name: String, size: Vector3, position_value: Vector3, color: Color) -> void:
 	var body: StaticBody3D = StaticBody3D.new()
