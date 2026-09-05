@@ -1,0 +1,126 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/character_creation.gd" id="1_script"]
+
+[node name="CharacterCreation" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.045, 0.05, 0.06, 1)
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 360.0
+offset_top = 120.0
+offset_right = 1240.0
+offset_bottom = 790.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "URBAN BRAWL"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
+theme_override_font_sizes/font_size = 22
+text = "CREATE YOUR STREET CHARACTER"
+horizontal_alignment = 1
+
+[node name="NameEdit" type="LineEdit" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+placeholder_text = "NAME"
+text = "Brawler"
+max_length = 20
+
+[node name="FactionLabel" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "FACTION: CONTRABAND"
+horizontal_alignment = 1
+
+[node name="Factions" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Arms" type="Button" parent="Panel/VBox/Factions"]
+custom_minimum_size = Vector2(220, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "ARMS"
+
+[node name="Contraband" type="Button" parent="Panel/VBox/Factions"]
+custom_minimum_size = Vector2(220, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "CONTRABAND"
+
+[node name="Police" type="Button" parent="Panel/VBox/Factions"]
+custom_minimum_size = Vector2(220, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "POLICE"
+
+[node name="Colors" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BodySwatch" type="ColorRect" parent="Panel/VBox/Colors"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+color = Color(0.72, 0.76, 0.82, 1)
+mouse_filter = 2
+
+[node name="BodyButton" type="Button" parent="Panel/VBox/Colors"]
+custom_minimum_size = Vector2(220, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "CHANGE BODY"
+
+[node name="AccentSwatch" type="ColorRect" parent="Panel/VBox/Colors"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+color = Color(0.16, 0.17, 0.20, 1)
+mouse_filter = 2
+
+[node name="AccentButton" type="Button" parent="Panel/VBox/Colors"]
+custom_minimum_size = Vector2(220, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "CHANGE ACCENT"
+
+[node name="Status" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.80, 0.84, 1)
+theme_override_font_sizes/font_size = 20
+text = "Your faction decides your home base, foreign-profit loop and who controls your turf."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="EnterCity" type="Button" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "ENTER THE CITY"
