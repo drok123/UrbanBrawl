@@ -70,8 +70,10 @@ New-Item -ItemType Directory -Path (Join-Path $projectRoot "addons") -Force | Ou
 # --- Oen44 inventory/itemization ---
 $inventoryRoot = Download-And-Expand $dependencies[0]
 
-Write-Host "Installing inventory / itemization source..." -ForegroundColor Green
-foreach ($folder in @("equipment", "inventory", "itemization", "tooltip")) {
+Write-Host "Installing complete Oen44 runtime script set..." -ForegroundColor Green
+# InventoryModel directly references VendorInventory, so vendor/ is a required runtime
+# dependency even before Urban Brawl exposes vendor UI/gameplay.
+foreach ($folder in @("equipment", "inventory", "itemization", "tooltip", "vendor")) {
     $source = Join-Path $inventoryRoot ("scripts\" + $folder)
     $destination = Join-Path $projectRoot ("scripts\" + $folder)
 
@@ -100,6 +102,22 @@ foreach ($scene in $inventoryScenes) {
     }
     Copy-Item $sourceScene (Join-Path $projectRoot ("scenes\" + $scene)) -Force
 }
+
+# Validate cross-folder class dependencies that GDScript resolves at parse time.
+$requiredInventoryFiles = @(
+    "scripts\inventory\InventoryModel.gd",
+    "scripts\vendor\VendorInventory.gd",
+    "scripts\vendor\VendorComponent.gd",
+    "scripts\itemization\Item.gd",
+    "scripts\itemization\ItemBase.gd"
+)
+foreach ($relativePath in $requiredInventoryFiles) {
+    $absolutePath = Join-Path $projectRoot $relativePath
+    if (-not (Test-Path $absolutePath)) {
+        throw "Oen44 install is incomplete; required runtime file is missing: $absolutePath"
+    }
+}
+
 Install-License $dependencies[0] "Oen44-Godot-Inventory-LICENSE.txt"
 
 # --- Beehave ---
@@ -127,10 +145,9 @@ Remove-Item $cacheRoot -Recurse -Force
 
 Write-Host ""
 Write-Host "Dependencies installed successfully." -ForegroundColor Green
-Write-Host "  Oen44/Godot-Inventory @ v4.0.1a"
+Write-Host "  Oen44/Godot-Inventory @ v4.0.1a (equipment/inventory/itemization/tooltip/vendor)"
 Write-Host "  bitbrain/beehave @ v2.9.3"
 Write-Host ""
 Write-Host "Restart Godot after installation." -ForegroundColor Yellow
-Write-Host "The project will wire these systems into gameplay in subsequent Urban Brawl commits."
 Write-Host ""
 Read-Host "Press Enter to close"
