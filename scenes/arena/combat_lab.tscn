@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="2_camera"]
@@ -9,6 +9,8 @@
 [ext_resource type="Resource" path="res://items/baseball_bat.tres" id="7_bat_item"]
 [ext_resource type="Resource" path="res://resources/weapons/baseball_bat_profile.tres" id="8_bat_profile"]
 [ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="9_animation"]
+[ext_resource type="Resource" path="res://items/knife.tres" id="10_knife_item"]
+[ext_resource type="Resource" path="res://resources/weapons/knife_profile.tres" id="11_knife_profile"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.16, 0.175, 0.19, 1)
@@ -146,8 +148,14 @@ position = Vector3(0, 0.15, -0.72)
 scale = Vector3(0.2, 0.2, 0.65)
 mesh = SubResource("PlayerMesh")
 
+[node name="KnifePickup" type="Node3D" parent="."]
+position = Vector3(-3.2, 0.18, 0.2)
+script = ExtResource("6_pickup")
+base_item = ExtResource("10_knife_item")
+combat_profile = ExtResource("11_knife_profile")
+
 [node name="BatPickup" type="Node3D" parent="."]
-position = Vector3(0, 0.18, 0.2)
+position = Vector3(1.0, 0.18, 0.2)
 script = ExtResource("6_pickup")
 base_item = ExtResource("7_bat_item")
 combat_profile = ExtResource("8_bat_profile")
@@ -215,7 +223,7 @@ offset_top = 20.0
 offset_right = 1320.0
 offset_bottom = 108.0
 theme_override_font_sizes/font_size = 20
-text = "URBAN BRAWL — COMBAT LAB 0.5\nWEAPON SCRAMBLE: grab the rolled bat, fight with it, drop it, return to fists. Death spills equipped weapons.\nWASD: move    Mouse: aim    LMB/Q/E: attacks    SPACE: dash    F: pick up / drop weapon"
+text = "URBAN BRAWL — COMBAT LAB 0.6\nWEAPON SCRAMBLE: fists, rolled knife and rolled bat now share one pickup/equip/drop pipeline.\nWASD: move    Mouse: aim    LMB/Q/E: attacks    SPACE: dash    F: pick up / drop weapon"
 
 [node name="CombatHUD" type="Control" parent="HUD"]
 layout_mode = 3
