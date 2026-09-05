@@ -8,6 +8,7 @@ extends Control
 @onready var _charge_label: Label = $AbilityBar/Charge
 @onready var _dash_label: Label = $AbilityBar/Dash
 @onready var _phase_label: Label = $Phase
+@onready var _health_label: Label = $Health
 
 func _process(_delta: float) -> void:
 	if _player == null:
@@ -22,6 +23,10 @@ func _process(_delta: float) -> void:
 
 	var phase_name: String = str(_player.call("get_combat_phase_name"))
 	_phase_label.text = "COMBAT STATE: %s" % phase_name
+
+	var health: float = float(_player.call("get_health"))
+	var max_health: float = float(_player.call("get_max_health"))
+	_health_label.text = "YOU   %d / %d HP" % [int(health), int(max_health)]
 
 func _update_ability_label(label: Label, key_name: String, ability_name: String, ability_id: StringName) -> void:
 	var remaining: float = float(_player.call("get_cooldown_remaining", ability_id))
