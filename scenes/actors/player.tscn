@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="2_animation"]
+
+[sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
+albedo_color = Color(0.78, 0.82, 0.88, 1)
+metallic = 0.05
+roughness = 0.58
+
+[sub_resource type="CapsuleMesh" id="PlayerMesh"]
+material = SubResource("PlayerMaterial")
+radius = 0.48
+height = 1.9
+
+[sub_resource type="CapsuleShape3D" id="PlayerShape"]
+radius = 0.48
+height = 1.9
+
+[node name="Player" type="CharacterBody3D"]
+script = ExtResource("1_player")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlayerMesh")
+
+[node name="CharacterVisual" type="Node3D" parent="."]
+script = ExtResource("2_animation")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("PlayerShape")
+
+[node name="FacingMarker" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.15, -0.72)
+scale = Vector3(0.2, 0.2, 0.65)
+mesh = SubResource("PlayerMesh")
