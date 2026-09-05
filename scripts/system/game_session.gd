@@ -43,6 +43,7 @@ var grow_cycle_left: float = 0.0
 var grow_ready_units: int = 0
 
 func _process(delta: float) -> void:
+	_sync_weapon_flag_from_scene()
 	var old_flag: int = get_flag_state()
 	_combat_flag_left = maxf(_combat_flag_left - delta, 0.0)
 	_criminal_flag_left = maxf(_criminal_flag_left - delta, 0.0)
@@ -56,6 +57,18 @@ func _process(delta: float) -> void:
 
 	if old_flag != get_flag_state():
 		state_changed.emit()
+
+func _sync_weapon_flag_from_scene() -> void:
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		return
+	var player: Node = scene.get_node_or_null("Player")
+	if player == null or not player.has_method("get_equipped_item"):
+		return
+	var item_value: Variant = player.call("get_equipped_item")
+	var is_equipped: bool = item_value != null
+	if is_equipped != _weapon_equipped:
+		set_weapon_equipped(is_equipped)
 
 func spend_cash(amount: int) -> bool:
 	if amount <= 0:
