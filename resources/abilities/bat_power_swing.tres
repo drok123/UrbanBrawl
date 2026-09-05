@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"cleave"
+display_name = "Power Swing"
+mode = 0
+weapon_id = &"baseball_bat"
+damage_type = &"blunt"
+hit_location = &"body"
+gore_power = 0.88
+cooldown = 1.65
+windup = 0.29
+active_time = 0.11
+recovery = 0.36
+damage = 145.0
+range_distance = 1.82
+radius = 1.22
+knockback = 12.0
+hitstop = 0.072
+wall_stun_window = 0.32
+movement_multiplier = 0.24
+self_impulse = 2.3
+telegraph_shape = 0
+telegraph_color = Color(1.0, 0.30, 0.10, 0.30)
