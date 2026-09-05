@@ -4,8 +4,12 @@ extends Node3D
 @export var base_title: String = "FACTION BASE"
 @export var base_color: Color = Color(0.20, 0.22, 0.25, 1.0)
 @export var territory_id: int = 0
+@export var required_faction: int = 0
 
 func _ready() -> void:
+	if required_faction != GameSession.Faction.NONE and GameSession.player_faction != required_faction:
+		call_deferred("_reject_unauthorized")
+		return
 	GameSession.set_territory(territory_id)
 	_add_static_box("Floor", Vector3(18.0, 0.2, 14.0), Vector3(0.0, -0.1, 0.0), Color(0.10, 0.105, 0.11, 1.0))
 	_add_static_box("NorthWall", Vector3(18.0, 2.8, 0.35), Vector3(0.0, 1.4, -7.0), base_color)
@@ -13,6 +17,9 @@ func _ready() -> void:
 	_add_static_box("WestWall", Vector3(0.35, 2.8, 14.0), Vector3(-9.0, 1.4, 0.0), base_color)
 	_add_static_box("EastWall", Vector3(0.35, 2.8, 14.0), Vector3(9.0, 1.4, 0.0), base_color)
 	_add_label(base_title, Vector3(0.0, 2.4, -5.8), Color(0.94, 0.94, 0.92, 1.0))
+
+func _reject_unauthorized() -> void:
+	get_tree().change_scene_to_file("res://scenes/world/city_world.tscn")
 
 func _add_static_box(node_name: String, size: Vector3, position_value: Vector3, color: Color) -> void:
 	var body: StaticBody3D = StaticBody3D.new()
