@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="WeaponStatAffix" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/weapon_stat_affix.gd" id="1_affix"]
+
+[resource]
+script = ExtResource("1_affix")
+enabled = true
+hidden = false
+id = "long_reach"
+description = "+#% reach"
+weight = 70
+price_multiplier = 0.34
+stat = 3
+min_value = 4
+max_value = 10
