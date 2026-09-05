@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"charge"
+display_name = "Pistol Whip"
+mode = 0
+weapon_id = &"pistol"
+damage_type = &"blunt"
+hit_location = &"head"
+gore_power = 0.42
+cooldown = 1.15
+windup = 0.12
+active_time = 0.07
+recovery = 0.19
+damage = 46.0
+range_distance = 1.02
+radius = 0.62
+knockback = 5.5
+hitstop = 0.038
+movement_multiplier = 0.58
+self_impulse = 0.85
+telegraph_shape = 0
+telegraph_color = Color(0.96, 0.54, 0.16, 0.20)
