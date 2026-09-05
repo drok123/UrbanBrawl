@@ -1,0 +1,144 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/activities/police_raid_instance.gd" id="1_raid"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="3_camera"]
+[ext_resource type="PackedScene" path="res://scenes/actors/raid_guard.tscn" id="4_guard"]
+[ext_resource type="Script" path="res://scripts/activities/raid_seizure_objective_3d.gd" id="5_objective"]
+[ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="7_access"]
+
+[sub_resource type="StandardMaterial3D" id="FloorMaterial"]
+albedo_color = Color(0.11, 0.11, 0.12, 1)
+roughness = 0.92
+
+[sub_resource type="BoxMesh" id="FloorMesh"]
+material = SubResource("FloorMaterial")
+size = Vector3(22, 0.2, 16)
+
+[sub_resource type="BoxShape3D" id="FloorShape"]
+size = Vector3(22, 0.2, 16)
+
+[sub_resource type="StandardMaterial3D" id="WallMaterial"]
+albedo_color = Color(0.24, 0.17, 0.13, 1)
+roughness = 0.88
+
+[sub_resource type="BoxMesh" id="WallLongMesh"]
+material = SubResource("WallMaterial")
+size = Vector3(22, 1.6, 0.6)
+
+[sub_resource type="BoxShape3D" id="WallLongShape"]
+size = Vector3(22, 1.6, 0.6)
+
+[sub_resource type="BoxMesh" id="WallShortMesh"]
+material = SubResource("WallMaterial")
+size = Vector3(0.6, 1.6, 16)
+
+[sub_resource type="BoxShape3D" id="WallShortShape"]
+size = Vector3(0.6, 1.6, 16)
+
+[node name="PoliceRaid" type="Node3D"]
+script = ExtResource("1_raid")
+player_path = NodePath("Player")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -25, 0)
+light_energy = 1.15
+shadow_enabled = true
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("FloorMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("FloorShape")
+
+[node name="NorthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 0.8, -8)
+
+[node name="Mesh" type="MeshInstance3D" parent="NorthWall"]
+mesh = SubResource("WallLongMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="NorthWall"]
+shape = SubResource("WallLongShape")
+
+[node name="SouthWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 0.8, 8)
+
+[node name="Mesh" type="MeshInstance3D" parent="SouthWall"]
+mesh = SubResource("WallLongMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="SouthWall"]
+shape = SubResource("WallLongShape")
+
+[node name="WestWall" type="StaticBody3D" parent="."]
+position = Vector3(-11, 0.8, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="WestWall"]
+mesh = SubResource("WallShortMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="WestWall"]
+shape = SubResource("WallShortShape")
+
+[node name="EastWall" type="StaticBody3D" parent="."]
+position = Vector3(11, 0.8, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="EastWall"]
+mesh = SubResource("WallShortMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="EastWall"]
+shape = SubResource("WallShortShape")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector3(0, 0.95, 5.6)
+
+[node name="RaidGuardA" parent="." instance=ExtResource("4_guard")]
+position = Vector3(-3.2, 0.95, -1.6)
+target_path = NodePath("../Player")
+
+[node name="RaidGuardB" parent="." instance=ExtResource("4_guard")]
+position = Vector3(3.2, 0.95, -1.6)
+target_path = NodePath("../Player")
+
+[node name="StashObjective" type="Node3D" parent="."]
+position = Vector3(0, 0, -5.4)
+script = ExtResource("5_objective")
+cash_reward = 500
+case_reward = 10
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 15, 13)
+current = true
+script = ExtResource("3_camera")
+target_path = NodePath("../Player")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("7_access")
+player_path = NodePath("../Player")
+prompt_label_path = NodePath("InteractionPrompt")
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 900.0
+offset_bottom = 58.0
+theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+script = ExtResource("6_hud")
+player_path = NodePath("../../Player")
+location_name = "POLICE RAID"
+
+[node name="InteractionPrompt" type="Label" parent="HUD"]
+offset_left = 220.0
+offset_top = 690.0
+offset_right = 1380.0
+offset_bottom = 850.0
+theme_override_colors/font_color = Color(1, 0.96, 0.78, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 34
+horizontal_alignment = 1
+vertical_alignment = 1
