@@ -1,6 +1,7 @@
 extends Node3D
 
 func _ready() -> void:
+	GameSession.set_territory(GameSession.Territory.NEUTRAL)
 	_build_shell()
 	_build_hideout_props()
 
@@ -17,13 +18,13 @@ func _build_hideout_props() -> void:
 
 	_add_static_box("GrowBenchA", Vector3(3.0, 0.65, 1.0), Vector3(5.0, 0.33, -2.1), Color(0.13, 0.24, 0.14, 1.0))
 	_add_static_box("GrowBenchB", Vector3(3.0, 0.65, 1.0), Vector3(5.0, 0.33, -0.6), Color(0.13, 0.24, 0.14, 1.0))
-	_add_label("GROW ROOM\nPASSIVE OPERATION SLOT", Vector3(5.0, 1.55, -1.35), Color(0.48, 1.0, 0.55, 1.0))
+	_add_label("GROW ROOM\nCONTRABAND PRODUCTION", Vector3(5.0, 1.55, -1.35), Color(0.48, 1.0, 0.55, 1.0))
 
 	_add_static_box("CashCrate", Vector3(1.4, 0.9, 1.2), Vector3(-5.5, 0.45, -3.6), Color(0.18, 0.22, 0.17, 1.0))
-	_add_label("CASH / CONTRABAND STORAGE\nECONOMY HOOK", Vector3(-5.5, 1.55, -3.6), Color(0.63, 0.88, 0.60, 1.0))
+	_add_label("CASH / CONTRABAND STORAGE", Vector3(-5.5, 1.55, -3.6), Color(0.63, 0.88, 0.60, 1.0))
 
 	_add_static_box("GangCouch", Vector3(3.6, 0.8, 1.1), Vector3(4.6, 0.4, 4.7), Color(0.24, 0.13, 0.15, 1.0))
-	_add_label("GANG AREA", Vector3(4.6, 1.55, 4.7), Color(0.95, 0.52, 0.58, 1.0))
+	_add_label("FACTION TEST AREA", Vector3(4.6, 1.55, 4.7), Color(0.95, 0.52, 0.58, 1.0))
 
 func _add_static_box(node_name: String, size: Vector3, position_value: Vector3, color: Color) -> void:
 	var body: StaticBody3D = StaticBody3D.new()
@@ -52,7 +53,8 @@ func _add_label(value: String, position_value: Vector3, color: Color) -> void:
 	label.text = value
 	label.position = position_value
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.font_size = 24
-	label.outline_size = 7
+	label.font_size = 32
+	label.outline_size = 9
+	label.pixel_size = 0.008
 	label.modulate = color
 	add_child(label)
