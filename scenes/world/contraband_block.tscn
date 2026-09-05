@@ -1,0 +1,85 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/street_blockout.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/world/world_portal_3d.gd" id="4_portal"]
+[ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="6_access"]
+[ext_resource type="Script" path="res://scripts/world/arms_gunrunner_buyer_3d.gd" id="7_gunrun"]
+
+[node name="ContrabandBlock" type="Node3D"]
+script = ExtResource("1_world")
+territory_id = 2
+district_name = "NORTH BLOCK"
+territory_label = "CONTRABAND TERRITORY"
+contact_label = "BLACK MARKET BUYER"
+contact_color = Color(0.42, 1, 0.50, 1)
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -35, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector3(0, 0.95, 7.6)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 15, 13)
+current = true
+script = ExtResource("3_camera")
+target_path = NodePath("../Player")
+
+[node name="ReturnToPoliceBlock" type="Node3D" parent="."]
+position = Vector3(-10.6, 0, 7.2)
+script = ExtResource("4_portal")
+target_scene = "res://scenes/world/street_block.tscn"
+title = "BACK TO SOUTH BLOCK"
+subtitle = "F  POLICE TERRITORY"
+marker_color = Color(0.22, 0.55, 0.92, 0.58)
+
+[node name="ArmsBuyer" type="Node3D" parent="."]
+position = Vector3(8.8, 0, -5.8)
+script = ExtResource("7_gunrun")
+criminal_flag_seconds = 30.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("6_access")
+player_path = NodePath("../Player")
+prompt_label_path = NodePath("InteractionPrompt")
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 30.0
+offset_top = 24.0
+offset_right = 1570.0
+offset_bottom = 156.0
+theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 28
+script = ExtResource("5_hud")
+player_path = NodePath("../../Player")
+location_name = "NORTH BLOCK — CONTRABAND TERRITORY"
+
+[node name="Instructions" type="Label" parent="HUD"]
+offset_left = 30.0
+offset_top = 165.0
+offset_right = 1570.0
+offset_bottom = 225.0
+theme_override_colors/font_color = Color(0.88, 0.90, 0.94, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 21
+text = "ARMS FACTION: bring an equipped weapon to the illegal buyer. Weapon equipped = COMBAT FLAG. Sale = CRIMINAL FLAG + HEAT + EVIDENCE."
+
+[node name="InteractionPrompt" type="Label" parent="HUD"]
+offset_left = 220.0
+offset_top = 690.0
+offset_right = 1380.0
+offset_bottom = 850.0
+theme_override_colors/font_color = Color(1, 0.96, 0.78, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 34
+horizontal_alignment = 1
+vertical_alignment = 1
