@@ -71,28 +71,17 @@ player_path = NodePath("../Player")
 prompt_label_path = NodePath("InteractionPrompt")
 
 [node name="Status" type="Label" parent="HUD"]
-offset_left = 30.0
-offset_top = 24.0
-offset_right = 1570.0
-offset_bottom = 156.0
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 900.0
+offset_bottom = 58.0
 theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 28
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
 script = ExtResource("6_hud")
 player_path = NodePath("../../Player")
-location_name = "HIDEOUT — HOME TURF"
-
-[node name="Instructions" type="Label" parent="HUD"]
-offset_left = 30.0
-offset_top = 165.0
-offset_right = 1570.0
-offset_bottom = 225.0
-theme_override_colors/font_color = Color(0.88, 0.90, 0.94, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 21
-text = "PROTOTYPE: choose ARMS / CONTRABAND / POLICE at the faction terminals. Grow room creates product. F: interact    WASD: move    LMB/Q/E: fight    SPACE: dash"
+location_name = "HIDEOUT"
 
 [node name="InteractionPrompt" type="Label" parent="HUD"]
 offset_left = 220.0
@@ -103,6 +92,5 @@ theme_override_colors/font_color = Color(1, 0.96, 0.78, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 34
-text = "F11 / ALT+ENTER   FULLSCREEN"
 horizontal_alignment = 1
 vertical_alignment = 1
