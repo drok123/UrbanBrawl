@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="2_camera"]
@@ -14,6 +14,7 @@
 [ext_resource type="Resource" path="res://items/pistol.tres" id="12_pistol_item"]
 [ext_resource type="Resource" path="res://resources/weapons/pistol_profile.tres" id="13_pistol_profile"]
 [ext_resource type="Script" path="res://scripts/world/world_portal_3d.gd" id="14_portal"]
+[ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="15_access"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.16, 0.175, 0.19, 1)
@@ -195,9 +196,10 @@ visual_offset = Vector3(0, -0.9, 0)
 shape = SubResource("DummyShape")
 
 [node name="HealthLabel" type="Label3D" parent="SparringBot"]
-position = Vector3(0, 1.45, 0)
-font_size = 28
-outline_size = 6
+position = Vector3(0, 1.55, 0)
+font_size = 38
+outline_size = 10
+pixel_size = 0.008
 text = "SPARRING BOT\n500 / 500"
 
 [node name="DummyB" type="CharacterBody3D" parent="."]
@@ -211,9 +213,10 @@ mesh = SubResource("DummyMesh")
 shape = SubResource("DummyShape")
 
 [node name="HealthLabel" type="Label3D" parent="DummyB"]
-position = Vector3(0, 1.35, 0)
-font_size = 28
-outline_size = 6
+position = Vector3(0, 1.45, 0)
+font_size = 36
+outline_size = 10
+pixel_size = 0.008
 text = "300 / 300"
 
 [node name="DummyC" type="CharacterBody3D" parent="."]
@@ -227,9 +230,10 @@ mesh = SubResource("DummyMesh")
 shape = SubResource("DummyShape")
 
 [node name="HealthLabel" type="Label3D" parent="DummyC"]
-position = Vector3(0, 1.35, 0)
-font_size = 28
-outline_size = 6
+position = Vector3(0, 1.45, 0)
+font_size = 36
+outline_size = 10
+pixel_size = 0.008
 text = "300 / 300"
 
 [node name="Camera3D" type="Camera3D" parent="."]
@@ -239,14 +243,20 @@ script = ExtResource("2_camera")
 target_path = NodePath("../Player")
 
 [node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("15_access")
+player_path = NodePath("../Player")
+prompt_label_path = NodePath("InteractionPrompt")
 
 [node name="Instructions" type="Label" parent="HUD"]
-offset_left = 24.0
+offset_left = 28.0
 offset_top = 20.0
-offset_right = 1320.0
-offset_bottom = 108.0
-theme_override_font_sizes/font_size = 20
-text = "URBAN BRAWL — FFA SCRAMBLE PROTOTYPE\nFists, knife, bat and pistol share one rolled pickup/equip/drop pipeline. Exit marker is southwest.\nWASD: move    Mouse: aim    LMB/Q/E: attacks    SPACE: dash    F: interact / pick up / leave"
+offset_right = 1540.0
+offset_bottom = 126.0
+theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 24
+text = "URBAN BRAWL — FFA SCRAMBLE PROTOTYPE\nFists, knife, bat and pistol share one rolled pickup/equip/drop pipeline. Exit marker is southwest.\nWASD: move    Mouse: aim    LMB/Q/E: attacks    SPACE: dash    F: interact / pick up / leave    F11 or ALT+ENTER: fullscreen"
 
 [node name="CombatHUD" type="Control" parent="HUD"]
 layout_mode = 3
@@ -260,74 +270,88 @@ script = ExtResource("4_hud")
 player_path = NodePath("../../Player")
 
 [node name="Health" type="Label" parent="HUD/CombatHUD"]
-offset_left = 24.0
-offset_top = 112.0
-offset_right = 620.0
-offset_bottom = 148.0
-theme_override_font_sizes/font_size = 22
+offset_left = 28.0
+offset_top = 138.0
+offset_right = 820.0
+offset_bottom = 184.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 28
 text = "YOU   500 / 500 HP    |    UNARMED"
 
 [node name="Phase" type="Label" parent="HUD/CombatHUD"]
-offset_left = 620.0
-offset_top = 748.0
-offset_right = 980.0
-offset_bottom = 778.0
-theme_override_colors/font_color = Color(0.72, 0.76, 0.82, 1)
-theme_override_font_sizes/font_size = 16
+offset_left = 560.0
+offset_top = 724.0
+offset_right = 1040.0
+offset_bottom = 760.0
+theme_override_colors/font_color = Color(0.92, 0.94, 0.98, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
 text = "COMBAT STATE: READY"
 horizontal_alignment = 1
 
 [node name="AbilityBar" type="HBoxContainer" parent="HUD/CombatHUD"]
-offset_left = 350.0
+offset_left = 230.0
 offset_top = 785.0
-offset_right = 1250.0
-offset_bottom = 860.0
-theme_override_constants/separation = 12
+offset_right = 1370.0
+offset_bottom = 870.0
+theme_override_constants/separation = 14
 
 [node name="Basic" type="Label" parent="HUD/CombatHUD/AbilityBar"]
-custom_minimum_size = Vector2(210, 64)
+custom_minimum_size = Vector2(270, 76)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.98, 0.98, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
 text = "LMB   STRIKE\nREADY"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Cleave" type="Label" parent="HUD/CombatHUD/AbilityBar"]
-custom_minimum_size = Vector2(210, 64)
+custom_minimum_size = Vector2(270, 76)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.98, 0.98, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
 text = "Q   CLEAVE\nREADY"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Charge" type="Label" parent="HUD/CombatHUD/AbilityBar"]
-custom_minimum_size = Vector2(210, 64)
+custom_minimum_size = Vector2(270, 76)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.98, 0.98, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
 text = "E   CHARGE\nREADY"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Dash" type="Label" parent="HUD/CombatHUD/AbilityBar"]
-custom_minimum_size = Vector2(210, 64)
+custom_minimum_size = Vector2(270, 76)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.98, 0.98, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
 text = "SPACE   DASH\nREADY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="InteractionPrompt" type="Label" parent="HUD"]
+offset_left = 320.0
+offset_top = 650.0
+offset_right = 1280.0
+offset_bottom = 720.0
+theme_override_colors/font_color = Color(1, 0.96, 0.78, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 9
+theme_override_font_sizes/font_size = 28
+text = "F11 / ALT+ENTER   FULLSCREEN"
 horizontal_alignment = 1
 vertical_alignment = 1
