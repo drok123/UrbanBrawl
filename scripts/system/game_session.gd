@@ -30,6 +30,11 @@ enum FlagState {
 const WARRANT_CASE_COST: int = 40
 const WARRANT_MIN_PACKAGES: int = 2
 
+var character_created: bool = false
+var character_name: String = "Brawler"
+var character_body_color: Color = Color(0.72, 0.76, 0.82, 1.0)
+var character_accent_color: Color = Color(0.22, 0.24, 0.28, 1.0)
+
 var cash: int = 900
 var carried_item: Item = null
 var carried_profile: WeaponCombatProfile = null
@@ -68,6 +73,8 @@ var grow_ready_units: int = 0
 
 var _arrest_return_left: float = -1.0
 var _arrest_fine_pending: int = 0
+var _next_city_spawn: Vector3 = Vector3.ZERO
+var _has_next_city_spawn: bool = false
 
 func _process(delta: float) -> void:
 	_sync_weapon_flag_from_scene()
@@ -90,6 +97,35 @@ func _process(delta: float) -> void:
 
 	if old_flag != get_flag_state():
 		state_changed.emit()
+
+func create_character(name_value: String, faction_value: int, body_color: Color, accent_color: Color) -> void:
+	var clean_name: String = name_value.strip_edges()
+	character_name = clean_name if not clean_name.is_empty() else "Brawler"
+	player_faction = clampi(faction_value, Faction.ARMS, Faction.POLICE)
+	character_body_color = body_color
+	character_accent_color = accent_color
+	character_created = true
+	state_changed.emit()
+
+func get_home_scene() -> String:
+	match player_faction:
+		Faction.POLICE:
+			return "res://scenes/world/police_precinct.tscn"
+		Faction.CONTRABAND:
+			return "res://scenes/world/contraband_safehouse.tscn"
+		Faction.ARMS:
+			return "res://scenes/world/arms_workshop.tscn"
+	return "res://scenes/world/city_world.tscn"
+
+func set_next_city_spawn(position: Vector3) -> void:
+	_next_city_spawn = position
+	_has_next_city_spawn = true
+
+func take_next_city_spawn() -> Dictionary:
+	if not _has_next_city_spawn:
+		return {}
+	_has_next_city_spawn = false
+	return {"position": _next_city_spawn}
 
 func _sync_weapon_flag_from_scene() -> void:
 	var scene: Node = get_tree().current_scene
@@ -121,7 +157,10 @@ func set_player_faction(value: int) -> void:
 	state_changed.emit()
 
 func set_territory(value: int) -> void:
-	current_territory = clampi(value, Territory.NEUTRAL, Territory.POLICE)
+	var next_value: int = clampi(value, Territory.NEUTRAL, Territory.POLICE)
+	if current_territory == next_value:
+		return
+	current_territory = next_value
 	state_changed.emit()
 
 func set_weapon_equipped(is_equipped: bool) -> void:
@@ -327,7 +366,7 @@ func _finish_arrest_return() -> void:
 	_combat_flag_left = 0.0
 	_duty_flag_left = 0.0
 	state_changed.emit()
-	get_tree().change_scene_to_file("res://scenes/world/hideout.tscn")
+	get_tree().change_scene_to_file(get_home_scene())
 
 func begin_ffa(entry_fee: int = 100) -> bool:
 	if ffa_active:
@@ -347,13 +386,7 @@ func begin_ffa(entry_fee: int = 100) -> bool:
 func finish_ffa(win: bool, extracted_item: Item = null, extracted_profile: WeaponCombatProfile = null, reward_cash: int = 0) -> Dictionary:
 	if not ffa_active:
 		return {}
-
-	var result: Dictionary = {
-		"win": win,
-		"reward_cash": 0,
-		"extracted_weapon": "",
-	}
-
+	var result: Dictionary = {"win": win, "reward_cash": 0, "extracted_weapon": ""}
 	if win:
 		ffa_wins += 1
 		var reward: int = maxi(reward_cash, 0)
@@ -373,7 +406,6 @@ func finish_ffa(win: bool, extracted_item: Item = null, extracted_profile: Weapo
 		ffa_losses += 1
 		carried_item = _ffa_escrow_item
 		carried_profile = _ffa_escrow_profile
-
 	_ffa_escrow_item = null
 	_ffa_escrow_profile = null
 	ffa_active = false
