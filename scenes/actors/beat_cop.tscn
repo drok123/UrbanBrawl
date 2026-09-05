@@ -1,0 +1,40 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/beat_cop.gd" id="1_cop"]
+[ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="2_animation"]
+
+[sub_resource type="StandardMaterial3D" id="CopLegacyMaterial"]
+albedo_color = Color(0.12, 0.22, 0.46, 1)
+roughness = 0.65
+
+[sub_resource type="CapsuleMesh" id="CopLegacyMesh"]
+material = SubResource("CopLegacyMaterial")
+radius = 0.48
+height = 1.9
+
+[sub_resource type="CapsuleShape3D" id="CopShape"]
+radius = 0.48
+height = 1.9
+
+[node name="BeatCop" type="CharacterBody3D"]
+script = ExtResource("1_cop")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("CopLegacyMesh")
+
+[node name="CharacterVisual" type="Node3D" parent="."]
+script = ExtResource("2_animation")
+body_color = Color(0.18, 0.30, 0.58, 1)
+accent_color = Color(0.05, 0.08, 0.14, 1)
+visual_offset = Vector3(0, -0.95, 0)
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("CopShape")
+
+[node name="HealthLabel" type="Label3D" parent="."]
+position = Vector3(0, 1.65, 0)
+font_size = 36
+outline_size = 10
+pixel_size = 0.008
+billboard = 1
+text = "BEAT COP — PATROL\n420 / 420"
