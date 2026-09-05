@@ -282,11 +282,17 @@ func register_bust() -> void:
 	heat = maxi(heat - 3, 0)
 	state_changed.emit()
 
-func queue_arrest_return(delay: float = 0.65, fine_amount: int = 100) -> void:
+func is_arrest_pending() -> bool:
+	return _arrest_return_left >= 0.0
+
+func queue_arrest_return(delay: float = 0.65, fine_amount: int = 100) -> bool:
+	if is_arrest_pending():
+		return false
 	arrests += 1
 	_arrest_fine_pending = maxi(fine_amount, 0)
 	_arrest_return_left = maxf(delay, 0.05)
 	state_changed.emit()
+	return true
 
 func _finish_arrest_return() -> void:
 	var fine_paid: int = mini(cash, _arrest_fine_pending)
