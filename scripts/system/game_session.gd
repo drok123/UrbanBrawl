@@ -4,6 +4,7 @@ signal state_changed
 signal crime_committed(event: Dictionary)
 signal duty_committed(event: Dictionary)
 signal evidence_package_created(package: Dictionary)
+signal activity_finished(result: Dictionary)
 
 enum Faction {
 	NONE,
@@ -26,6 +27,9 @@ enum FlagState {
 	DUTY,
 }
 
+const WARRANT_CASE_COST: int = 40
+const WARRANT_MIN_PACKAGES: int = 2
+
 var cash: int = 900
 var carried_item: Item = null
 var carried_profile: WeaponCombatProfile = null
@@ -39,6 +43,13 @@ var police_case_value: int = 0
 var contraband_units: int = 0
 var busts: int = 0
 var arrests: int = 0
+var warrants: int = 0
+
+var ffa_wins: int = 0
+var ffa_losses: int = 0
+var ffa_active: bool = false
+var _ffa_escrow_item: Item = null
+var _ffa_escrow_profile: WeaponCombatProfile = null
 
 var evidence_packages: Array[Dictionary] = []
 var last_crime_event: Dictionary = {}
@@ -241,6 +252,17 @@ func add_case_value(amount: int) -> void:
 	police_case_value += maxi(amount, 0)
 	state_changed.emit()
 
+func can_issue_warrant() -> bool:
+	return police_case_value >= WARRANT_CASE_COST and evidence_packages.size() >= WARRANT_MIN_PACKAGES
+
+func issue_warrant() -> bool:
+	if not can_issue_warrant():
+		return false
+	police_case_value -= WARRANT_CASE_COST
+	warrants += 1
+	state_changed.emit()
+	return true
+
 func create_evidence_package(crime_event: Dictionary, seized_units: int = 0, seized_weapon: String = "") -> Dictionary:
 	if crime_event.is_empty():
 		return {}
@@ -306,6 +328,59 @@ func _finish_arrest_return() -> void:
 	_duty_flag_left = 0.0
 	state_changed.emit()
 	get_tree().change_scene_to_file("res://scenes/world/hideout.tscn")
+
+func begin_ffa(entry_fee: int = 100) -> bool:
+	if ffa_active:
+		return false
+	if not spend_cash(entry_fee):
+		return false
+	_ffa_escrow_item = carried_item
+	_ffa_escrow_profile = carried_profile
+	carried_item = null
+	carried_profile = null
+	_weapon_equipped = false
+	_combat_flag_left = 0.0
+	ffa_active = true
+	state_changed.emit()
+	return true
+
+func finish_ffa(win: bool, extracted_item: Item = null, extracted_profile: WeaponCombatProfile = null, reward_cash: int = 0) -> Dictionary:
+	if not ffa_active:
+		return {}
+
+	var result: Dictionary = {
+		"win": win,
+		"reward_cash": 0,
+		"extracted_weapon": "",
+	}
+
+	if win:
+		ffa_wins += 1
+		var reward: int = maxi(reward_cash, 0)
+		cash += reward
+		result["reward_cash"] = reward
+		if extracted_item != null and extracted_profile != null:
+			if _ffa_escrow_item != null and _ffa_escrow_profile != null:
+				stash.append({"item": _ffa_escrow_item, "profile": _ffa_escrow_profile})
+			carried_item = extracted_item
+			carried_profile = extracted_profile
+			if extracted_item.base != null:
+				result["extracted_weapon"] = "%s %s" % [WeaponItemRules.rarity_name(extracted_item).to_upper(), extracted_item.base.name.to_upper()]
+		else:
+			carried_item = _ffa_escrow_item
+			carried_profile = _ffa_escrow_profile
+	else:
+		ffa_losses += 1
+		carried_item = _ffa_escrow_item
+		carried_profile = _ffa_escrow_profile
+
+	_ffa_escrow_item = null
+	_ffa_escrow_profile = null
+	ffa_active = false
+	_weapon_equipped = carried_item != null and carried_profile != null
+	state_changed.emit()
+	activity_finished.emit(result.duplicate(true))
+	return result
 
 func start_grow_cycle(duration: float = 25.0) -> bool:
 	if grow_cycle_left > 0.0 or grow_ready_units > 0:
