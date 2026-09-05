@@ -1,7 +1,7 @@
 class_name CombatAnimationDriver3D
 extends Node3D
 
-@export_file("*.glb") var character_scene_path: String = "res://assets/third_party/kaykit_adventurers/Barbarian.glb"
+@export_file("*.glb") var character_scene_path: String = "res://assets/third_party/kaykit_adventurers/Rogue.glb"
 @export var visual_offset: Vector3 = Vector3(0.0, -0.95, 0.0)
 @export var visual_rotation_degrees: Vector3 = Vector3(0.0, 180.0, 0.0)
 @export var visual_scale: Vector3 = Vector3.ONE
