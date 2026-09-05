@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"charge"
+display_name = "Knife Lunge"
+mode = 1
+weapon_id = &"knife"
+damage_type = &"pierce"
+hit_location = &"body"
+gore_power = 0.84
+cooldown = 1.55
+windup = 0.12
+active_time = 0.17
+recovery = 0.20
+damage = 88.0
+range_distance = 0.82
+radius = 0.60
+knockback = 5.0
+hitstop = 0.040
+movement_multiplier = 0.0
+charge_speed = 13.5
+telegraph_shape = 1
+telegraph_length = 2.6
+telegraph_color = Color(0.92, 0.24, 0.16, 0.22)
