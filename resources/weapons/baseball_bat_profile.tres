@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponCombatProfile" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_combat_profile.gd" id="1_profile"]
+[ext_resource type="Resource" path="res://resources/abilities/bat_swing.tres" id="2_basic"]
+[ext_resource type="Resource" path="res://resources/abilities/bat_power_swing.tres" id="3_secondary"]
+[ext_resource type="Resource" path="res://resources/abilities/bat_check.tres" id="4_utility"]
+
+[resource]
+script = ExtResource("1_profile")
+item_id = &"baseball_bat"
+display_name = "Baseball Bat"
+basic_ability = ExtResource("2_basic")
+secondary_ability = ExtResource("3_secondary")
+utility_ability = ExtResource("4_utility")
+reference_damage = 78.0
+reference_attack_speed = 0.92
+held_length = 1.72
+held_width = 0.13
+held_color = Color(0.62, 0.42, 0.23, 1)
