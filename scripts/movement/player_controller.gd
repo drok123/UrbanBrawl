@@ -4,10 +4,17 @@ extends CharacterBody3D
 @export var acceleration: float = 30.0
 @export var rotation_speed: float = 18.0
 
+@export_category("Survivability")
+@export var max_health: float = 500.0
+@export var hitstun_duration: float = 0.12
+@export var knockback_drag: float = 18.0
+@export var respawn_delay: float = 1.25
+
 @export_category("Dash")
 @export var dash_speed: float = 18.0
 @export var dash_duration: float = 0.14
 @export var dash_cooldown: float = 0.85
+@export var dash_invulnerability_padding: float = 0.04
 
 enum CombatPhase {
 	READY,
@@ -22,6 +29,13 @@ var charge_ability: CombatAbility = preload("res://resources/abilities/shoulder_
 
 var aim_point: Vector3 = Vector3.ZERO
 var last_move_direction: Vector3 = Vector3.FORWARD
+var health: float = 0.0
+
+var _spawn_position: Vector3 = Vector3.ZERO
+var _dead: bool = false
+var _respawn_left: float = 0.0
+var _stun_left: float = 0.0
+var _invulnerable_left: float = 0.0
 
 var _current_ability: CombatAbility = null
 var _combat_phase: CombatPhase = CombatPhase.READY
@@ -38,13 +52,23 @@ var _hitbox: MeleeHitbox3D = null
 var _telegraph: MeshInstance3D = null
 
 func _ready() -> void:
+	add_to_group("damageable")
 	_ensure_input_actions()
+	_spawn_position = global_position
+	health = max_health
 	_cooldowns[basic_ability.ability_id] = 0.0
 	_cooldowns[cleave_ability.ability_id] = 0.0
 	_cooldowns[charge_ability.ability_id] = 0.0
 	_setup_hitbox()
 
 func _physics_process(delta: float) -> void:
+	if _dead:
+		_respawn_left = maxf(_respawn_left - delta, 0.0)
+		velocity = Vector3.ZERO
+		if _respawn_left <= 0.0:
+			_reset_after_death()
+		return
+
 	if _hitstop_left > 0.0:
 		_hitstop_left = maxf(_hitstop_left - delta, 0.0)
 		return
@@ -52,12 +76,20 @@ func _physics_process(delta: float) -> void:
 	_tick_cooldowns(delta)
 	_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
 	_dash_time_left = maxf(_dash_time_left - delta, 0.0)
+	_stun_left = maxf(_stun_left - delta, 0.0)
+	_invulnerable_left = maxf(_invulnerable_left - delta, 0.0)
 
 	_update_aim(delta)
-	_advance_combat_state(delta)
-	_handle_combat_input()
 
-	if _dash_time_left > 0.0:
+	if _stun_left <= 0.0:
+		_advance_combat_state(delta)
+		_handle_combat_input()
+
+	if _stun_left > 0.0:
+		velocity.x = move_toward(velocity.x, 0.0, knockback_drag * delta)
+		velocity.z = move_toward(velocity.z, 0.0, knockback_drag * delta)
+		velocity.y = 0.0
+	elif _dash_time_left > 0.0:
 		velocity = _dash_direction * dash_speed
 	elif _current_ability != null and _combat_phase == CombatPhase.ACTIVE and _current_ability.mode == CombatAbility.AbilityMode.CHARGE:
 		velocity = _ability_forward * _current_ability.charge_speed
@@ -69,6 +101,49 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_check_charge_wall_collision()
+
+func receive_hit(hit: CombatHit) -> void:
+	if hit == null or _dead or is_invulnerable():
+		return
+
+	health = maxf(health - hit.damage, 0.0)
+	velocity += Vector3(hit.impulse.x, 0.0, hit.impulse.z)
+	_hitstop_left = maxf(_hitstop_left, hit.hitstop)
+	_stun_left = maxf(_stun_left, hitstun_duration)
+	_cancel_current_ability()
+	_pulse_player(Vector3(1.16, 0.78, 1.16), 0.065)
+
+	if health <= 0.0:
+		_die()
+
+func is_invulnerable() -> bool:
+	return _invulnerable_left > 0.0 or _dead
+
+func _die() -> void:
+	_dead = true
+	_respawn_left = respawn_delay
+	velocity = Vector3.ZERO
+	_cancel_current_ability()
+	_hitbox.deactivate()
+
+	var mesh: MeshInstance3D = get_node_or_null("Mesh") as MeshInstance3D
+	if mesh != null:
+		var tween: Tween = create_tween()
+		tween.tween_property(mesh, "scale", Vector3(1.35, 0.18, 1.35), 0.13)
+
+func _reset_after_death() -> void:
+	_dead = false
+	_respawn_left = 0.0
+	_stun_left = 0.0
+	_invulnerable_left = 0.35
+	_hitstop_left = 0.0
+	health = max_health
+	velocity = Vector3.ZERO
+	global_position = _spawn_position
+
+	var mesh: MeshInstance3D = get_node_or_null("Mesh") as MeshInstance3D
+	if mesh != null:
+		mesh.scale = Vector3.ONE
 
 func _tick_cooldowns(delta: float) -> void:
 	for key in _cooldowns.keys():
@@ -88,7 +163,7 @@ func _movement_input() -> Vector2:
 	return Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 
 func _handle_combat_input() -> void:
-	if _current_ability != null or _dash_time_left > 0.0:
+	if _current_ability != null or _dash_time_left > 0.0 or _stun_left > 0.0 or _dead:
 		return
 
 	if Input.is_action_pressed(&"basic_attack") and get_cooldown_remaining(&"basic") <= 0.0:
@@ -107,7 +182,7 @@ func _handle_combat_input() -> void:
 		_start_dash()
 
 func _start_ability(ability: CombatAbility) -> void:
-	if ability == null:
+	if ability == null or _dead or _stun_left > 0.0:
 		return
 	if get_cooldown_remaining(ability.ability_id) > 0.0:
 		return
@@ -169,6 +244,13 @@ func _finish_ability() -> void:
 	_combat_phase = CombatPhase.READY
 	_phase_time_left = 0.0
 
+func _cancel_current_ability() -> void:
+	_hitbox.deactivate()
+	_hide_telegraph()
+	_current_ability = null
+	_combat_phase = CombatPhase.READY
+	_phase_time_left = 0.0
+
 func _check_charge_wall_collision() -> void:
 	if _current_ability == null:
 		return
@@ -190,6 +272,9 @@ func _check_charge_wall_collision() -> void:
 func _start_dash() -> void:
 	_dash_cooldown_left = dash_cooldown
 	_dash_time_left = dash_duration
+	_invulnerable_left = maxf(_invulnerable_left, dash_duration + dash_invulnerability_padding)
+	_cancel_current_ability()
+
 	var input: Vector2 = _movement_input()
 	if input.length_squared() > 0.0:
 		_dash_direction = Vector3(input.x, 0.0, input.y).normalized()
@@ -301,7 +386,19 @@ func get_dash_cooldown_remaining() -> float:
 	return _dash_cooldown_left
 
 func get_combat_phase_name() -> String:
+	if _dead:
+		return "DOWN"
+	if _stun_left > 0.0:
+		return "HITSTUN"
+	if is_invulnerable():
+		return "DODGE I-FRAMES"
 	return str(CombatPhase.keys()[_combat_phase])
+
+func get_health() -> float:
+	return health
+
+func get_max_health() -> float:
+	return max_health
 
 func _update_aim(delta: float) -> void:
 	var camera: Camera3D = get_viewport().get_camera_3d()
@@ -323,7 +420,7 @@ func _update_aim(delta: float) -> void:
 	if flat_direction.length_squared() < 0.0001:
 		return
 
-	if _current_ability != null:
+	if _current_ability != null or _stun_left > 0.0 or _dead:
 		return
 
 	var target_yaw: float = atan2(-flat_direction.x, -flat_direction.z)
