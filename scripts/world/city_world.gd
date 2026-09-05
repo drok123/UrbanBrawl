@@ -39,14 +39,14 @@ func _update_territory() -> void:
 
 func _build_city() -> void:
 	_add_static_box(self, "CityGround", Vector3(96.0, 0.2, 72.0), Vector3(0.0, -0.1, 0.0), Color(0.095, 0.10, 0.11, 1.0))
-	_add_district_floor("PoliceDistrict", Vector3(-28.0, 0.02, 0.0), Vector3(38.0, 0.05, 66.0), Color(0.10, 0.15, 0.24, 1.0))
-	_add_district_floor("ContrabandDistrict", Vector3(26.0, 0.02, -18.0), Vector3(34.0, 0.05, 30.0), Color(0.09, 0.20, 0.12, 1.0))
-	_add_district_floor("ArmsDistrict", Vector3(26.0, 0.02, 18.0), Vector3(34.0, 0.05, 30.0), Color(0.24, 0.12, 0.07, 1.0))
-	_add_district_floor("CentralCommons", Vector3(0.0, 0.025, 0.0), Vector3(15.0, 0.06, 66.0), Color(0.18, 0.18, 0.19, 1.0))
+	_add_visual_box("PoliceDistrict", Vector3(-28.0, 0.02, 0.0), Vector3(38.0, 0.05, 66.0), Color(0.10, 0.15, 0.24, 1.0))
+	_add_visual_box("ContrabandDistrict", Vector3(26.0, 0.02, -18.0), Vector3(34.0, 0.05, 30.0), Color(0.09, 0.20, 0.12, 1.0))
+	_add_visual_box("ArmsDistrict", Vector3(26.0, 0.02, 18.0), Vector3(34.0, 0.05, 30.0), Color(0.24, 0.12, 0.07, 1.0))
+	_add_visual_box("CentralCommons", Vector3(0.0, 0.025, 0.0), Vector3(15.0, 0.06, 66.0), Color(0.18, 0.18, 0.19, 1.0))
 
-	_add_static_box(self, "WestRoad", Vector3(7.0, 0.03, 66.0), Vector3(-7.0, 0.04, 0.0), Color(0.055, 0.058, 0.062, 1.0))
-	_add_static_box(self, "EastRoad", Vector3(7.0, 0.03, 66.0), Vector3(7.0, 0.04, 0.0), Color(0.055, 0.058, 0.062, 1.0))
-	_add_static_box(self, "CrossRoad", Vector3(84.0, 0.03, 7.0), Vector3(4.0, 0.045, 0.0), Color(0.055, 0.058, 0.062, 1.0))
+	_add_visual_box("WestRoad", Vector3(-7.0, 0.055, 0.0), Vector3(7.0, 0.03, 66.0), Color(0.055, 0.058, 0.062, 1.0))
+	_add_visual_box("EastRoad", Vector3(7.0, 0.055, 0.0), Vector3(7.0, 0.03, 66.0), Color(0.055, 0.058, 0.062, 1.0))
+	_add_visual_box("CrossRoad", Vector3(4.0, 0.06, 0.0), Vector3(84.0, 0.03, 7.0), Color(0.055, 0.058, 0.062, 1.0))
 
 	_build_police_blocks()
 	_build_contraband_blocks()
@@ -58,15 +58,18 @@ func _build_city() -> void:
 	_add_label("CENTRAL COMMONS", Vector3(0.0, 2.7, -24.0), Color(0.90, 0.90, 0.88, 1.0))
 
 func _build_police_blocks() -> void:
+	_add_static_box(self, "PrecinctExterior", Vector3(12.0, 6.0, 10.0), Vector3(-39.0, 3.0, -8.0), Color(0.12, 0.19, 0.34, 1.0))
 	_add_static_box(self, "PoliceBlockA", Vector3(11.0, 5.0, 13.0), Vector3(-34.0, 2.5, -20.0), Color(0.18, 0.20, 0.24, 1.0))
 	_add_static_box(self, "PoliceBlockB", Vector3(10.0, 6.5, 12.0), Vector3(-20.0, 3.25, -9.0), Color(0.16, 0.18, 0.22, 1.0))
 	_add_static_box(self, "PoliceBlockC", Vector3(12.0, 4.5, 14.0), Vector3(-31.0, 2.25, 18.0), Color(0.20, 0.21, 0.23, 1.0))
 
 func _build_contraband_blocks() -> void:
+	_add_static_box(self, "SafehouseExterior", Vector3(9.0, 5.0, 7.0), Vector3(31.0, 2.5, -31.0), Color(0.10, 0.26, 0.13, 1.0))
 	_add_static_box(self, "ContrabandBlockA", Vector3(10.0, 4.8, 10.0), Vector3(21.0, 2.4, -23.0), Color(0.14, 0.19, 0.15, 1.0))
 	_add_static_box(self, "ContrabandBlockB", Vector3(9.0, 6.0, 9.0), Vector3(36.0, 3.0, -14.0), Color(0.12, 0.17, 0.14, 1.0))
 
 func _build_arms_blocks() -> void:
+	_add_static_box(self, "WorkshopExterior", Vector3(9.0, 5.0, 7.0), Vector3(31.0, 2.5, 31.0), Color(0.32, 0.14, 0.07, 1.0))
 	_add_static_box(self, "ArmsBlockA", Vector3(11.0, 5.0, 10.0), Vector3(22.0, 2.5, 22.0), Color(0.22, 0.16, 0.12, 1.0))
 	_add_static_box(self, "ArmsBlockB", Vector3(9.0, 6.5, 9.0), Vector3(36.0, 3.25, 13.0), Color(0.19, 0.13, 0.10, 1.0))
 
@@ -74,7 +77,7 @@ func _build_center_blocks() -> void:
 	_add_static_box(self, "CommonsKioskA", Vector3(4.0, 2.4, 4.0), Vector3(-1.0, 1.2, -11.0), Color(0.25, 0.24, 0.23, 1.0))
 	_add_static_box(self, "CommonsKioskB", Vector3(4.0, 2.4, 4.0), Vector3(1.0, 1.2, 11.0), Color(0.25, 0.24, 0.23, 1.0))
 
-func _add_district_floor(node_name: String, position_value: Vector3, size: Vector3, color: Color) -> void:
+func _add_visual_box(node_name: String, position_value: Vector3, size: Vector3, color: Color) -> void:
 	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
 	mesh_instance.name = node_name
 	var mesh: BoxMesh = BoxMesh.new()
