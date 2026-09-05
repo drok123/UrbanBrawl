@@ -114,12 +114,12 @@ func apply_hit(hit: CombatHit, base_stun: float) -> float:
 
 	var roll: float = randf()
 	if roll < fall_chance:
-		_start_reaction(Reaction.FALLBACK, randf_range(0.82, 1.18))
+		_start_reaction(Reaction.FALLBACK, _fallback_duration())
 		_apply_fallback_motion(force)
 		return maxf(base_stun, _reaction_total)
 
 	if roll < fall_chance + stumble_chance * (1.0 - fall_chance):
-		_start_reaction(Reaction.STUMBLE, randf_range(0.30, 0.52))
+		_start_reaction(Reaction.STUMBLE, _stumble_duration())
 		_apply_stumble_motion(force)
 		return maxf(base_stun, _reaction_total)
 
@@ -136,6 +136,27 @@ func clear() -> void:
 		_actor.set_meta(META_VARIANT, 0)
 	_reset_visuals()
 
+func _stumble_duration() -> float:
+	var base: float = 0.38
+	match _variant:
+		0:
+			base = 0.31
+		1:
+			base = 0.44
+		2:
+			base = 0.36
+		3:
+			base = 0.42
+		4:
+			base = 0.40
+		5:
+			base = 0.55
+	return base * randf_range(0.92, 1.08)
+
+func _fallback_duration() -> float:
+	var base: float = 0.96 + float(_variant % 3) * 0.08
+	return base * randf_range(0.92, 1.08)
+
 func _start_reaction(reaction: Reaction, duration: float) -> void:
 	_reaction = reaction
 	_reaction_total = maxf(duration, 0.05)
@@ -148,8 +169,26 @@ func _apply_stumble_motion(force: float) -> void:
 	if _actor == null:
 		return
 	var lateral: Vector3 = Vector3(-_last_impact_direction.z, 0.0, _last_impact_direction.x) * _step_sign
-	_actor.velocity += _last_impact_direction * clampf(force * 0.28, 0.45, 2.2)
-	_actor.velocity += lateral * randf_range(0.35, 1.15)
+	var back_scale: float = 0.28
+	var side_scale: float = randf_range(0.35, 1.15)
+	match _variant:
+		1:
+			back_scale = 0.34
+			side_scale *= 0.55
+		2:
+			back_scale = 0.18
+			side_scale *= 1.45
+		3:
+			back_scale = 0.24
+			side_scale *= 1.15
+		4:
+			back_scale = 0.20
+			side_scale *= 0.35
+		5:
+			back_scale = 0.38
+			side_scale *= 0.70
+	_actor.velocity += _last_impact_direction * clampf(force * back_scale, 0.40, 2.65)
+	_actor.velocity += lateral * side_scale
 
 func _apply_fallback_motion(force: float) -> void:
 	if _actor == null:
@@ -238,16 +277,62 @@ func _apply_visual_reaction(progress: float) -> void:
 				left_arm_rotation.x = -0.38 * envelope
 
 		Reaction.STUMBLE:
-			var step_wave: float = sin(progress * PI * (2.0 + float(_variant % 2)))
-			root_rotation.x = -0.30 * envelope * _lean
-			root_rotation.z = 0.10 * envelope * _step_sign * variant_scale
-			root_position.z = 0.10 * envelope
-			torso_rotation.y = 0.34 * envelope * _twist
-			head_rotation.z = -0.08 * envelope * _step_sign
-			left_arm_rotation.x = (-0.42 + 0.16 * step_wave) * envelope
-			right_arm_rotation.x = (-0.62 - 0.14 * step_wave) * envelope
-			left_leg_rotation.x = step_wave * 0.42 * _step_sign
-			right_leg_rotation.x = -step_wave * 0.42 * _step_sign
+			match _variant:
+				0: # single back-step
+					var step: float = sin(progress * PI * 1.8)
+					root_rotation.x = -0.25 * envelope * _lean
+					root_rotation.z = 0.05 * envelope * _step_sign
+					torso_rotation.y = 0.18 * envelope * _twist
+					left_leg_rotation.x = step * 0.34
+					right_leg_rotation.x = -step * 0.34
+					right_arm_rotation.x = -0.46 * envelope
+				1: # double recovery step
+					var step: float = sin(progress * PI * 3.2)
+					root_rotation.x = -0.34 * envelope * _lean
+					root_position.z = 0.12 * envelope
+					torso_rotation.y = 0.26 * envelope * _twist
+					left_leg_rotation.x = step * 0.50
+					right_leg_rotation.x = -step * 0.50
+					left_arm_rotation.x = -0.36 * envelope
+					right_arm_rotation.x = -0.62 * envelope
+				2: # side catch
+					var step: float = sin(progress * PI * 2.1)
+					root_rotation.x = -0.18 * envelope * _lean
+					root_rotation.z = 0.20 * envelope * _step_sign
+					torso_rotation.z = -0.12 * envelope * _step_sign
+					left_leg_rotation.z = step * 0.22 * _step_sign
+					right_leg_rotation.z = -step * 0.14 * _step_sign
+					head_rotation.z = -0.10 * envelope * _step_sign
+				3: # shoulder spin
+					var spin: float = sin(progress * PI)
+					root_rotation.x = -0.22 * envelope * _lean
+					root_rotation.y = 0.30 * spin * _twist
+					torso_rotation.y = 0.42 * envelope * _twist
+					left_arm_rotation.x = -0.68 * envelope
+					right_arm_rotation.x = -0.28 * envelope
+					left_leg_rotation.x = 0.22 * envelope
+					right_leg_rotation.x = -0.20 * envelope
+				4: # knee buckle
+					var buckle: float = sin(progress * PI)
+					root_rotation.x = -0.28 * envelope * _lean
+					root_position.y = -0.13 * buckle
+					torso_rotation.x = 0.14 * buckle
+					left_leg_rotation.x = 0.58 * buckle
+					right_leg_rotation.x = 0.34 * buckle
+					left_arm_rotation.x = -0.30 * envelope
+					right_arm_rotation.x = -0.52 * envelope
+				_: # long off-balance recovery
+					var step: float = sin(progress * PI * 2.4)
+					var late: float = sin(minf(progress * 1.12, 1.0) * PI)
+					root_rotation.x = -0.38 * late * _lean
+					root_rotation.z = 0.10 * late * _step_sign * variant_scale
+					root_position.z = 0.16 * late
+					torso_rotation.y = 0.36 * late * _twist
+					head_rotation.z = -0.08 * late * _step_sign
+					left_leg_rotation.x = step * 0.46
+					right_leg_rotation.x = -step * 0.46
+					left_arm_rotation.x = -0.54 * late
+					right_arm_rotation.x = -0.70 * late
 
 		Reaction.FALLBACK:
 			var fall_amount: float = 0.0
@@ -258,15 +343,16 @@ func _apply_visual_reaction(progress: float) -> void:
 			else:
 				fall_amount = 1.0 - smoothstep(0.68, 1.0, progress)
 			root_rotation.x = -1.18 * fall_amount * _lean
-			root_rotation.z = 0.12 * fall_amount * _step_sign * variant_scale
+			root_rotation.z = (0.06 + 0.035 * float(_variant % 3)) * fall_amount * _step_sign
+			root_rotation.y = 0.08 * fall_amount * _twist if _variant >= 3 else 0.0
 			root_position.y = -0.40 * fall_amount
 			root_position.z = 0.18 * fall_amount
-			torso_rotation.y = 0.28 * fall_amount * _twist
+			torso_rotation.y = (0.20 + 0.04 * float(_variant % 3)) * fall_amount * _twist
 			head_rotation.x = 0.20 * fall_amount
-			left_arm_rotation.x = -0.74 * fall_amount
-			right_arm_rotation.x = -0.44 * fall_amount
-			left_leg_rotation.x = (0.30 + 0.12 * float(_variant % 2)) * fall_amount
-			right_leg_rotation.x = (-0.22 - 0.10 * float((_variant + 1) % 2)) * fall_amount
+			left_arm_rotation.x = (-0.62 - 0.06 * float(_variant % 2)) * fall_amount
+			right_arm_rotation.x = (-0.40 - 0.08 * float((_variant + 1) % 2)) * fall_amount
+			left_leg_rotation.x = (0.26 + 0.08 * float(_variant % 3)) * fall_amount
+			right_leg_rotation.x = (-0.18 - 0.07 * float((_variant + 1) % 3)) * fall_amount
 
 	_root_pivot.rotation = root_rotation
 	_root_pivot.position = root_position
