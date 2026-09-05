@@ -14,6 +14,7 @@ script = ExtResource("1_base")
 base_title = "CONTRABAND SAFEHOUSE"
 base_color = Color(0.10, 0.30, 0.15, 1)
 territory_id = 2
+required_faction = 2
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-55, -25, 0)
