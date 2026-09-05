@@ -355,6 +355,16 @@ func _reset_after_death() -> void:
 func get_cooldown_remaining(ability_id: StringName) -> float:
 	return float(_cooldowns.get(ability_id, 0.0))
 
+func get_combat_phase_name() -> String:
+	if _dead:
+		return "DOWN"
+	if _stun_left > 0.0:
+		return "HITSTUN"
+	return str(CombatPhase.keys()[_combat_phase])
+
+func get_equipped_weapon_name() -> String:
+	return "UNARMED"
+
 func _update_health_label() -> void:
 	if _health_label == null:
 		return
