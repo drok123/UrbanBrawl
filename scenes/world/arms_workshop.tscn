@@ -19,6 +19,7 @@
 script = ExtResource("1_base")
 base_title = "ARMS WORKSHOP"
 base_color = Color(0.34, 0.16, 0.08, 1)
+territory_id = 1
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-55, -25, 0)
