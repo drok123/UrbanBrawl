@@ -111,9 +111,7 @@ func _find_animation_player(node: Node) -> AnimationPlayer:
 	return null
 
 func _play_attack_for_current_input() -> void:
-	var weapon_name: String = "UNARMED"
-	if _actor.has_method("get_equipped_weapon_name"):
-		weapon_name = str(_actor.call("get_equipped_weapon_name"))
+	var weapon_name: String = _weapon_name()
 
 	if weapon_name.contains("BASEBALL BAT"):
 		if Input.is_action_pressed(&"cleave"):
@@ -124,6 +122,15 @@ func _play_attack_for_current_input() -> void:
 			_play_once([&"2H_Melee_Attack_Slice", &"2H_Melee_Attack_Chop", &"1H_Melee_Attack_Slice_Horizontal"])
 		return
 
+	if weapon_name.contains("KNIFE"):
+		if Input.is_action_pressed(&"cleave"):
+			_play_once([&"1H_Melee_Attack_Slice_Horizontal", &"1H_Melee_Attack_Slice_Diagonal", &"1H_Melee_Attack_Chop"])
+		elif Input.is_action_pressed(&"charge"):
+			_play_once([&"1H_Melee_Attack_Stab", &"1H_Melee_Attack_Slice_Diagonal"])
+		else:
+			_play_once([&"1H_Melee_Attack_Slice_Diagonal", &"1H_Melee_Attack_Stab", &"1H_Melee_Attack_Chop"])
+		return
+
 	if Input.is_action_pressed(&"cleave"):
 		_play_once([&"Unarmed_Melee_Attack_Kick", &"Unarmed_Melee_Attack_Punch_B", &"Heavy Attack"])
 	elif Input.is_action_pressed(&"charge"):
@@ -132,12 +139,17 @@ func _play_attack_for_current_input() -> void:
 		_play_once([&"Unarmed_Melee_Attack_Punch_A", &"Unarmed_Melee_Attack_Punch_B", &"Attack (1h)"])
 
 func _idle_candidates() -> Array[StringName]:
-	var weapon_name: String = "UNARMED"
-	if _actor != null and _actor.has_method("get_equipped_weapon_name"):
-		weapon_name = str(_actor.call("get_equipped_weapon_name"))
+	var weapon_name: String = _weapon_name()
 	if weapon_name.contains("BASEBALL BAT"):
 		return [&"2H_Melee_Idle", &"Idle", &"Unarmed_Idle"]
+	if weapon_name.contains("KNIFE"):
+		return [&"Idle", &"Unarmed_Idle", &"Unarmed_Pose"]
 	return [&"Unarmed_Idle", &"Idle", &"Unarmed_Pose"]
+
+func _weapon_name() -> String:
+	if _actor != null and _actor.has_method("get_equipped_weapon_name"):
+		return str(_actor.call("get_equipped_weapon_name"))
+	return "UNARMED"
 
 func _dodge_candidates(world_velocity: Vector3) -> Array[StringName]:
 	if world_velocity.length_squared() < 0.001 or _actor == null:
