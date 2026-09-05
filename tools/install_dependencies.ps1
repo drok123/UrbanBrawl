@@ -20,6 +20,14 @@ $dependencies = @(
         Zip = "https://codeload.github.com/bitbrain/beehave/zip/refs/tags/v2.9.3"
         Folder = "beehave-2.9.3"
         License = "https://raw.githubusercontent.com/bitbrain/beehave/v2.9.3/LICENSE"
+    },
+    @{
+        Name = "KayKit Character Pack - Adventurers"
+        Repo = "KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0"
+        Tag = "672074b73ba276876a19e8816ecdc5241817ab47"
+        Zip = "https://codeload.github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/zip/672074b73ba276876a19e8816ecdc5241817ab47"
+        Folder = "KayKit-Character-Pack-Adventures-1.0-672074b73ba276876a19e8816ecdc5241817ab47"
+        License = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/LICENSE.txt"
     }
 )
 
@@ -66,6 +74,7 @@ Write-Host ""
 Reset-Directory $cacheRoot
 New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $projectRoot "addons") -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $projectRoot "assets\third_party") -Force | Out-Null
 
 # --- Oen44 inventory/itemization ---
 $inventoryRoot = Download-And-Expand $dependencies[0]
@@ -140,6 +149,28 @@ Copy-Item $beehaveSource $beehaveDestination -Recurse -Force
 # so retrieve the license separately from the exact pinned tag.
 Install-License $dependencies[1] "Beehave-LICENSE.txt"
 
+# --- KayKit animated character prototype rig ---
+$kaykitRoot = Download-And-Expand $dependencies[2]
+
+Write-Host "Installing KayKit animated humanoid test rig..." -ForegroundColor Green
+$kaykitSource = Join-Path $kaykitRoot "addons\kaykit_character_pack_adventures\Characters\gltf"
+$kaykitDestination = Join-Path $projectRoot "assets\third_party\kaykit_adventurers"
+
+if (-not (Test-Path $kaykitSource)) {
+    throw "Missing expected KayKit GLTF character folder: $kaykitSource"
+}
+
+if (Test-Path $kaykitDestination) {
+    Remove-Item $kaykitDestination -Recurse -Force
+}
+Copy-Item $kaykitSource $kaykitDestination -Recurse -Force
+
+$kaykitBarbarian = Join-Path $kaykitDestination "Barbarian.glb"
+if (-not (Test-Path $kaykitBarbarian)) {
+    throw "KayKit install is incomplete; Barbarian.glb was not installed: $kaykitBarbarian"
+}
+Install-License $dependencies[2] "KayKit-Adventurers-LICENSE.txt"
+
 # Clean temporary downloads after successful install.
 Remove-Item $cacheRoot -Recurse -Force
 
@@ -147,6 +178,7 @@ Write-Host ""
 Write-Host "Dependencies installed successfully." -ForegroundColor Green
 Write-Host "  Oen44/Godot-Inventory @ v4.0.1a (equipment/inventory/itemization/tooltip/vendor)"
 Write-Host "  bitbrain/beehave @ v2.9.3"
+Write-Host "  KayKit Adventurers @ 672074b (animated humanoid prototype rig)"
 Write-Host ""
 Write-Host "Restart Godot after installation." -ForegroundColor Yellow
 Write-Host ""
