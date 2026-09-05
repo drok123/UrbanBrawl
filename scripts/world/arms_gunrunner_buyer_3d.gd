@@ -37,11 +37,17 @@ func interact(actor: Node) -> void:
 		return
 
 	var rarity_index: int = WeaponItemRules.rarity_index(item)
+	var rarity_name: String = WeaponItemRules.rarity_name(item)
+	var weapon_name: String = item.base.name
 	var base_value: int = int(item.base.base_value)
 	var payout_multiplier: float = 2.0 + float(rarity_index) * 0.45
 	var payout: int = maxi(int(round(float(base_value) * payout_multiplier)), 120)
 	var heat_gain: int = 6 + rarity_index * 3
 	var evidence_gain: int = 4 + rarity_index * 2
+	var event_position: Vector3 = global_position
+	var actor_3d: Node3D = actor as Node3D
+	if actor_3d != null:
+		event_position = actor_3d.global_position
 
 	var removed_value: Variant = actor.call("take_equipped_weapon_for_storage")
 	if not removed_value is Dictionary:
@@ -55,7 +61,19 @@ func interact(actor: Node) -> void:
 
 	GameSession.clear_carried()
 	GameSession.add_cash(payout)
-	GameSession.flag_crime(heat_gain, evidence_gain, criminal_flag_seconds)
+	GameSession.commit_crime(
+		&"illegal_weapon_sale",
+		event_position,
+		heat_gain,
+		evidence_gain,
+		criminal_flag_seconds,
+		{
+			"weapon_name": weapon_name,
+			"rarity": rarity_name,
+			"rarity_index": rarity_index,
+			"street_value": payout,
+		}
+	)
 	_flash_message("GUNRUN COMPLETE +$%d — CRIMINAL FLAGGED" % payout)
 
 func get_interaction_prompt(actor: Node) -> String:
