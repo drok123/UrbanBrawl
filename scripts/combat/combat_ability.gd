@@ -15,6 +15,12 @@ enum TelegraphShape {
 @export var display_name: String = "Ability"
 @export var mode: AbilityMode = AbilityMode.MELEE
 
+@export_group("Source")
+@export var weapon_id: StringName = &"unarmed"
+@export var damage_type: StringName = &"blunt"
+@export var hit_location: StringName = &"body"
+@export var gore_power: float = 0.25
+
 @export_group("Timing")
 @export var cooldown: float = 1.0
 @export var windup: float = 0.10
