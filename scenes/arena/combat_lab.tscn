@@ -1,8 +1,9 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="2_camera"]
 [ext_resource type="Script" path="res://scripts/combat/training_dummy.gd" id="3_dummy"]
+[ext_resource type="Script" path="res://scripts/ui/combat_hud.gd" id="4_hud"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.16, 0.175, 0.19, 1)
@@ -112,6 +113,16 @@ mesh = SubResource("WallMeshShort")
 [node name="Collision" type="CollisionShape3D" parent="EastWall"]
 shape = SubResource("WallShapeShort")
 
+[node name="PracticeWall" type="StaticBody3D" parent="."]
+position = Vector3(0, 0.75, -6.4)
+scale = Vector3(0.36, 1, 1)
+
+[node name="Mesh" type="MeshInstance3D" parent="PracticeWall"]
+mesh = SubResource("WallMeshLong")
+
+[node name="Collision" type="CollisionShape3D" parent="PracticeWall"]
+shape = SubResource("WallShapeLong")
+
 [node name="Player" type="CharacterBody3D" parent="."]
 position = Vector3(0, 0.95, 3.0)
 script = ExtResource("1_player")
@@ -144,7 +155,7 @@ outline_size = 6
 text = "300 / 300"
 
 [node name="DummyB" type="CharacterBody3D" parent="."]
-position = Vector3(-4.0, 0.9, -3.0)
+position = Vector3(-3.4, 0.9, -2.8)
 script = ExtResource("3_dummy")
 
 [node name="Mesh" type="MeshInstance3D" parent="DummyB"]
@@ -160,7 +171,7 @@ outline_size = 6
 text = "300 / 300"
 
 [node name="DummyC" type="CharacterBody3D" parent="."]
-position = Vector3(4.0, 0.9, -3.0)
+position = Vector3(3.4, 0.9, -2.8)
 script = ExtResource("3_dummy")
 
 [node name="Mesh" type="MeshInstance3D" parent="DummyC"]
@@ -186,7 +197,83 @@ target_path = NodePath("../Player")
 [node name="Instructions" type="Label" parent="HUD"]
 offset_left = 24.0
 offset_top = 20.0
-offset_right = 760.0
-offset_bottom = 104.0
+offset_right = 980.0
+offset_bottom = 108.0
 theme_override_font_sizes/font_size = 20
-text = "URBAN BRAWL — COMBAT LAB 0.2\nWASD: move    Mouse: aim    LMB: strike    Q: heavy cleave    SPACE: dash"
+text = "URBAN BRAWL — COMBAT LAB 0.3\nWASD: move    Mouse: aim    LMB: strike    Q: heavy cleave    E: shoulder charge    SPACE: dash"
+
+[node name="CombatHUD" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("4_hud")
+player_path = NodePath("../../Player")
+
+[node name="Phase" type="Label" parent="HUD/CombatHUD"]
+offset_left = 620.0
+offset_top = 748.0
+offset_right = 980.0
+offset_bottom = 778.0
+theme_override_colors/font_color = Color(0.72, 0.76, 0.82, 1)
+theme_override_font_sizes/font_size = 16
+text = "COMBAT STATE: READY"
+horizontal_alignment = 1
+
+[node name="AbilityBar" type="HBoxContainer" parent="HUD/CombatHUD"]
+offset_left = 350.0
+offset_top = 785.0
+offset_right = 1250.0
+offset_bottom = 860.0
+theme_override_constants/separation = 12
+
+[node name="Basic" type="Label" parent="HUD/CombatHUD/AbilityBar"]
+custom_minimum_size = Vector2(210, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = "LMB   STRIKE\nREADY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Cleave" type="Label" parent="HUD/CombatHUD/AbilityBar"]
+custom_minimum_size = Vector2(210, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = "Q   CLEAVE\nREADY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Charge" type="Label" parent="HUD/CombatHUD/AbilityBar"]
+custom_minimum_size = Vector2(210, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = "E   CHARGE\nREADY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Dash" type="Label" parent="HUD/CombatHUD/AbilityBar"]
+custom_minimum_size = Vector2(210, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = "SPACE   DASH\nREADY"
+horizontal_alignment = 1
+vertical_alignment = 1
