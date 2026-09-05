@@ -168,6 +168,12 @@ target_path = NodePath("../Player")
 [node name="Mesh" type="MeshInstance3D" parent="SparringBot"]
 mesh = SubResource("DummyMesh")
 
+[node name="CharacterVisual" type="Node3D" parent="SparringBot"]
+script = ExtResource("9_animation")
+body_color = Color(0.70, 0.25, 0.22, 1)
+accent_color = Color(0.22, 0.08, 0.07, 1)
+visual_offset = Vector3(0, -0.9, 0)
+
 [node name="Collision" type="CollisionShape3D" parent="SparringBot"]
 shape = SubResource("DummyShape")
 
@@ -223,7 +229,7 @@ offset_top = 20.0
 offset_right = 1320.0
 offset_bottom = 108.0
 theme_override_font_sizes/font_size = 20
-text = "URBAN BRAWL — COMBAT LAB 0.6\nWEAPON SCRAMBLE: fists, rolled knife and rolled bat now share one pickup/equip/drop pipeline.\nWASD: move    Mouse: aim    LMB/Q/E: attacks    SPACE: dash    F: pick up / drop weapon"
+text = "URBAN BRAWL — COMBAT LAB 0.6\nPROCEDURAL HUMANOIDS: no external character assets. Fists, knife and bat animate the same native rig.\nWASD: move    Mouse: aim    LMB/Q/E: attacks    SPACE: dash    F: pick up / drop weapon"
 
 [node name="CombatHUD" type="Control" parent="HUD"]
 layout_mode = 3
