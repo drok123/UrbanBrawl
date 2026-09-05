@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/street_blockout.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
@@ -14,6 +14,7 @@
 [ext_resource type="Resource" path="res://resources/weapons/pistol_profile.tres" id="12_pistol_profile"]
 [ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="13_access"]
 [ext_resource type="Script" path="res://scripts/world/contraband_buyer_3d.gd" id="14_buyer"]
+[ext_resource type="PackedScene" path="res://scenes/actors/beat_cop.tscn" id="15_cop"]
 
 [node name="StreetBlock" type="Node3D"]
 script = ExtResource("1_world")
@@ -36,6 +37,16 @@ position = Vector3(0, 15, 13)
 current = true
 script = ExtResource("3_camera")
 target_path = NodePath("../Player")
+
+[node name="BeatCopEast" parent="." instance=ExtResource("15_cop")]
+position = Vector3(4.8, 0.95, -0.8)
+target_path = NodePath("../Player")
+observation_radius = 11.5
+
+[node name="BeatCopWest" parent="." instance=ExtResource("15_cop")]
+position = Vector3(-7.4, 0.95, 1.8)
+target_path = NodePath("../Player")
+observation_radius = 8.5
 
 [node name="HideoutDoor" type="Node3D" parent="."]
 position = Vector3(-10.6, 0, 7.2)
@@ -129,7 +140,7 @@ theme_override_colors/font_color = Color(0.88, 0.90, 0.94, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 21
-text = "CONTRABAND sells here. NORTH BLOCK = contraband turf for ARMS gunrunning. FOUNDRY BLOCK = arms turf for POLICE interdiction. Equipped weapon = COMBAT FLAG."
+text = "CONTRABAND: sell near the street buyer. Beat cops only respond if close enough to observe the crime. If they down you, product + dropped weapon can become tagged evidence."
 
 [node name="InteractionPrompt" type="Label" parent="HUD"]
 offset_left = 220.0
