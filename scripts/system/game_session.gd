@@ -241,6 +241,9 @@ func create_evidence_package(crime_event: Dictionary, seized_units: int = 0, sei
 
 func register_bust() -> void:
 	busts += 1
+	carried_item = null
+	carried_profile = null
+	_weapon_equipped = false
 	_criminal_flag_left = 0.0
 	_combat_flag_left = maxf(_combat_flag_left, 4.0)
 	heat = maxi(heat - 3, 0)
