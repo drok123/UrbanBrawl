@@ -25,9 +25,9 @@ $dependencies = @(
         Name = "KayKit Character Pack - Adventurers"
         Repo = "KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0"
         Tag = "672074b73ba276876a19e8816ecdc5241817ab47"
-        Zip = "https://codeload.github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/zip/672074b73ba276876a19e8816ecdc5241817ab47"
-        Folder = "KayKit-Character-Pack-Adventures-1.0-672074b73ba276876a19e8816ecdc5241817ab47"
         License = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/LICENSE.txt"
+        Barbarian = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/Barbarian.glb"
+        BarbarianTexture = "https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/672074b73ba276876a19e8816ecdc5241817ab47/addons/kaykit_character_pack_adventures/Characters/gltf/barbarian_texture.png"
     }
 )
 
@@ -150,35 +150,40 @@ Copy-Item $beehaveSource $beehaveDestination -Recurse -Force
 Install-License $dependencies[1] "Beehave-LICENSE.txt"
 
 # --- KayKit animated character prototype rig ---
-$kaykitRoot = Download-And-Expand $dependencies[2]
-
+# Do not use Expand-Archive for this dependency. Windows PowerShell 5.1's
+# Microsoft.PowerShell.Archive module can fail on the KayKit repository ZIP's
+# directory entries. Urban Brawl only needs the Barbarian GLB + its external texture,
+# so download those exact pinned files directly instead.
 Write-Host "Installing KayKit animated humanoid test rig..." -ForegroundColor Green
-$kaykitSource = Join-Path $kaykitRoot "addons\kaykit_character_pack_adventures\Characters\gltf"
 $kaykitDestination = Join-Path $projectRoot "assets\third_party\kaykit_adventurers"
-
-if (-not (Test-Path $kaykitSource)) {
-    throw "Missing expected KayKit GLTF character folder: $kaykitSource"
-}
-
-if (Test-Path $kaykitDestination) {
-    Remove-Item $kaykitDestination -Recurse -Force
-}
-Copy-Item $kaykitSource $kaykitDestination -Recurse -Force
+Reset-Directory $kaykitDestination
 
 $kaykitBarbarian = Join-Path $kaykitDestination "Barbarian.glb"
-if (-not (Test-Path $kaykitBarbarian)) {
-    throw "KayKit install is incomplete; Barbarian.glb was not installed: $kaykitBarbarian"
+$kaykitTexture = Join-Path $kaykitDestination "barbarian_texture.png"
+
+Write-Host "Downloading KayKit Barbarian.glb..." -ForegroundColor Cyan
+Invoke-WebRequest -Uri $dependencies[2].Barbarian -OutFile $kaykitBarbarian -UseBasicParsing
+Write-Host "Downloading KayKit barbarian_texture.png..." -ForegroundColor Cyan
+Invoke-WebRequest -Uri $dependencies[2].BarbarianTexture -OutFile $kaykitTexture -UseBasicParsing
+
+if (-not (Test-Path $kaykitBarbarian) -or (Get-Item $kaykitBarbarian).Length -lt 100000) {
+    throw "KayKit install is incomplete or invalid; Barbarian.glb was not downloaded correctly: $kaykitBarbarian"
+}
+if (-not (Test-Path $kaykitTexture) -or (Get-Item $kaykitTexture).Length -lt 1000) {
+    throw "KayKit install is incomplete or invalid; barbarian_texture.png was not downloaded correctly: $kaykitTexture"
 }
 Install-License $dependencies[2] "KayKit-Adventurers-LICENSE.txt"
 
 # Clean temporary downloads after successful install.
-Remove-Item $cacheRoot -Recurse -Force
+if (Test-Path $cacheRoot) {
+    Remove-Item $cacheRoot -Recurse -Force
+}
 
 Write-Host ""
 Write-Host "Dependencies installed successfully." -ForegroundColor Green
 Write-Host "  Oen44/Godot-Inventory @ v4.0.1a (equipment/inventory/itemization/tooltip/vendor)"
 Write-Host "  bitbrain/beehave @ v2.9.3"
-Write-Host "  KayKit Adventurers @ 672074b (animated humanoid prototype rig)"
+Write-Host "  KayKit Adventurers @ 672074b (Barbarian.glb + texture, direct download)"
 Write-Host ""
 Write-Host "Restart Godot after installation." -ForegroundColor Yellow
 Write-Host ""
