@@ -22,10 +22,12 @@ func _process(delta: float) -> void:
 		_message = ""
 		_refresh_label()
 
-func interact(_actor: Node) -> void:
+func interact(actor: Node) -> void:
 	if GameSession.cash < entry_fee:
 		_flash("NEED $%d" % entry_fee)
 		return
+	if actor != null:
+		GameSession.capture_player(actor)
 	if not GameSession.begin_ffa(entry_fee):
 		_flash("ACTIVITY UNAVAILABLE")
 		return
