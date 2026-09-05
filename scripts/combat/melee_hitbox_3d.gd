@@ -101,7 +101,7 @@ func _fire_ranged() -> void:
 	if not result.is_empty():
 		var result_position: Variant = result.get("position", end)
 		if result_position is Vector3:
-			impact_position = result_position as Vector3
+			impact_position = result_position
 
 		var collider_value: Variant = result.get("collider", null)
 		var body: Node3D = collider_value as Node3D
