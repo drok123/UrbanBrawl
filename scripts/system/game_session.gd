@@ -213,7 +213,9 @@ func create_evidence_package(crime_event: Dictionary, seized_units: int = 0, sei
 		return {}
 	_evidence_serial += 1
 	var metadata_value: Variant = crime_event.get("metadata", {})
-	var metadata: Dictionary = metadata_value as Dictionary if metadata_value is Dictionary else {}
+	var metadata: Dictionary = {}
+	if metadata_value is Dictionary:
+		metadata = metadata_value as Dictionary
 	var event_evidence: int = int(crime_event.get("evidence", 0))
 	var event_value: int = int(metadata.get("street_value", 0))
 	var case_value: int = maxi(event_evidence * 2 + maxi(seized_units, 0) * 5 + int(round(float(event_value) / 80.0)), 1)
