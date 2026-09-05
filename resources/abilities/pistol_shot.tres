@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"basic"
+display_name = "Quick Shot"
+mode = 2
+weapon_id = &"pistol"
+damage_type = &"piercing"
+hit_location = &"body"
+gore_power = 0.82
+cooldown = 0.32
+windup = 0.055
+active_time = 0.025
+recovery = 0.13
+damage = 35.0
+range_distance = 18.0
+radius = 0.06
+knockback = 2.4
+hitstop = 0.026
+movement_multiplier = 0.72
+self_impulse = 0.0
+telegraph_shape = 1
+telegraph_length = 18.0
+telegraph_color = Color(1.0, 0.72, 0.16, 0.10)
