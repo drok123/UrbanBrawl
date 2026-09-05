@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"charge"
+display_name = "Bat Check"
+mode = 1
+weapon_id = &"baseball_bat"
+damage_type = &"blunt"
+hit_location = &"body"
+gore_power = 0.52
+cooldown = 1.35
+windup = 0.15
+active_time = 0.18
+recovery = 0.24
+damage = 72.0
+range_distance = 1.18
+radius = 0.80
+knockback = 9.8
+hitstop = 0.052
+wall_stun_window = 0.38
+movement_multiplier = 0.0
+charge_speed = 11.5
+telegraph_shape = 1
+telegraph_length = 2.3
+telegraph_color = Color(0.92, 0.48, 0.12, 0.24)
