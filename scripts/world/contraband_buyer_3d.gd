@@ -23,7 +23,7 @@ func _process(delta: float) -> void:
 			_message = ""
 	_refresh_label()
 
-func interact(_actor: Node) -> void:
+func interact(actor: Node) -> void:
 	if GameSession.player_faction != GameSession.Faction.CONTRABAND:
 		_flash_message("CONTRABAND FACTION ONLY")
 		return
@@ -38,7 +38,22 @@ func interact(_actor: Node) -> void:
 
 	var payout: int = cash_per_unit * units_per_sale
 	GameSession.add_cash(payout)
-	GameSession.flag_crime(heat_per_sale, evidence_per_sale, criminal_flag_seconds)
+	var event_position: Vector3 = global_position
+	var actor_3d: Node3D = actor as Node3D
+	if actor_3d != null:
+		event_position = actor_3d.global_position
+	GameSession.commit_crime(
+		&"drug_sale",
+		event_position,
+		heat_per_sale,
+		evidence_per_sale,
+		criminal_flag_seconds,
+		{
+			"units": units_per_sale,
+			"street_value": payout,
+			"buyer": "street_buyer",
+		}
+	)
 	_flash_message("SOLD +$%d — CRIMINAL FLAGGED" % payout)
 
 func get_interaction_prompt(_actor: Node) -> String:
