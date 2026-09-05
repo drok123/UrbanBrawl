@@ -40,6 +40,11 @@ func _physics_process(delta: float) -> void:
 	_check_for_wall_stun()
 	_update_health_label()
 
+func receive_hit(hit: CombatHit) -> void:
+	if hit == null:
+		return
+	apply_hit(hit.damage, hit.impulse, hit.wall_stun_window, hit.hitstop)
+
 func apply_hit(
 	damage: float,
 	impulse: Vector3 = Vector3.ZERO,
