@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemBase" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/itemization/ItemBase.gd" id="1_base"]
+[ext_resource type="Texture2D" path="res://assets/ui/items/knife.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_base")
+name = "Knife"
+description = "Fast, close and nasty. Low commitment, high bleed potential."
+icon = ExtResource("2_icon")
+stackable = false
+max_stacks = 1
+base_value = 180
+slot_type = 5
+min_damage = 58
+max_damage = 68
+attack_speed = 1.25
