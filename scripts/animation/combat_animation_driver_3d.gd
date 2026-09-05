@@ -39,6 +39,8 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_time += delta
+	_adopt_held_weapon_visual()
+
 	var phase: String = "READY"
 	if _actor.has_method("get_combat_phase_name"):
 		phase = str(_actor.call("get_combat_phase_name"))
@@ -83,7 +85,6 @@ func _build_humanoid() -> void:
 
 	_left_shoulder = _build_arm("LeftArm", Vector3(-0.49, 1.66, 0.0), false)
 	_right_shoulder = _build_arm("RightArm", Vector3(0.49, 1.66, 0.0), true)
-
 	_left_hip = _build_leg("LeftLeg", Vector3(-0.22, 0.86, 0.0), false)
 	_right_hip = _build_leg("RightLeg", Vector3(0.22, 0.86, 0.0), true)
 
@@ -92,7 +93,6 @@ func _build_arm(node_name: String, shoulder_position: Vector3, right_side: bool)
 	shoulder.name = node_name
 	shoulder.position = shoulder_position
 	_model_root.add_child(shoulder)
-
 	_add_capsule(shoulder, "UpperArm", 0.115, 0.56, Vector3(0.0, -0.28, 0.0), _body_material)
 
 	var elbow: Node3D = Node3D.new()
@@ -111,8 +111,7 @@ func _build_arm(node_name: String, shoulder_position: Vector3, right_side: bool)
 		_right_elbow = elbow
 		_weapon_anchor = Node3D.new()
 		_weapon_anchor.name = "WeaponAnchor"
-		_weapon_anchor.position = Vector3(0.0, -0.04, -0.02)
-		_weapon_anchor.rotation_degrees = Vector3(0.0, 0.0, -8.0)
+		_weapon_anchor.position = Vector3(0.0, -0.04, 0.0)
 		hand.add_child(_weapon_anchor)
 	else:
 		_left_elbow = elbow
@@ -124,7 +123,6 @@ func _build_leg(node_name: String, hip_position: Vector3, right_side: bool) -> N
 	hip.name = node_name
 	hip.position = hip_position
 	_model_root.add_child(hip)
-
 	_add_capsule(hip, "Thigh", 0.135, 0.66, Vector3(0.0, -0.33, 0.0), _body_material)
 
 	var knee: Node3D = Node3D.new()
@@ -184,6 +182,16 @@ func _hide_legacy_visuals() -> void:
 	if facing_marker != null:
 		facing_marker.visible = false
 
+func _adopt_held_weapon_visual() -> void:
+	if _weapon_anchor == null or _actor == null:
+		return
+	var held_weapon: Node3D = _actor.get_node_or_null("HeldWeapon") as Node3D
+	if held_weapon == null or held_weapon.get_parent() == _weapon_anchor:
+		return
+	held_weapon.reparent(_weapon_anchor, false)
+	held_weapon.position = Vector3(0.0, -0.08, 0.0)
+	held_weapon.rotation_degrees = Vector3(0.0, 0.0, -8.0)
+
 func _update_pose(delta: float, phase: String) -> void:
 	var speed: float = Vector3(_actor.velocity.x, 0.0, _actor.velocity.z).length()
 	var blend: float = clampf(pose_blend_speed * delta, 0.0, 1.0)
@@ -222,16 +230,95 @@ func _update_pose(delta: float, phase: String) -> void:
 		left_hip_rotation.x = 0.28
 		right_hip_rotation.x = 0.28
 	elif phase == "WINDUP" or phase == "ACTIVE" or phase == "RECOVERY":
-		_apply_attack_pose(
-			phase,
-			torso_rotation,
-			left_shoulder_rotation,
-			right_shoulder_rotation,
-			left_elbow_rotation,
-			right_elbow_rotation,
-			left_hip_rotation,
-			right_hip_rotation
-		)
+		var active: bool = phase == "ACTIVE"
+		var windup: bool = phase == "WINDUP"
+		match _attack_style:
+			&"bat_heavy":
+				if windup:
+					torso_rotation.y = -0.68
+					left_shoulder_rotation.x = -0.55
+					right_shoulder_rotation.x = -0.72
+				elif active:
+					torso_rotation.y = 0.72
+					left_shoulder_rotation.x = 1.12
+					right_shoulder_rotation.x = 1.28
+				else:
+					torso_rotation.y = 0.18
+					left_shoulder_rotation.x = 0.22
+					right_shoulder_rotation.x = 0.28
+				left_elbow_rotation.x = -0.28
+				right_elbow_rotation.x = -0.38
+			&"bat_charge":
+				torso_rotation.x = 0.22 if active else 0.10
+				left_shoulder_rotation.x = 0.72 if active else 0.30
+				right_shoulder_rotation.x = 1.02 if active else 0.42
+				left_hip_rotation.x = 0.18
+				right_hip_rotation.x = -0.18
+			&"bat_basic":
+				if windup:
+					torso_rotation.y = -0.42
+					left_shoulder_rotation.x = -0.30
+					right_shoulder_rotation.x = -0.58
+				elif active:
+					torso_rotation.y = 0.48
+					left_shoulder_rotation.x = 0.78
+					right_shoulder_rotation.x = 1.18
+				else:
+					torso_rotation.y = 0.12
+					left_shoulder_rotation.x = 0.12
+					right_shoulder_rotation.x = 0.18
+				right_elbow_rotation.x = -0.32
+			&"knife_heavy":
+				if windup:
+					torso_rotation.y = -0.34
+					right_shoulder_rotation.x = -0.65
+				elif active:
+					torso_rotation.y = 0.46
+					right_shoulder_rotation.x = 1.32
+				else:
+					torso_rotation.y = 0.08
+					right_shoulder_rotation.x = 0.16
+				right_shoulder_rotation.z = 0.30
+				right_elbow_rotation.x = -0.44
+			&"knife_charge":
+				torso_rotation.x = 0.30 if active else 0.08
+				right_shoulder_rotation.x = 1.42 if active else -0.16 if windup else 0.18
+				right_elbow_rotation.x = -0.12
+				left_shoulder_rotation.x = -0.42
+			&"knife_basic":
+				if windup:
+					torso_rotation.y = -0.20
+					right_shoulder_rotation.x = -0.42
+				elif active:
+					torso_rotation.y = 0.30
+					right_shoulder_rotation.x = 1.18
+				else:
+					torso_rotation.y = 0.06
+					right_shoulder_rotation.x = 0.14
+				right_elbow_rotation.x = -0.38
+			&"unarmed_heavy":
+				torso_rotation.x = 0.10
+				left_shoulder_rotation.x = -0.48
+				right_shoulder_rotation.x = -0.35
+				right_hip_rotation.x = 1.08 if active else -0.55 if windup else 0.20
+				right_knee_rotation.x = 0.36 if active else 0.08
+			&"unarmed_charge":
+				torso_rotation.x = 0.34 if active else 0.12
+				left_shoulder_rotation.x = 0.84 if active else 0.26
+				right_shoulder_rotation.x = 0.84 if active else 0.26
+				left_elbow_rotation.x = -0.24
+				right_elbow_rotation.x = -0.24
+			_:
+				if windup:
+					torso_rotation.y = -0.18
+					right_shoulder_rotation.x = -0.46
+				elif active:
+					torso_rotation.y = 0.20
+					right_shoulder_rotation.x = 1.34
+				else:
+					torso_rotation.y = 0.04
+					right_shoulder_rotation.x = 0.12
+				right_elbow_rotation.x = -0.52 if active else -0.18
 	elif speed > 0.45:
 		var gait: float = sin(_time * gait_speed)
 		var gait_abs: float = absf(gait)
@@ -262,68 +349,6 @@ func _update_pose(delta: float, phase: String) -> void:
 	_blend_rotation(_right_hip, right_hip_rotation, blend)
 	_blend_rotation(_left_knee, left_knee_rotation, blend)
 	_blend_rotation(_right_knee, right_knee_rotation, blend)
-
-func _apply_attack_pose(
-	phase: String,
-	torso_rotation: Vector3,
-	left_shoulder_rotation: Vector3,
-	right_shoulder_rotation: Vector3,
-	left_elbow_rotation: Vector3,
-	right_elbow_rotation: Vector3,
-	left_hip_rotation: Vector3,
-	right_hip_rotation: Vector3
-) -> void:
-	var active: bool = phase == "ACTIVE"
-	var windup: bool = phase == "WINDUP"
-
-	match _attack_style:
-		&"bat_heavy":
-			torso_rotation.y = -0.68 if windup else 0.72 if active else 0.18
-			left_shoulder_rotation.x = -0.55 if windup else 1.12 if active else 0.22
-			right_shoulder_rotation.x = -0.72 if windup else 1.28 if active else 0.28
-			left_elbow_rotation.x = -0.28
-			right_elbow_rotation.x = -0.38
-		&"bat_charge":
-			torso_rotation.x = 0.22 if active else 0.10
-			left_shoulder_rotation.x = 0.72 if active else 0.30
-			right_shoulder_rotation.x = 1.02 if active else 0.42
-			left_hip_rotation.x = 0.18
-			right_hip_rotation.x = -0.18
-		&"bat_basic":
-			torso_rotation.y = -0.42 if windup else 0.48 if active else 0.12
-			left_shoulder_rotation.x = -0.30 if windup else 0.78 if active else 0.12
-			right_shoulder_rotation.x = -0.58 if windup else 1.18 if active else 0.18
-			right_elbow_rotation.x = -0.32
-		&"knife_heavy":
-			torso_rotation.y = -0.34 if windup else 0.46 if active else 0.08
-			right_shoulder_rotation.x = -0.65 if windup else 1.32 if active else 0.16
-			right_shoulder_rotation.z = 0.30
-			right_elbow_rotation.x = -0.44
-		&"knife_charge":
-			torso_rotation.x = 0.30 if active else 0.08
-			right_shoulder_rotation.x = -0.16 if windup else 1.42 if active else 0.18
-			right_elbow_rotation.x = -0.12
-			left_shoulder_rotation.x = -0.42
-		&"knife_basic":
-			torso_rotation.y = -0.20 if windup else 0.30 if active else 0.06
-			right_shoulder_rotation.x = -0.42 if windup else 1.18 if active else 0.14
-			right_elbow_rotation.x = -0.38
-		&"unarmed_heavy":
-			torso_rotation.x = 0.10
-			left_shoulder_rotation.x = -0.48
-			right_shoulder_rotation.x = -0.35
-			right_hip_rotation.x = -0.55 if windup else 1.08 if active else 0.20
-			right_knee_rotation.x = 0.36 if active else 0.08
-		&"unarmed_charge":
-			torso_rotation.x = 0.34 if active else 0.12
-			left_shoulder_rotation.x = 0.84 if active else 0.26
-			right_shoulder_rotation.x = 0.84 if active else 0.26
-			left_elbow_rotation.x = -0.24
-			right_elbow_rotation.x = -0.24
-		_:
-			torso_rotation.y = -0.18 if windup else 0.20 if active else 0.04
-			right_shoulder_rotation.x = -0.46 if windup else 1.34 if active else 0.12
-			right_elbow_rotation.x = -0.52 if active else -0.18
 
 func _resolve_attack_style() -> StringName:
 	var weapon_name: String = _weapon_name()
