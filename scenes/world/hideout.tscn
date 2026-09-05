@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/hideout_blockout.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/world/world_portal_3d.gd" id="4_portal"]
 [ext_resource type="Script" path="res://scripts/world/stash_rack_3d.gd" id="5_stash"]
 [ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="7_access"]
 
 [node name="Hideout" type="Node3D"]
 script = ExtResource("1_world")
@@ -37,22 +38,43 @@ subtitle = "F  GO TO STREET"
 marker_color = Color(0.20, 0.62, 1, 0.55)
 
 [node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("7_access")
+player_path = NodePath("../Player")
+prompt_label_path = NodePath("InteractionPrompt")
 
 [node name="Status" type="Label" parent="HUD"]
-offset_left = 24.0
-offset_top = 20.0
-offset_right = 1050.0
-offset_bottom = 82.0
-theme_override_font_sizes/font_size = 22
+offset_left = 30.0
+offset_top = 24.0
+offset_right = 1450.0
+offset_bottom = 112.0
+theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 32
 script = ExtResource("6_hud")
 player_path = NodePath("../../Player")
 location_name = "HIDEOUT — HOME TURF"
 
 [node name="Instructions" type="Label" parent="HUD"]
-offset_left = 24.0
-offset_top = 92.0
-offset_right = 1200.0
-offset_bottom = 142.0
-theme_override_colors/font_color = Color(0.72, 0.76, 0.82, 1)
-theme_override_font_sizes/font_size = 17
-text = "F: interact / stash / door    WASD: move    Mouse: aim    LMB/Q/E: fight    SPACE: dash"
+offset_left = 30.0
+offset_top = 122.0
+offset_right = 1540.0
+offset_bottom = 174.0
+theme_override_colors/font_color = Color(0.88, 0.90, 0.94, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+text = "F: interact / stash / door    WASD: move    Mouse: aim    LMB/Q/E: fight    SPACE: dash    F11 or ALT+ENTER: fullscreen"
+
+[node name="InteractionPrompt" type="Label" parent="HUD"]
+offset_left = 220.0
+offset_top = 690.0
+offset_right = 1380.0
+offset_bottom = 850.0
+theme_override_colors/font_color = Color(1, 0.96, 0.78, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 34
+text = "F11 / ALT+ENTER   FULLSCREEN"
+horizontal_alignment = 1
+vertical_alignment = 1
