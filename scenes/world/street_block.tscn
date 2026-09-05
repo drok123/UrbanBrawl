@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/street_blockout.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="13_access"]
 [ext_resource type="Script" path="res://scripts/world/contraband_buyer_3d.gd" id="14_buyer"]
 [ext_resource type="PackedScene" path="res://scenes/actors/beat_cop.tscn" id="15_cop"]
+[ext_resource type="Script" path="res://scripts/world/ffa_entrance_3d.gd" id="16_ffa"]
 
 [node name="StreetBlock" type="Node3D"]
 script = ExtResource("1_world")
@@ -58,11 +59,10 @@ marker_color = Color(0.32, 0.78, 0.48, 0.55)
 
 [node name="ActivityEntrance" type="Node3D" parent="."]
 position = Vector3(-10.6, 0, -5.0)
-script = ExtResource("4_portal")
+script = ExtResource("16_ffa")
 target_scene = "res://scenes/arena/combat_lab.tscn"
-title = "FFA WEAPON SCRAMBLE"
-subtitle = "F  ENTER ACTIVITY"
-marker_color = Color(0.82, 0.25, 0.22, 0.58)
+entry_fee = 100
+prize_cash = 350
 
 [node name="ContrabandTransit" type="Node3D" parent="."]
 position = Vector3(-2.8, 0, -8.2)
