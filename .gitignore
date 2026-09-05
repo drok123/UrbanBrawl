@@ -20,6 +20,7 @@ scripts/equipment/
 scripts/inventory/
 scripts/itemization/
 scripts/tooltip/
+scripts/vendor/
 scenes/affix_pool.tscn
 scenes/equipment_slot.tscn
 scenes/inventory_slot.tscn
