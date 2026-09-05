@@ -150,6 +150,10 @@ func _apply_hit_to_body(body: Node3D, combat_hit: CombatHit) -> void:
 			combat_hit.hitstop
 		)
 
+	# Shared post-hit physics/animation layer. This deliberately rolls a reaction
+	# instead of forcing every impact into the same canned stumble.
+	HitReactionController3D.apply_to_body(body, combat_hit)
+
 func _spawn_tracer(origin: Vector3, end: Vector3) -> void:
 	var distance: float = origin.distance_to(end)
 	if distance <= 0.01:
