@@ -7,10 +7,11 @@ config_version=5
 [application]
 
 config/name="Urban Brawl"
-run/main_scene="res://scenes/arena/combat_lab.tscn"
+run/main_scene="res://scenes/world/hideout.tscn"
 
 [autoload]
 
+GameSession="*res://scripts/system/game_session.gd"
 InventorySystem="*res://scenes/system/urban_inventory_system.tscn"
 AffixPool="*res://scenes/system/urban_affix_pool.tscn"
 ItemTooltip="*res://scenes/item_tooltip.tscn"
