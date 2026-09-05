@@ -1,0 +1,76 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/faction_base_blockout.gd" id="1_base"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/world/world_portal_3d.gd" id="4_exit"]
+[ext_resource type="Script" path="res://scripts/world/stash_rack_3d.gd" id="5_stash"]
+[ext_resource type="Script" path="res://scripts/world/grow_operation_3d.gd" id="6_grow"]
+[ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="7_hud"]
+[ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="8_access"]
+
+[node name="ContrabandSafehouse" type="Node3D"]
+script = ExtResource("1_base")
+base_title = "CONTRABAND SAFEHOUSE"
+base_color = Color(0.10, 0.30, 0.15, 1)
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -25, 0)
+light_energy = 1.05
+shadow_enabled = true
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector3(0, 0.95, 3.2)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 15, 13)
+current = true
+script = ExtResource("3_camera")
+target_path = NodePath("../Player")
+
+[node name="StashRack" type="Node3D" parent="."]
+position = Vector3(-5.0, 0, -1.2)
+script = ExtResource("5_stash")
+
+[node name="GrowOperation" type="Node3D" parent="."]
+position = Vector3(4.6, 0, -1.0)
+script = ExtResource("6_grow")
+cycle_seconds = 25.0
+
+[node name="CityExit" type="Node3D" parent="."]
+position = Vector3(0, 0, -5.4)
+script = ExtResource("4_exit")
+target_scene = "res://scenes/world/city_world.tscn"
+title = "SAFEHOUSE EXIT"
+subtitle = "F  RETURN TO CITY"
+marker_color = Color(0.25, 0.78, 0.38, 0.58)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("8_access")
+player_path = NodePath("../Player")
+prompt_label_path = NodePath("InteractionPrompt")
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 900.0
+offset_bottom = 58.0
+theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+script = ExtResource("7_hud")
+player_path = NodePath("../../Player")
+location_name = "SAFEHOUSE"
+
+[node name="InteractionPrompt" type="Label" parent="HUD"]
+offset_left = 220.0
+offset_top = 690.0
+offset_right = 1380.0
+offset_bottom = 850.0
+theme_override_colors/font_color = Color(1, 0.96, 0.78, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 34
+horizontal_alignment = 1
+vertical_alignment = 1
