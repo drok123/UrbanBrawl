@@ -19,13 +19,15 @@ func _process(delta: float) -> void:
 			_message = ""
 	_refresh_label()
 
-func interact(_actor: Node) -> void:
+func interact(actor: Node) -> void:
 	if GameSession.player_faction != GameSession.Faction.POLICE:
 		_flash("POLICE ONLY")
 		return
 	if GameSession.warrants <= 0:
 		_flash("NO WARRANT")
 		return
+	if actor != null:
+		GameSession.capture_player(actor)
 	GameSession.warrants -= 1
 	GameSession.state_changed.emit()
 	get_tree().change_scene_to_file(target_scene)
