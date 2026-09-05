@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"cleave"
+display_name = "Heavy Cleave"
+mode = 0
+cooldown = 1.8
+windup = 0.22
+active_time = 0.10
+recovery = 0.30
+damage = 110.0
+range_distance = 1.42
+radius = 1.35
+knockback = 8.0
+hitstop = 0.055
+movement_multiplier = 0.30
+self_impulse = 2.1
+telegraph_shape = 0
+telegraph_color = Color(1, 0.3, 0.12, 0.28)
