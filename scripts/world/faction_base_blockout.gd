@@ -3,9 +3,10 @@ extends Node3D
 
 @export var base_title: String = "FACTION BASE"
 @export var base_color: Color = Color(0.20, 0.22, 0.25, 1.0)
+@export var territory_id: int = 0
 
 func _ready() -> void:
-	GameSession.set_territory(GameSession.Territory.NEUTRAL)
+	GameSession.set_territory(territory_id)
 	_add_static_box("Floor", Vector3(18.0, 0.2, 14.0), Vector3(0.0, -0.1, 0.0), Color(0.10, 0.105, 0.11, 1.0))
 	_add_static_box("NorthWall", Vector3(18.0, 2.8, 0.35), Vector3(0.0, 1.4, -7.0), base_color)
 	_add_static_box("SouthWall", Vector3(18.0, 2.8, 0.35), Vector3(0.0, 1.4, 7.0), base_color)
