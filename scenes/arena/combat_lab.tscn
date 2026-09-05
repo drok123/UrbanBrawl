@@ -1,9 +1,10 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="2_camera"]
 [ext_resource type="Script" path="res://scripts/combat/training_dummy.gd" id="3_dummy"]
 [ext_resource type="Script" path="res://scripts/ui/combat_hud.gd" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/combat/sparring_bot.gd" id="5_bot"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.16, 0.175, 0.19, 1)
@@ -138,24 +139,25 @@ position = Vector3(0, 0.15, -0.72)
 scale = Vector3(0.2, 0.2, 0.65)
 mesh = SubResource("PlayerMesh")
 
-[node name="DummyA" type="CharacterBody3D" parent="."]
-position = Vector3(0, 0.9, -2.0)
-script = ExtResource("3_dummy")
+[node name="SparringBot" type="CharacterBody3D" parent="."]
+position = Vector3(0, 0.9, -3.6)
+script = ExtResource("5_bot")
+target_path = NodePath("../Player")
 
-[node name="Mesh" type="MeshInstance3D" parent="DummyA"]
+[node name="Mesh" type="MeshInstance3D" parent="SparringBot"]
 mesh = SubResource("DummyMesh")
 
-[node name="Collision" type="CollisionShape3D" parent="DummyA"]
+[node name="Collision" type="CollisionShape3D" parent="SparringBot"]
 shape = SubResource("DummyShape")
 
-[node name="HealthLabel" type="Label3D" parent="DummyA"]
-position = Vector3(0, 1.35, 0)
+[node name="HealthLabel" type="Label3D" parent="SparringBot"]
+position = Vector3(0, 1.45, 0)
 font_size = 28
 outline_size = 6
-text = "300 / 300"
+text = "SPARRING BOT\n500 / 500"
 
 [node name="DummyB" type="CharacterBody3D" parent="."]
-position = Vector3(-3.4, 0.9, -2.8)
+position = Vector3(-5.0, 0.9, -2.8)
 script = ExtResource("3_dummy")
 
 [node name="Mesh" type="MeshInstance3D" parent="DummyB"]
@@ -171,7 +173,7 @@ outline_size = 6
 text = "300 / 300"
 
 [node name="DummyC" type="CharacterBody3D" parent="."]
-position = Vector3(3.4, 0.9, -2.8)
+position = Vector3(5.0, 0.9, -2.8)
 script = ExtResource("3_dummy")
 
 [node name="Mesh" type="MeshInstance3D" parent="DummyC"]
@@ -197,10 +199,10 @@ target_path = NodePath("../Player")
 [node name="Instructions" type="Label" parent="HUD"]
 offset_left = 24.0
 offset_top = 20.0
-offset_right = 980.0
+offset_right = 1120.0
 offset_bottom = 108.0
 theme_override_font_sizes/font_size = 20
-text = "URBAN BRAWL — COMBAT LAB 0.3\nWASD: move    Mouse: aim    LMB: strike    Q: heavy cleave    E: shoulder charge    SPACE: dash"
+text = "URBAN BRAWL — COMBAT LAB 0.4\nDUEL TEST: fight the sparring bot. Dash through telegraphs; interrupt committed attacks.\nWASD: move    Mouse: aim    LMB: strike    Q: heavy cleave    E: shoulder charge    SPACE: dash"
 
 [node name="CombatHUD" type="Control" parent="HUD"]
 layout_mode = 3
@@ -212,6 +214,14 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4_hud")
 player_path = NodePath("../../Player")
+
+[node name="Health" type="Label" parent="HUD/CombatHUD"]
+offset_left = 24.0
+offset_top = 112.0
+offset_right = 340.0
+offset_bottom = 148.0
+theme_override_font_sizes/font_size = 22
+text = "YOU   500 / 500 HP"
 
 [node name="Phase" type="Label" parent="HUD/CombatHUD"]
 offset_left = 620.0
