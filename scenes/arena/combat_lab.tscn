@@ -1,7 +1,8 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/combat/training_dummy.gd" id="3_dummy"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.16, 0.175, 0.19, 1)
@@ -45,6 +46,20 @@ height = 1.9
 [sub_resource type="CapsuleShape3D" id="PlayerShape"]
 radius = 0.48
 height = 1.9
+
+[sub_resource type="StandardMaterial3D" id="DummyMaterial"]
+albedo_color = Color(0.62, 0.19, 0.16, 1)
+roughness = 0.68
+
+[sub_resource type="CylinderMesh" id="DummyMesh"]
+material = SubResource("DummyMaterial")
+top_radius = 0.55
+bottom_radius = 0.68
+height = 1.8
+
+[sub_resource type="CapsuleShape3D" id="DummyShape"]
+radius = 0.58
+height = 1.8
 
 [node name="CombatLab" type="Node3D"]
 
@@ -98,7 +113,7 @@ mesh = SubResource("WallMeshShort")
 shape = SubResource("WallShapeShort")
 
 [node name="Player" type="CharacterBody3D" parent="."]
-position = Vector3(0, 0.95, 0)
+position = Vector3(0, 0.95, 3.0)
 script = ExtResource("1_player")
 
 [node name="Mesh" type="MeshInstance3D" parent="Player"]
@@ -112,6 +127,54 @@ position = Vector3(0, 0.15, -0.72)
 scale = Vector3(0.2, 0.2, 0.65)
 mesh = SubResource("PlayerMesh")
 
+[node name="DummyA" type="CharacterBody3D" parent="."]
+position = Vector3(0, 0.9, -2.0)
+script = ExtResource("3_dummy")
+
+[node name="Mesh" type="MeshInstance3D" parent="DummyA"]
+mesh = SubResource("DummyMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="DummyA"]
+shape = SubResource("DummyShape")
+
+[node name="HealthLabel" type="Label3D" parent="DummyA"]
+position = Vector3(0, 1.35, 0)
+font_size = 28
+outline_size = 6
+text = "300 / 300"
+
+[node name="DummyB" type="CharacterBody3D" parent="."]
+position = Vector3(-4.0, 0.9, -3.0)
+script = ExtResource("3_dummy")
+
+[node name="Mesh" type="MeshInstance3D" parent="DummyB"]
+mesh = SubResource("DummyMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="DummyB"]
+shape = SubResource("DummyShape")
+
+[node name="HealthLabel" type="Label3D" parent="DummyB"]
+position = Vector3(0, 1.35, 0)
+font_size = 28
+outline_size = 6
+text = "300 / 300"
+
+[node name="DummyC" type="CharacterBody3D" parent="."]
+position = Vector3(4.0, 0.9, -3.0)
+script = ExtResource("3_dummy")
+
+[node name="Mesh" type="MeshInstance3D" parent="DummyC"]
+mesh = SubResource("DummyMesh")
+
+[node name="Collision" type="CollisionShape3D" parent="DummyC"]
+shape = SubResource("DummyShape")
+
+[node name="HealthLabel" type="Label3D" parent="DummyC"]
+position = Vector3(0, 1.35, 0)
+font_size = 28
+outline_size = 6
+text = "300 / 300"
+
 [node name="Camera3D" type="Camera3D" parent="."]
 position = Vector3(0, 15, 13)
 current = true
@@ -123,7 +186,7 @@ target_path = NodePath("../Player")
 [node name="Instructions" type="Label" parent="HUD"]
 offset_left = 24.0
 offset_top = 20.0
-offset_right = 560.0
-offset_bottom = 76.0
+offset_right = 760.0
+offset_bottom = 104.0
 theme_override_font_sizes/font_size = 20
-text = "URBAN BRAWL — COMBAT LAB\nWASD: move    Mouse: aim"
+text = "URBAN BRAWL — COMBAT LAB 0.2\nWASD: move    Mouse: aim    LMB: strike    Q: heavy cleave    SPACE: dash"
