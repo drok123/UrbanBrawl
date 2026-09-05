@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"cleave"
+display_name = "Aimed Shot"
+mode = 2
+weapon_id = &"pistol"
+damage_type = &"piercing"
+hit_location = &"body"
+gore_power = 1.08
+cooldown = 0.92
+windup = 0.24
+active_time = 0.03
+recovery = 0.22
+damage = 58.0
+range_distance = 24.0
+radius = 0.05
+knockback = 4.2
+hitstop = 0.042
+wall_stun_window = 0.12
+movement_multiplier = 0.28
+self_impulse = 0.0
+telegraph_shape = 1
+telegraph_length = 24.0
+telegraph_color = Color(1.0, 0.28, 0.12, 0.16)
