@@ -4,25 +4,21 @@ extends Label
 @export var player_path: NodePath
 @export var location_name: String = "URBAN BRAWL"
 
-@onready var _player: Node = get_node_or_null(player_path)
-
 func _process(_delta: float) -> void:
-	var weapon_name: String = "UNARMED"
-	if _player != null and _player.has_method("get_equipped_weapon_name"):
-		weapon_name = str(_player.call("get_equipped_weapon_name"))
+	var parts: Array[String] = []
+	parts.append("$%d" % GameSession.cash)
 
-	text = "%s\n%s  |  %s  |  %s\nCASH $%d   PRODUCT %d   HEAT %d   EVIDENCE %d   CASE %d   PACKAGES %d   BUSTS %d   STASH %d   CARRY %s" % [
-		location_name,
-		GameSession.get_faction_name(),
-		GameSession.get_territory_name(),
-		GameSession.get_flag_name(),
-		GameSession.cash,
-		GameSession.contraband_units,
-		GameSession.heat,
-		GameSession.evidence,
-		GameSession.police_case_value,
-		GameSession.evidence_packages.size(),
-		GameSession.busts,
-		GameSession.stash_count(),
-		weapon_name,
-	]
+	if GameSession.contraband_units > 0:
+		parts.append("PRODUCT %d" % GameSession.contraband_units)
+
+	if GameSession.heat > 0:
+		parts.append("HEAT %d" % GameSession.heat)
+
+	if GameSession.player_faction == GameSession.Faction.POLICE and GameSession.police_case_value > 0:
+		parts.append("CASE %d" % GameSession.police_case_value)
+
+	var flag_name: String = GameSession.get_flag_name()
+	if flag_name != "NEUTRAL":
+		parts.append(flag_name.replace(" FLAGGED", ""))
+
+	text = "   |   ".join(parts)
