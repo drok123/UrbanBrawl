@@ -17,7 +17,7 @@ func _process(delta: float) -> void:
 	if _failed:
 		_return_left = maxf(_return_left - delta, 0.0)
 		if _return_left <= 0.0:
-			get_tree().change_scene_to_file("res://scenes/world/hideout.tscn")
+			get_tree().change_scene_to_file(GameSession.get_home_scene())
 		return
 	if _player == null or not _player.has_method("get_combat_phase_name"):
 		return
