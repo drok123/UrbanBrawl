@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="CombatAbility" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_ability.gd" id="1_ability"]
+
+[resource]
+script = ExtResource("1_ability")
+ability_id = &"cleave"
+display_name = "Lacerate"
+mode = 0
+weapon_id = &"knife"
+damage_type = &"slash"
+hit_location = &"body"
+gore_power = 0.96
+cooldown = 1.15
+windup = 0.16
+active_time = 0.08
+recovery = 0.22
+damage = 96.0
+range_distance = 1.30
+radius = 0.98
+knockback = 4.2
+hitstop = 0.045
+movement_multiplier = 0.46
+self_impulse = 1.35
+telegraph_shape = 0
+telegraph_color = Color(0.98, 0.16, 0.12, 0.28)
