@@ -32,6 +32,9 @@ scenes/quantity_selector.tscn
 addons/beehave/
 script_templates/beehave/
 
+# KayKit animated prototype character rig
+assets/third_party/kaykit_adventurers/
+
 # Dependency installer cache / licenses copied locally
 .third_party_cache/
 third_party_runtime/
