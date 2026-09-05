@@ -14,6 +14,8 @@ run/main_scene="res://scenes/arena/combat_lab.tscn"
 InventorySystem="*res://scenes/system/urban_inventory_system.tscn"
 AffixPool="*res://scenes/system/urban_affix_pool.tscn"
 ItemTooltip="*res://scenes/item_tooltip.tscn"
+BeehaveGlobalMetrics="*res://addons/beehave/metrics/beehave_global_metrics.gd"
+BeehaveGlobalDebugger="*res://addons/beehave/debug/global_debugger.gd"
 
 [display]
 
