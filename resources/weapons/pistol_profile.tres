@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponCombatProfile" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_combat_profile.gd" id="1_profile"]
+[ext_resource type="Resource" path="res://resources/abilities/pistol_shot.tres" id="2_basic"]
+[ext_resource type="Resource" path="res://resources/abilities/pistol_aimed_shot.tres" id="3_secondary"]
+[ext_resource type="Resource" path="res://resources/abilities/pistol_whip.tres" id="4_utility"]
+
+[resource]
+script = ExtResource("1_profile")
+item_id = &"pistol"
+display_name = "Pistol"
+basic_ability = ExtResource("2_basic")
+secondary_ability = ExtResource("3_secondary")
+utility_ability = ExtResource("4_utility")
+reference_damage = 35.0
+reference_attack_speed = 1.0
+held_length = 0.46
+held_width = 0.13
+held_color = Color(0.25, 0.27, 0.31, 1)
