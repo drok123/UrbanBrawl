@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/street_blockout.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="5_hud"]
 [ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="6_access"]
 [ext_resource type="Script" path="res://scripts/world/police_interdiction_cache_3d.gd" id="7_interdict"]
+[ext_resource type="PackedScene" path="res://scenes/actors/arms_guard.tscn" id="8_guard"]
 
 [node name="ArmsBlock" type="Node3D"]
 script = ExtResource("1_world")
@@ -29,6 +30,16 @@ position = Vector3(0, 15, 13)
 current = true
 script = ExtResource("3_camera")
 target_path = NodePath("../Player")
+
+[node name="GuardEast" parent="." instance=ExtResource("8_guard")]
+position = Vector3(4.8, 0.95, -0.8)
+target_path = NodePath("../Player")
+observation_radius = 11.5
+
+[node name="GuardWest" parent="." instance=ExtResource("8_guard")]
+position = Vector3(-6.6, 0.95, 1.5)
+target_path = NodePath("../Player")
+observation_radius = 8.5
 
 [node name="ReturnToPoliceBlock" type="Node3D" parent="."]
 position = Vector3(-10.6, 0, 7.2)
