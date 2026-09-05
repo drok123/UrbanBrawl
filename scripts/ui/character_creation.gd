@@ -24,13 +24,22 @@ var _body_index: int = 0
 var _accent_index: int = 0
 
 func _ready() -> void:
-	$Panel/VBox/Factions/Arms.pressed.connect(func() -> void: _select_faction(GameSession.Faction.ARMS))
-	$Panel/VBox/Factions/Contraband.pressed.connect(func() -> void: _select_faction(GameSession.Faction.CONTRABAND))
-	$Panel/VBox/Factions/Police.pressed.connect(func() -> void: _select_faction(GameSession.Faction.POLICE))
+	$Panel/VBox/Factions/Arms.pressed.connect(_on_arms_pressed)
+	$Panel/VBox/Factions/Contraband.pressed.connect(_on_contraband_pressed)
+	$Panel/VBox/Factions/Police.pressed.connect(_on_police_pressed)
 	$Panel/VBox/Colors/BodyButton.pressed.connect(_cycle_body)
 	$Panel/VBox/Colors/AccentButton.pressed.connect(_cycle_accent)
 	$Panel/VBox/EnterCity.pressed.connect(_enter_city)
 	_refresh()
+
+func _on_arms_pressed() -> void:
+	_select_faction(GameSession.Faction.ARMS)
+
+func _on_contraband_pressed() -> void:
+	_select_faction(GameSession.Faction.CONTRABAND)
+
+func _on_police_pressed() -> void:
+	_select_faction(GameSession.Faction.POLICE)
 
 func _select_faction(value: int) -> void:
 	_faction = value
