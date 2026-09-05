@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="2_animation"]
+[ext_resource type="Script" path="res://scripts/animation/player_character_style.gd" id="3_style"]
 
 [sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
 albedo_color = Color(0.78, 0.82, 0.88, 1)
@@ -25,6 +26,9 @@ mesh = SubResource("PlayerMesh")
 
 [node name="CharacterVisual" type="Node3D" parent="."]
 script = ExtResource("2_animation")
+
+[node name="CharacterStyle" type="Node" parent="."]
+script = ExtResource("3_style")
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 shape = SubResource("PlayerShape")
