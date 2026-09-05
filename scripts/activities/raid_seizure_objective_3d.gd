@@ -38,7 +38,7 @@ func interact(actor: Node) -> void:
 		GameSession.capture_player(actor)
 	_flash("STASH SEIZED  +$%d  +%d CASE" % [cash_reward, case_reward])
 	await get_tree().create_timer(0.8).timeout
-	get_tree().change_scene_to_file("res://scenes/world/hideout.tscn")
+	get_tree().change_scene_to_file(GameSession.get_home_scene())
 
 func get_interaction_prompt(_actor: Node) -> String:
 	var living: int = _living_defenders()
