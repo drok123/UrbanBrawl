@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://scripts/movement/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="2_camera"]
@@ -11,6 +11,8 @@
 [ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="9_animation"]
 [ext_resource type="Resource" path="res://items/knife.tres" id="10_knife_item"]
 [ext_resource type="Resource" path="res://resources/weapons/knife_profile.tres" id="11_knife_profile"]
+[ext_resource type="Resource" path="res://items/pistol.tres" id="12_pistol_item"]
+[ext_resource type="Resource" path="res://resources/weapons/pistol_profile.tres" id="13_pistol_profile"]
 
 [sub_resource type="StandardMaterial3D" id="FloorMaterial"]
 albedo_color = Color(0.16, 0.175, 0.19, 1)
@@ -149,16 +151,22 @@ scale = Vector3(0.2, 0.2, 0.65)
 mesh = SubResource("PlayerMesh")
 
 [node name="KnifePickup" type="Node3D" parent="."]
-position = Vector3(-3.2, 0.18, 0.2)
+position = Vector3(-4.2, 0.18, 0.2)
 script = ExtResource("6_pickup")
 base_item = ExtResource("10_knife_item")
 combat_profile = ExtResource("11_knife_profile")
 
 [node name="BatPickup" type="Node3D" parent="."]
-position = Vector3(1.0, 0.18, 0.2)
+position = Vector3(0.0, 0.18, 0.2)
 script = ExtResource("6_pickup")
 base_item = ExtResource("7_bat_item")
 combat_profile = ExtResource("8_bat_profile")
+
+[node name="PistolPickup" type="Node3D" parent="."]
+position = Vector3(4.2, 0.18, 0.2)
+script = ExtResource("6_pickup")
+base_item = ExtResource("12_pistol_item")
+combat_profile = ExtResource("13_pistol_profile")
 
 [node name="SparringBot" type="CharacterBody3D" parent="."]
 position = Vector3(0, 0.9, -3.6)
@@ -229,7 +237,7 @@ offset_top = 20.0
 offset_right = 1320.0
 offset_bottom = 108.0
 theme_override_font_sizes/font_size = 20
-text = "URBAN BRAWL — COMBAT LAB 0.6\nPROCEDURAL HUMANOIDS: no external character assets. Fists, knife and bat animate the same native rig.\nWASD: move    Mouse: aim    LMB/Q/E: attacks    SPACE: dash    F: pick up / drop weapon"
+text = "URBAN BRAWL — COMBAT LAB 0.7\nWEAPON SCRAMBLE: fists, knife, bat and pistol now share one rolled pickup/equip/drop pipeline.\nWASD: move    Mouse: aim    LMB/Q/E: attacks    SPACE: dash    F: pick up / drop weapon"
 
 [node name="CombatHUD" type="Control" parent="HUD"]
 layout_mode = 3
