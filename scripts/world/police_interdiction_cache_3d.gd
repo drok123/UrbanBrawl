@@ -41,7 +41,16 @@ func interact(_actor: Node) -> void:
 
 	_available = false
 	_reset_left = reset_seconds
-	GameSession.flag_duty(duty_flag_seconds)
+	GameSession.commit_duty_action(
+		&"weapon_cache_interdiction",
+		global_position,
+		duty_flag_seconds,
+		{
+			"cash_reward": cash_reward,
+			"case_value_reward": case_value_reward,
+			"direct_observation": true,
+		}
+	)
 	GameSession.add_cash(cash_reward)
 	GameSession.add_case_value(case_value_reward)
 	_flash_message("INTERDICTION +$%d  +%d CASE — DUTY FLAGGED" % [cash_reward, case_value_reward])
