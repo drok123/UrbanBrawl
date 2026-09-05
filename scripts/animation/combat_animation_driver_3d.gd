@@ -1,200 +1,365 @@
 class_name CombatAnimationDriver3D
 extends Node3D
 
-@export_file("*.glb") var character_scene_path: String = "res://assets/third_party/kaykit_adventurers/Rogue.glb"
+@export var body_color: Color = Color(0.72, 0.76, 0.82, 1.0)
+@export var accent_color: Color = Color(0.22, 0.24, 0.28, 1.0)
 @export var visual_offset: Vector3 = Vector3(0.0, -0.95, 0.0)
-@export var visual_rotation_degrees: Vector3 = Vector3(0.0, 180.0, 0.0)
-@export var visual_scale: Vector3 = Vector3.ONE
+@export var pose_blend_speed: float = 15.0
+@export var gait_speed: float = 9.0
 @export var fallback_mesh_path: NodePath = NodePath("../Mesh")
-@export var blend_time: float = 0.08
 
 var _actor: CharacterBody3D = null
-var _character_root: Node3D = null
-var _animation_player: AnimationPlayer = null
-var _animation_names: PackedStringArray = PackedStringArray()
+var _model_root: Node3D = null
+var _torso: Node3D = null
+var _head: Node3D = null
+var _left_shoulder: Node3D = null
+var _right_shoulder: Node3D = null
+var _left_elbow: Node3D = null
+var _right_elbow: Node3D = null
+var _left_hip: Node3D = null
+var _right_hip: Node3D = null
+var _left_knee: Node3D = null
+var _right_knee: Node3D = null
+var _weapon_anchor: Node3D = null
+
+var _body_material: StandardMaterial3D = null
+var _accent_material: StandardMaterial3D = null
+var _time: float = 0.0
 var _last_phase: String = ""
-var _current_animation: StringName = &""
+var _attack_style: StringName = &"unarmed_basic"
 
 func _ready() -> void:
 	_actor = get_parent() as CharacterBody3D
-	_load_character_visual()
-	if _animation_player != null:
-		_animation_names = _animation_player.get_animation_list()
-		_play_loop(_idle_candidates())
+	_build_materials()
+	_build_humanoid()
+	_hide_legacy_visuals()
 
-func _physics_process(_delta: float) -> void:
-	if _actor == null or _animation_player == null:
+func _physics_process(delta: float) -> void:
+	if _actor == null or _model_root == null:
 		return
 
-	var phase: String = str(_actor.call("get_combat_phase_name"))
-	var horizontal_velocity: Vector3 = Vector3(_actor.velocity.x, 0.0, _actor.velocity.z)
-	var speed: float = horizontal_velocity.length()
+	_time += delta
+	var phase: String = "READY"
+	if _actor.has_method("get_combat_phase_name"):
+		phase = str(_actor.call("get_combat_phase_name"))
 
-	if phase == "DOWN":
-		if _last_phase != "DOWN":
-			_play_once([&"Death_A", &"Death_B", &"Defeat"])
-		_last_phase = phase
-		return
+	if phase == "WINDUP" and _last_phase != "WINDUP":
+		_attack_style = _resolve_attack_style()
 
-	if phase == "HITSTUN":
-		if _last_phase != "HITSTUN":
-			_play_once([&"Hit_A", &"Hit_B"])
-		_last_phase = phase
-		return
-
-	if phase == "WINDUP":
-		if _last_phase != "WINDUP":
-			_play_attack_for_current_input()
-		_last_phase = phase
-		return
-
-	if phase == "ACTIVE" or phase == "RECOVERY":
-		_last_phase = phase
-		return
-
-	if phase == "DODGE I-FRAMES" and speed > 8.0:
-		if _last_phase != "DODGE I-FRAMES":
-			_play_once(_dodge_candidates(horizontal_velocity))
-		_last_phase = phase
-		return
-
-	if speed > 0.45:
-		_play_loop([&"Running_A", &"Run", &"Walking_A", &"Walk"])
-	else:
-		_play_loop(_idle_candidates())
-
+	_update_pose(delta, phase)
 	_last_phase = phase
 
-func _load_character_visual() -> void:
-	if character_scene_path.is_empty() or not ResourceLoader.exists(character_scene_path):
-		push_warning("Animated character dependency not installed: %s" % character_scene_path)
-		return
+func get_weapon_anchor() -> Node3D:
+	return _weapon_anchor
 
-	var resource: Resource = ResourceLoader.load(character_scene_path)
-	var packed_scene: PackedScene = resource as PackedScene
-	if packed_scene == null:
-		push_warning("Character resource is not an instantiable scene: %s" % character_scene_path)
-		return
+func _build_materials() -> void:
+	_body_material = StandardMaterial3D.new()
+	_body_material.albedo_color = body_color
+	_body_material.roughness = 0.74
 
-	var instance: Node = packed_scene.instantiate()
-	var node_3d: Node3D = instance as Node3D
-	if node_3d == null:
-		instance.queue_free()
-		push_warning("Character scene root is not Node3D: %s" % character_scene_path)
-		return
+	_accent_material = StandardMaterial3D.new()
+	_accent_material.albedo_color = accent_color
+	_accent_material.roughness = 0.82
 
-	_character_root = node_3d
-	_character_root.name = "AnimatedRig"
-	_character_root.position = visual_offset
-	_character_root.rotation_degrees = visual_rotation_degrees
-	_character_root.scale = visual_scale
-	add_child(_character_root)
+func _build_humanoid() -> void:
+	_model_root = Node3D.new()
+	_model_root.name = "ProceduralHumanoid"
+	_model_root.position = visual_offset
+	add_child(_model_root)
 
-	_animation_player = _find_animation_player(_character_root)
-	if _animation_player == null:
-		push_warning("No AnimationPlayer found in character scene: %s" % character_scene_path)
-		_character_root.queue_free()
-		_character_root = null
-		return
+	_torso = Node3D.new()
+	_torso.name = "Torso"
+	_torso.position = Vector3(0.0, 1.38, 0.0)
+	_model_root.add_child(_torso)
+	_add_box(_torso, "Chest", Vector3(0.76, 0.82, 0.42), Vector3.ZERO, _body_material)
+	_add_box(_torso, "Waist", Vector3(0.58, 0.28, 0.36), Vector3(0.0, -0.48, 0.0), _accent_material)
 
+	_head = Node3D.new()
+	_head.name = "Head"
+	_head.position = Vector3(0.0, 1.98, 0.0)
+	_model_root.add_child(_head)
+	_add_sphere(_head, "HeadMesh", 0.28, Vector3.ZERO, _body_material)
+	_add_box(_head, "Face", Vector3(0.24, 0.12, 0.06), Vector3(0.0, -0.02, -0.255), _accent_material)
+
+	_left_shoulder = _build_arm("LeftArm", Vector3(-0.49, 1.66, 0.0), false)
+	_right_shoulder = _build_arm("RightArm", Vector3(0.49, 1.66, 0.0), true)
+
+	_left_hip = _build_leg("LeftLeg", Vector3(-0.22, 0.86, 0.0), false)
+	_right_hip = _build_leg("RightLeg", Vector3(0.22, 0.86, 0.0), true)
+
+func _build_arm(node_name: String, shoulder_position: Vector3, right_side: bool) -> Node3D:
+	var shoulder: Node3D = Node3D.new()
+	shoulder.name = node_name
+	shoulder.position = shoulder_position
+	_model_root.add_child(shoulder)
+
+	_add_capsule(shoulder, "UpperArm", 0.115, 0.56, Vector3(0.0, -0.28, 0.0), _body_material)
+
+	var elbow: Node3D = Node3D.new()
+	elbow.name = "Elbow"
+	elbow.position = Vector3(0.0, -0.55, 0.0)
+	shoulder.add_child(elbow)
+	_add_capsule(elbow, "Forearm", 0.10, 0.50, Vector3(0.0, -0.25, 0.0), _body_material)
+
+	var hand: Node3D = Node3D.new()
+	hand.name = "Hand"
+	hand.position = Vector3(0.0, -0.50, 0.0)
+	elbow.add_child(hand)
+	_add_sphere(hand, "HandMesh", 0.13, Vector3.ZERO, _accent_material)
+
+	if right_side:
+		_right_elbow = elbow
+		_weapon_anchor = Node3D.new()
+		_weapon_anchor.name = "WeaponAnchor"
+		_weapon_anchor.position = Vector3(0.0, -0.04, -0.02)
+		_weapon_anchor.rotation_degrees = Vector3(0.0, 0.0, -8.0)
+		hand.add_child(_weapon_anchor)
+	else:
+		_left_elbow = elbow
+
+	return shoulder
+
+func _build_leg(node_name: String, hip_position: Vector3, right_side: bool) -> Node3D:
+	var hip: Node3D = Node3D.new()
+	hip.name = node_name
+	hip.position = hip_position
+	_model_root.add_child(hip)
+
+	_add_capsule(hip, "Thigh", 0.135, 0.66, Vector3(0.0, -0.33, 0.0), _body_material)
+
+	var knee: Node3D = Node3D.new()
+	knee.name = "Knee"
+	knee.position = Vector3(0.0, -0.65, 0.0)
+	hip.add_child(knee)
+	_add_capsule(knee, "Shin", 0.115, 0.62, Vector3(0.0, -0.31, 0.0), _body_material)
+	_add_box(knee, "Foot", Vector3(0.26, 0.14, 0.42), Vector3(0.0, -0.63, -0.10), _accent_material)
+
+	if right_side:
+		_right_knee = knee
+	else:
+		_left_knee = knee
+	return hip
+
+func _add_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, material: StandardMaterial3D) -> void:
+	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
+	mesh_instance.name = node_name
+	var mesh: BoxMesh = BoxMesh.new()
+	mesh.size = size
+	mesh_instance.mesh = mesh
+	mesh_instance.position = local_position
+	mesh_instance.material_override = material
+	parent.add_child(mesh_instance)
+
+func _add_capsule(parent: Node3D, node_name: String, radius: float, height: float, local_position: Vector3, material: StandardMaterial3D) -> void:
+	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
+	mesh_instance.name = node_name
+	var mesh: CapsuleMesh = CapsuleMesh.new()
+	mesh.radius = radius
+	mesh.height = height
+	mesh.radial_segments = 12
+	mesh.rings = 4
+	mesh_instance.mesh = mesh
+	mesh_instance.position = local_position
+	mesh_instance.material_override = material
+	parent.add_child(mesh_instance)
+
+func _add_sphere(parent: Node3D, node_name: String, radius: float, local_position: Vector3, material: StandardMaterial3D) -> void:
+	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
+	mesh_instance.name = node_name
+	var mesh: SphereMesh = SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 16
+	mesh.rings = 8
+	mesh_instance.mesh = mesh
+	mesh_instance.position = local_position
+	mesh_instance.material_override = material
+	parent.add_child(mesh_instance)
+
+func _hide_legacy_visuals() -> void:
 	var fallback: GeometryInstance3D = get_node_or_null(fallback_mesh_path) as GeometryInstance3D
 	if fallback != null:
 		fallback.visible = false
+	var facing_marker: GeometryInstance3D = get_node_or_null(NodePath("../FacingMarker")) as GeometryInstance3D
+	if facing_marker != null:
+		facing_marker.visible = false
 
-func _find_animation_player(node: Node) -> AnimationPlayer:
-	if node is AnimationPlayer:
-		return node as AnimationPlayer
-	for child: Node in node.get_children():
-		var found: AnimationPlayer = _find_animation_player(child)
-		if found != null:
-			return found
-	return null
+func _update_pose(delta: float, phase: String) -> void:
+	var speed: float = Vector3(_actor.velocity.x, 0.0, _actor.velocity.z).length()
+	var blend: float = clampf(pose_blend_speed * delta, 0.0, 1.0)
 
-func _play_attack_for_current_input() -> void:
-	var weapon_name: String = _weapon_name()
+	var root_rotation: Vector3 = Vector3.ZERO
+	var root_position: Vector3 = visual_offset
+	var torso_rotation: Vector3 = Vector3.ZERO
+	var head_rotation: Vector3 = Vector3.ZERO
+	var left_shoulder_rotation: Vector3 = Vector3(0.0, 0.0, -0.08)
+	var right_shoulder_rotation: Vector3 = Vector3(0.0, 0.0, 0.08)
+	var left_elbow_rotation: Vector3 = Vector3.ZERO
+	var right_elbow_rotation: Vector3 = Vector3.ZERO
+	var left_hip_rotation: Vector3 = Vector3.ZERO
+	var right_hip_rotation: Vector3 = Vector3.ZERO
+	var left_knee_rotation: Vector3 = Vector3.ZERO
+	var right_knee_rotation: Vector3 = Vector3.ZERO
 
-	if weapon_name.contains("BASEBALL BAT"):
-		if Input.is_action_pressed(&"cleave"):
-			_play_once([&"2H_Melee_Attack_Spinning", &"2H_Melee_Attack_Spin", &"2H_Melee_Attack_Chop"])
-		elif Input.is_action_pressed(&"charge"):
-			_play_once([&"2H_Melee_Attack_Stab", &"2H_Melee_Attack_Chop"])
-		else:
-			_play_once([&"2H_Melee_Attack_Slice", &"2H_Melee_Attack_Chop", &"1H_Melee_Attack_Slice_Horizontal"])
-		return
-
-	if weapon_name.contains("KNIFE"):
-		if Input.is_action_pressed(&"cleave"):
-			_play_once([&"1H_Melee_Attack_Slice_Horizontal", &"1H_Melee_Attack_Slice_Diagonal", &"1H_Melee_Attack_Chop"])
-		elif Input.is_action_pressed(&"charge"):
-			_play_once([&"1H_Melee_Attack_Stab", &"1H_Melee_Attack_Slice_Diagonal"])
-		else:
-			_play_once([&"1H_Melee_Attack_Slice_Diagonal", &"1H_Melee_Attack_Stab", &"1H_Melee_Attack_Chop"])
-		return
-
-	if Input.is_action_pressed(&"cleave"):
-		_play_once([&"Unarmed_Melee_Attack_Kick", &"Unarmed_Melee_Attack_Punch_B", &"Heavy Attack"])
-	elif Input.is_action_pressed(&"charge"):
-		_play_once([&"Unarmed_Melee_Attack_Punch_B", &"Unarmed_Melee_Attack_Punch_A", &"Attack (1h)"])
+	if phase == "DOWN":
+		root_rotation.z = 1.52
+		root_position.y -= 0.08
+		left_shoulder_rotation.x = -0.65
+		right_shoulder_rotation.x = 0.35
+		left_hip_rotation.x = 0.35
+		right_hip_rotation.x = -0.25
+	elif phase == "HITSTUN":
+		torso_rotation.x = -0.24
+		head_rotation.x = 0.18
+		left_shoulder_rotation.x = -0.55
+		right_shoulder_rotation.x = -0.75
+		left_shoulder_rotation.z = -0.36
+		right_shoulder_rotation.z = 0.36
+	elif phase == "DODGE I-FRAMES" and speed > 7.0:
+		torso_rotation.x = 0.48
+		left_shoulder_rotation.x = -0.82
+		right_shoulder_rotation.x = -0.82
+		left_hip_rotation.x = 0.28
+		right_hip_rotation.x = 0.28
+	elif phase == "WINDUP" or phase == "ACTIVE" or phase == "RECOVERY":
+		_apply_attack_pose(
+			phase,
+			torso_rotation,
+			left_shoulder_rotation,
+			right_shoulder_rotation,
+			left_elbow_rotation,
+			right_elbow_rotation,
+			left_hip_rotation,
+			right_hip_rotation
+		)
+	elif speed > 0.45:
+		var gait: float = sin(_time * gait_speed)
+		var gait_abs: float = absf(gait)
+		left_shoulder_rotation.x = gait * 0.56
+		right_shoulder_rotation.x = -gait * 0.56
+		left_hip_rotation.x = -gait * 0.68
+		right_hip_rotation.x = gait * 0.68
+		left_knee_rotation.x = maxf(gait, 0.0) * 0.42
+		right_knee_rotation.x = maxf(-gait, 0.0) * 0.42
+		torso_rotation.z = gait * 0.035
+		root_position.y += gait_abs * 0.045
 	else:
-		_play_once([&"Unarmed_Melee_Attack_Punch_A", &"Unarmed_Melee_Attack_Punch_B", &"Attack (1h)"])
+		var breathe: float = sin(_time * 2.4)
+		torso_rotation.z = breathe * 0.012
+		left_shoulder_rotation.x = breathe * 0.025
+		right_shoulder_rotation.x = -breathe * 0.025
+		root_position.y += breathe * 0.012
 
-func _idle_candidates() -> Array[StringName]:
+	_blend_rotation(_model_root, root_rotation, blend)
+	_model_root.position = _model_root.position.lerp(root_position, blend)
+	_blend_rotation(_torso, torso_rotation, blend)
+	_blend_rotation(_head, head_rotation, blend)
+	_blend_rotation(_left_shoulder, left_shoulder_rotation, blend)
+	_blend_rotation(_right_shoulder, right_shoulder_rotation, blend)
+	_blend_rotation(_left_elbow, left_elbow_rotation, blend)
+	_blend_rotation(_right_elbow, right_elbow_rotation, blend)
+	_blend_rotation(_left_hip, left_hip_rotation, blend)
+	_blend_rotation(_right_hip, right_hip_rotation, blend)
+	_blend_rotation(_left_knee, left_knee_rotation, blend)
+	_blend_rotation(_right_knee, right_knee_rotation, blend)
+
+func _apply_attack_pose(
+	phase: String,
+	torso_rotation: Vector3,
+	left_shoulder_rotation: Vector3,
+	right_shoulder_rotation: Vector3,
+	left_elbow_rotation: Vector3,
+	right_elbow_rotation: Vector3,
+	left_hip_rotation: Vector3,
+	right_hip_rotation: Vector3
+) -> void:
+	var active: bool = phase == "ACTIVE"
+	var windup: bool = phase == "WINDUP"
+
+	match _attack_style:
+		&"bat_heavy":
+			torso_rotation.y = -0.68 if windup else 0.72 if active else 0.18
+			left_shoulder_rotation.x = -0.55 if windup else 1.12 if active else 0.22
+			right_shoulder_rotation.x = -0.72 if windup else 1.28 if active else 0.28
+			left_elbow_rotation.x = -0.28
+			right_elbow_rotation.x = -0.38
+		&"bat_charge":
+			torso_rotation.x = 0.22 if active else 0.10
+			left_shoulder_rotation.x = 0.72 if active else 0.30
+			right_shoulder_rotation.x = 1.02 if active else 0.42
+			left_hip_rotation.x = 0.18
+			right_hip_rotation.x = -0.18
+		&"bat_basic":
+			torso_rotation.y = -0.42 if windup else 0.48 if active else 0.12
+			left_shoulder_rotation.x = -0.30 if windup else 0.78 if active else 0.12
+			right_shoulder_rotation.x = -0.58 if windup else 1.18 if active else 0.18
+			right_elbow_rotation.x = -0.32
+		&"knife_heavy":
+			torso_rotation.y = -0.34 if windup else 0.46 if active else 0.08
+			right_shoulder_rotation.x = -0.65 if windup else 1.32 if active else 0.16
+			right_shoulder_rotation.z = 0.30
+			right_elbow_rotation.x = -0.44
+		&"knife_charge":
+			torso_rotation.x = 0.30 if active else 0.08
+			right_shoulder_rotation.x = -0.16 if windup else 1.42 if active else 0.18
+			right_elbow_rotation.x = -0.12
+			left_shoulder_rotation.x = -0.42
+		&"knife_basic":
+			torso_rotation.y = -0.20 if windup else 0.30 if active else 0.06
+			right_shoulder_rotation.x = -0.42 if windup else 1.18 if active else 0.14
+			right_elbow_rotation.x = -0.38
+		&"unarmed_heavy":
+			torso_rotation.x = 0.10
+			left_shoulder_rotation.x = -0.48
+			right_shoulder_rotation.x = -0.35
+			right_hip_rotation.x = -0.55 if windup else 1.08 if active else 0.20
+			right_knee_rotation.x = 0.36 if active else 0.08
+		&"unarmed_charge":
+			torso_rotation.x = 0.34 if active else 0.12
+			left_shoulder_rotation.x = 0.84 if active else 0.26
+			right_shoulder_rotation.x = 0.84 if active else 0.26
+			left_elbow_rotation.x = -0.24
+			right_elbow_rotation.x = -0.24
+		_:
+			torso_rotation.y = -0.18 if windup else 0.20 if active else 0.04
+			right_shoulder_rotation.x = -0.46 if windup else 1.34 if active else 0.12
+			right_elbow_rotation.x = -0.52 if active else -0.18
+
+func _resolve_attack_style() -> StringName:
 	var weapon_name: String = _weapon_name()
+	var heavy_pressed: bool = Input.is_action_pressed(&"cleave")
+	var charge_pressed: bool = Input.is_action_pressed(&"charge")
+
 	if weapon_name.contains("BASEBALL BAT"):
-		return [&"2H_Melee_Idle", &"Idle", &"Unarmed_Idle"]
+		if heavy_pressed:
+			return &"bat_heavy"
+		if charge_pressed:
+			return &"bat_charge"
+		return &"bat_basic"
+
 	if weapon_name.contains("KNIFE"):
-		return [&"Idle", &"Unarmed_Idle", &"Unarmed_Pose"]
-	return [&"Unarmed_Idle", &"Idle", &"Unarmed_Pose"]
+		if heavy_pressed:
+			return &"knife_heavy"
+		if charge_pressed:
+			return &"knife_charge"
+		return &"knife_basic"
+
+	if heavy_pressed:
+		return &"unarmed_heavy"
+	if charge_pressed:
+		return &"unarmed_charge"
+	return &"unarmed_basic"
 
 func _weapon_name() -> String:
 	if _actor != null and _actor.has_method("get_equipped_weapon_name"):
 		return str(_actor.call("get_equipped_weapon_name"))
 	return "UNARMED"
 
-func _dodge_candidates(world_velocity: Vector3) -> Array[StringName]:
-	if world_velocity.length_squared() < 0.001 or _actor == null:
-		return [&"Dodge_Forward", &"Roll"]
-
-	var direction: Vector3 = world_velocity.normalized()
-	var forward: Vector3 = -_actor.global_transform.basis.z.normalized()
-	var right: Vector3 = _actor.global_transform.basis.x.normalized()
-	var forward_dot: float = direction.dot(forward)
-	var right_dot: float = direction.dot(right)
-
-	if absf(forward_dot) >= absf(right_dot):
-		if forward_dot >= 0.0:
-			return [&"Dodge_Forward", &"Roll"]
-		return [&"Dodge_Backward", &"Dodge_Back", &"Roll"]
-	if right_dot >= 0.0:
-		return [&"Dodge_Right", &"Roll"]
-	return [&"Dodge_Left", &"Roll"]
-
-func _play_loop(candidates: Array[StringName]) -> void:
-	var animation_name: StringName = _resolve_animation(candidates)
-	if animation_name == &"" or animation_name == _current_animation:
+func _blend_rotation(node: Node3D, target: Vector3, blend: float) -> void:
+	if node == null:
 		return
-	_current_animation = animation_name
-	_animation_player.play(animation_name, blend_time)
-
-func _play_once(candidates: Array[StringName]) -> void:
-	var animation_name: StringName = _resolve_animation(candidates)
-	if animation_name == &"":
-		return
-	_current_animation = animation_name
-	_animation_player.play(animation_name, blend_time)
-
-func _resolve_animation(candidates: Array[StringName]) -> StringName:
-	for candidate: StringName in candidates:
-		if _animation_player.has_animation(candidate):
-			return candidate
-
-	for candidate: StringName in candidates:
-		var normalized_candidate: String = _normalize_animation_name(String(candidate))
-		for available: String in _animation_names:
-			var normalized_available: String = _normalize_animation_name(available)
-			if normalized_available == normalized_candidate or normalized_available.ends_with(normalized_candidate):
-				return StringName(available)
-	return &""
-
-func _normalize_animation_name(value: String) -> String:
-	return value.to_lower().replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "")
+	var current: Vector3 = node.rotation
+	current.x = lerp_angle(current.x, target.x, blend)
+	current.y = lerp_angle(current.y, target.y, blend)
+	current.z = lerp_angle(current.z, target.z, blend)
+	node.rotation = current
