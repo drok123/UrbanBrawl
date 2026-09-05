@@ -4,23 +4,23 @@
 
 [resource]
 script = ExtResource("1_ability")
-ability_id = &"bat_swing"
+ability_id = &"basic"
 display_name = "Bat Swing"
 mode = 0
 weapon_id = &"baseball_bat"
 damage_type = &"blunt"
 hit_location = &"body"
-gore_power = 0.42
-cooldown = 0.44
-windup = 0.11
-active_time = 0.08
-recovery = 0.18
-damage = 78.0
-range_distance = 1.62
-radius = 0.95
-knockback = 7.4
-hitstop = 0.045
-movement_multiplier = 0.48
-self_impulse = 1.4
+gore_power = 0.58
+cooldown = 0.46
+windup = 0.13
+active_time = 0.085
+recovery = 0.21
+damage = 84.0
+range_distance = 1.72
+radius = 0.92
+knockback = 7.2
+hitstop = 0.048
+movement_multiplier = 0.46
+self_impulse = 1.9
 telegraph_shape = 0
-telegraph_color = Color(0.95, 0.72, 0.22, 0.22)
+telegraph_color = Color(0.95, 0.67, 0.22, 0.22)
