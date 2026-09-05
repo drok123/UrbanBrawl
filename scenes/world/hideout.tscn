@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/hideout_blockout.gd" id="1_world"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://scripts/world/stash_rack_3d.gd" id="5_stash"]
 [ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="7_access"]
+[ext_resource type="Script" path="res://scripts/world/faction_terminal_3d.gd" id="8_faction"]
+[ext_resource type="Script" path="res://scripts/world/grow_operation_3d.gd" id="9_grow"]
 
 [node name="Hideout" type="Node3D"]
 script = ExtResource("1_world")
@@ -29,6 +31,32 @@ target_path = NodePath("../Player")
 position = Vector3(-5.4, 0, 0.7)
 script = ExtResource("5_stash")
 
+[node name="GrowOperation" type="Node3D" parent="."]
+position = Vector3(5.0, 0, -1.35)
+script = ExtResource("9_grow")
+cycle_seconds = 25.0
+
+[node name="ArmsFaction" type="Node3D" parent="."]
+position = Vector3(-6.4, 0, 4.7)
+script = ExtResource("8_faction")
+faction_id = 1
+terminal_title = "ARMS FACTION"
+terminal_color = Color(0.55, 0.25, 0.16, 1)
+
+[node name="ContrabandFaction" type="Node3D" parent="."]
+position = Vector3(-4.0, 0, 4.7)
+script = ExtResource("8_faction")
+faction_id = 2
+terminal_title = "CONTRABAND FACTION"
+terminal_color = Color(0.17, 0.48, 0.22, 1)
+
+[node name="PoliceFaction" type="Node3D" parent="."]
+position = Vector3(-1.6, 0, 4.7)
+script = ExtResource("8_faction")
+faction_id = 3
+terminal_title = "POLICE FACTION"
+terminal_color = Color(0.18, 0.34, 0.62, 1)
+
 [node name="StreetExit" type="Node3D" parent="."]
 position = Vector3(0, 0, -5.4)
 script = ExtResource("4_portal")
@@ -45,26 +73,26 @@ prompt_label_path = NodePath("InteractionPrompt")
 [node name="Status" type="Label" parent="HUD"]
 offset_left = 30.0
 offset_top = 24.0
-offset_right = 1450.0
-offset_bottom = 112.0
+offset_right = 1570.0
+offset_bottom = 156.0
 theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 28
 script = ExtResource("6_hud")
 player_path = NodePath("../../Player")
 location_name = "HIDEOUT — HOME TURF"
 
 [node name="Instructions" type="Label" parent="HUD"]
 offset_left = 30.0
-offset_top = 122.0
-offset_right = 1540.0
-offset_bottom = 174.0
+offset_top = 165.0
+offset_right = 1570.0
+offset_bottom = 225.0
 theme_override_colors/font_color = Color(0.88, 0.90, 0.94, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 22
-text = "F: interact / stash / door    WASD: move    Mouse: aim    LMB/Q/E: fight    SPACE: dash    F11 or ALT+ENTER: fullscreen"
+theme_override_font_sizes/font_size = 21
+text = "PROTOTYPE: choose ARMS / CONTRABAND / POLICE at the faction terminals. Grow room creates product. F: interact    WASD: move    LMB/Q/E: fight    SPACE: dash"
 
 [node name="InteractionPrompt" type="Label" parent="HUD"]
 offset_left = 220.0
