@@ -7,7 +7,7 @@ config_version=5
 [application]
 
 config/name="Urban Brawl"
-run/main_scene="res://scenes/world/hideout.tscn"
+run/main_scene="res://scenes/ui/character_creation.tscn"
 
 [autoload]
 
