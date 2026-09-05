@@ -19,6 +19,33 @@ HIDEOUT
 
 The hideout replaces conventional menus wherever practical.
 
+## World architecture rule
+
+The open-ish world does **not** need to contain every gameplay mechanic physically.
+
+Use the street districts for:
+- social interaction
+- economy
+- dealers / vendors
+- police patrols
+- gang presence
+- hideout access
+- activity discovery / entrances
+- spontaneous fights
+- setup and consequences
+
+Use **instanced activities** for mechanics that are more fun when purpose-built:
+- FFA arenas
+- heist phases
+- bank interiors
+- raid interiors
+- getaway sequences
+- vehicle shooting / traffic dodging
+- special PvP objectives
+- survival / defense encounters
+
+This keeps the world compact while allowing individual activities to have radically different rules, pacing, camera behavior or map design.
+
 ## Hideout
 
 The hideout is the player's persistent home, lobby and progression space.
@@ -29,7 +56,7 @@ Possible rooms / upgrades:
 - grow room
 - chemistry / processing room
 - cash storage / laundering operation
-- planning table
+- planning table / heist setup room
 - gang party area
 - trophy wall
 - black-market storage
@@ -72,17 +99,42 @@ Players fight, steal dropped weapons and eliminate each other. The winner can ex
 
 ## Heists / robberies
 
-Heists use the same combat engine but become objective modes.
+Heists use the same persistent characters, equipment and economy but can be built as a **chain of separate instanced game modes**.
 
-Example bank robbery:
-- gang attackers vs defenders / police
-- breach / objective phase
-- secure cash or valuables
-- escape / extraction phase
-- carried loot creates risk
-- winner / survivor payout feeds the persistent economy
+A heist begins in a physical planning / setup room similar in spirit to GTA Online. Players choose or unlock the job, gather the crew, inspect expected rewards / risk and launch the activity from there.
 
-This can support 5v5 or other team sizes without creating a second combat game.
+Example bank robbery chain:
+
+```text
+HIDEOUT / PLANNING ROOM
+        -> SETUP / PREP INSTANCE
+        -> ENTRY / BREACH INSTANCE
+        -> BANK COMBAT + OBJECTIVE
+        -> LOOT / VAULT PHASE
+        -> GETAWAY INSTANCE
+        -> PAYOUT / CONSEQUENCES
+        -> RETURN TO WORLD / HIDEOUT
+```
+
+The phases do not need identical mechanics.
+
+Examples:
+- setup could be scouting, stealing a vehicle, acquiring tools or intercepting equipment
+- breach could be a short combat objective
+- vault could be a holdout / timed interaction
+- getaway could become a deliberately goofy arcade driving-and-shooting mode with traffic dodging, roadblocks and pursuit
+- a different heist could substitute rooftops, trains, sewers, armored cars or boats
+
+The persistent layer carries across all phases:
+- selected weapons
+- consumables
+- health / lives rules where appropriate
+- carried loot
+- crew identity
+- heat / evidence consequences
+- payout and item rewards
+
+This lets us make memorable one-off mechanics without forcing them into the open-world simulation.
 
 ## Gangs
 
@@ -98,9 +150,11 @@ Gang systems can include:
 - rivalries
 - seasonal / district competition
 
+Police players also form persistent crews / organizations that fill the same social role as gangs for party formation, progression and raid teams, while retaining police-specific gameplay and identity.
+
 ## Factions
 
-Faction identity should create economic specialization rather than simple stat superiority.
+Faction identity should create economic specialization and different gameplay loops rather than simple stat superiority.
 
 Possible structure:
 
@@ -120,13 +174,75 @@ Bonuses to:
 - smuggling / laundering
 
 ### Police faction
-Bonuses to:
-- lawful equipment access
-- intel / tracking
-- raids / seizures
-- defensive response
+Police must be a **full playable career**, not a faction that exists only to raid criminal players.
 
-Police should not be able to endlessly delete player inventories. Raids need cooldowns, evidence / warrant requirements, protection windows and capped confiscation.
+Police activities can include:
+- solo beat-cop patrol
+- observing / interrupting street transactions
+- responding to active fights / robberies
+- contraband seizure
+- arrest / capture objectives
+- pursuit instances
+- evidence collection
+- warrant progression
+- protecting banks / high-value locations
+- escort / transport objectives
+- gang hideout raids
+- defending against criminal heist teams
+
+#### Beat-cop loop
+
+A solo police player should have useful street gameplay without needing a raid party.
+
+Example:
+
+```text
+PATROL DISTRICT
+   -> notice suspicious player/NPC activity
+   -> observe or identify a transaction / crime
+   -> commit to intervention
+   -> chase / fight / arrest / seize
+   -> recover evidence / contraband
+   -> gain police progression + district intel
+   -> contribute evidence toward larger warrants
+```
+
+The design goal is cat-and-mouse gameplay, not automatic punishment. Police should have to identify, catch and physically win interactions rather than simply press a confiscate button.
+
+#### Hideout raids
+
+Police crews are the player-controlled **raid parties** for criminal hideouts.
+
+Raid eligibility should come from systemic buildup:
+
+```text
+criminal activity
+      -> HEAT
+      -> EVIDENCE
+      -> WARRANT / RAID ELIGIBILITY
+      -> POLICE CREW FORMS RAID PARTY
+      -> INSTANCED HIDEOUT RAID
+      -> CAPPED SEIZURE / DESTRUCTION
+      -> COOLDOWN + CONSEQUENCES
+```
+
+Hideout raids should be actual objective combat, not inventory deletion through UI.
+
+Potential attacker goals:
+- breach defenses
+- secure evidence rooms
+- seize exposed contraband
+- destroy illegal production equipment
+- capture high-value targets / objectives
+
+Potential defender goals:
+- hold rooms / chokepoints
+- move or protect exposed inventory
+- destroy evidence
+- survive until raid timer expires
+- use hideout upgrades / traps / defenses
+
+Police should not be able to endlessly delete inventories. Raids need cooldowns, evidence / warrant requirements, protected value, protection windows and capped confiscation.
 
 ## Drug / consumable gameplay
 
@@ -167,6 +283,7 @@ Target: an Albion-like player-driven economy where useful goods are produced, tr
 - vendor taxes / market fees
 - failed heists
 - raid losses
+- police seizures / evidence destruction
 
 ### Anti-crash rules
 The economy needs controlled destruction of value.
@@ -179,7 +296,7 @@ Police raids are one sink, but should be bounded:
 - diminishing returns for repeated raids
 - faction-wide or district-wide raid budget
 
-This prevents police players from spam-clearing inventories while still removing enough goods to fight inflation.
+Some seized items can be destroyed / removed from circulation rather than all being transferred to police players. This creates a controllable item sink and reduces incentives for raid farming.
 
 ## Heat / evidence
 
@@ -187,13 +304,16 @@ Criminal activity generates heat.
 
 Heat can influence:
 - NPC police response
+- player-police attention
 - raid eligibility
 - dealer availability
 - laundering costs
 - hideout vulnerability
 - rewards for high-risk activities
 
-Evidence can be a second, slower meter used specifically for player-police raids so raids require actual buildup rather than random griefing.
+Evidence can be a second, slower meter used specifically for player-police warrants and raids so raids require actual buildup rather than random griefing.
+
+Beat-cop actions, recovered contraband and successful police activities can contribute to evidence progression.
 
 ## Violence / presentation
 
@@ -211,7 +331,7 @@ Gore is driven by CombatHit data: weapon, damage type, hit location, impulse and
 
 ## Development strategy
 
-Build in large vertical slices rather than isolated micro-features.
+Build in large vertical slices rather than isolated micro-features. Placeholder art is acceptable whenever it gets a complete playable loop running sooner.
 
 ### Slice 1 — Combat + weapons
 - unarmed combat
@@ -228,25 +348,49 @@ Build in large vertical slices rather than isolated micro-features.
 - one passive operation (grow room)
 - one activity entrance
 
-### Slice 3 — Economy + heat
+### Slice 3 — Activity framework + economy
+- generic world entrance -> instance -> result -> world return pipeline
 - cash / item value
 - vendor transactions
+- persistent carried rewards
 - production timer
-- heat / evidence
-- one police seizure path
-- item destruction / economy sinks
+- basic heat
 
-### Slice 4 — Heist
-- bank robbery objective flow
-- loot carrying
-- extraction
-- payout
+This reusable activity router is important because FFA, heists, raids and pursuits all use the same transition architecture.
+
+### Slice 4 — FFA + police beat loop
+- FFA weapon scramble
+- reward extraction
+- police patrol role
+- one observable street transaction
+- intervention / chase / seizure outcome
+- evidence progression
+
+This tests both criminal and police careers before either becomes content-heavy.
+
+### Slice 5 — First heist
+- planning room
+- one setup phase
+- bank combat objective
+- carried loot
+- arcade getaway instance
+- payout / heat consequence
 - return to hideout
 
-### Slice 5 — Multiplayer / gangs
+### Slice 6 — Hideout raid
+- warrant / eligibility
+- police raid party
+- instanced hideout combat
+- attacker / defender objectives
+- capped exposed-stash seizure
+- raid cooldown
+
+### Slice 7 — Multiplayer / gangs / economy expansion
 - party formation in hideout
-- gang identity
+- gang / police-crew identity
 - replicated combat / items
 - matchmaking / activity transitions
+- player trading / market foundation
+- faction production specializations
 
-Polish, art replacement and deeper content come after these loops work.
+Polish, art replacement, deeper economy balancing and additional content come after these loops work.
