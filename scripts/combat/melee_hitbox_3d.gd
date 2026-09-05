@@ -150,6 +150,11 @@ func _apply_hit_to_body(body: Node3D, combat_hit: CombatHit) -> void:
 			combat_hit.hitstop
 		)
 
+	if body.has_method("get_combat_phase_name"):
+		var resulting_phase: String = str(body.call("get_combat_phase_name"))
+		if resulting_phase == "DOWN":
+			return
+
 	# Shared post-hit physics/animation layer. This deliberately rolls a reaction
 	# instead of forcing every impact into the same canned stumble.
 	HitReactionController3D.apply_to_body(body, combat_hit)
