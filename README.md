@@ -23,7 +23,8 @@ Current systems include:
 - police interdiction loop
 - staked FFA weapon-scramble activity
 - Quaternius city/character/animation presentation with procedural fallbacks
-- Godot Road Generator street geometry and future traffic lane foundation
+- CityCrafter-driven block topology
+- Godot Road Generator street geometry and traffic-lane foundation
 
 ## First-time setup
 
@@ -31,11 +32,12 @@ Urban Brawl deliberately uses mature external systems for solved infrastructure 
 
 1. Install the current stable Godot 4 release.
 2. Clone/pull this repository.
-3. Double-click **`INSTALL-DEPENDENCIES.bat`** after a fresh clone (and whenever pinned code dependencies change).
+3. Double-click **`INSTALL-DEPENDENCIES.bat`** after a fresh clone and whenever pinned code dependencies change.
 4. That installer fetches:
    - `Oen44/Godot-Inventory @ v4.0.1a` for inventory/itemization/equipment/affixes.
    - `bitbrain/beehave @ v2.9.3` for behavior-tree AI.
-   - `TheDuckCow/godot-road-generator @ 0.9.3` for authored streets, collision and AI road lanes.
+   - `TheDuckCow/godot-road-generator @ 0.9.3` for road meshes, collision and AI road lanes.
+   - `SpartanDavie/CityCrafter3D-Aug2025 @ 04aee37` for city block topology/district generation. Only its core generator code is installed; its bundled example city art is intentionally excluded.
 5. For the polished visual prototype, double-click **`INSTALL-VISUAL-PACKS.bat`**.
 6. The visual installer opens the official Quaternius pages if the Standard/free ZIPs are not already in your Windows Downloads folder. Download the free versions of:
    - Downtown City MegaKit
@@ -48,17 +50,27 @@ Urban Brawl deliberately uses mature external systems for solved infrastructure 
 
 The Quaternius packs are CC0 and are intentionally installed locally rather than committed as large binary dependencies. If they are missing or fail validation, Urban Brawl automatically keeps the procedural humanoid and graybox building fallbacks.
 
-## City authoring rule
+## City construction rule
 
-The city is no longer generated as giant faction-colored slabs with roads painted through the leftover space.
+The public city is now built in layers:
 
-Current order is:
+`CityCrafter topology -> Road Generator streets -> Urban Brawl block interpretation -> Quaternius buildings/props -> faction/gameplay placement`
 
-`street network -> blocks -> lots -> buildings -> props -> gameplay interactions`
+CityCrafter determines active blocks, multi-size superblocks, edge variation and broad district density. It does **not** spray its bundled demo buildings into the game.
 
-Godot Road Generator owns road geometry, lane markings, road collision, road-edge curves and future traffic paths. Urban Brawl still owns the actual street plan so faction bases, PvP sightlines, alleys, public plazas and activity hotspots are intentionally placed.
+Road Generator consumes CityCrafter's actual seams, so merging a 2x2 block removes its internal streets rather than leaving a fake road hidden under geometry.
 
-Quaternius Downtown City MegaKit supplies the primary building/street-prop visual language. Secondary city packs should only fill gaps so the city does not become an inconsistent asset-pack collage.
+Urban Brawl interprets generated footprints deliberately:
+- normal block = one primary building with setback
+- long block = two or three aligned frontage buildings
+- superblock = perimeter buildings around an interior courtyard
+- industrial block = larger low structure with service space
+- Central Commons = open pedestrian/public activity block
+- faction HQ block = dominant structure with a readable forecourt
+
+Quaternius Downtown City MegaKit supplies the primary architecture/street-prop visual language. Faction bases, buyers, interdiction targets, FFA, public vendors, cops and guards are placed onto valid generated frontages/plazas rather than unrelated fixed coordinates.
+
+See `docs/CITY_PIPELINE.md` for the detailed rules.
 
 ## Controls
 
@@ -84,11 +96,12 @@ Keep custom:
 - faction economy loops
 - FFA risk/reward semantics
 - balance/stumble/fallback probability rules
-- authored city topology and faction relationships
+- faction/gameplay relationships layered onto the generated city
 
-Use external systems for better art, animation, cameras, UI, sound, physics helpers, generic AI plumbing, persistence, roads and networking foundations when they are demonstrably stronger.
+Use external systems for better art, animation, cameras, UI, sound, physics helpers, generic AI plumbing, persistence, roads, city topology and networking foundations when they are demonstrably stronger.
 
 See:
+- `docs/CITY_PIPELINE.md`
 - `docs/RESOURCE_REPLACEMENT_AUDIT_2026-09.md`
 - `docs/RESOURCE_STACK.md`
 - `docs/MMO_WORLD_ARCHITECTURE.md`
