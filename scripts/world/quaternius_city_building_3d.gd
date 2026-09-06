@@ -1,31 +1,24 @@
 class_name QuaterniusCityBuilding3D
 extends Node3D
 
-@export var target_size: Vector3 = Vector3(11.0, 5.0, 13.0)
+# target_size is retained as the fallback/debug block size for compatibility.
+# External Quaternius architecture is NOT stretched to target_size anymore.
+@export var target_size: Vector3 = Vector3(16.0, 6.0, 14.0)
+@export var max_footprint: Vector2 = Vector2(18.0, 18.0)
 @export var fallback_color: Color = Color(0.18, 0.20, 0.24, 1.0)
 @export var collision_enabled: bool = true
 @export var variant_index: int = 0
 @export var preferred_tokens: Array[String] = []
 @export var yaw_degrees: float = 0.0
+@export var allow_upscale: bool = false
 
 var using_external_asset: bool = false
 var loaded_asset_path: String = ""
+var fitted_size: Vector3 = Vector3.ZERO
+var applied_scale: float = 1.0
 
 func _ready() -> void:
-	_build_collision()
 	call_deferred("_load_visual")
-
-func _build_collision() -> void:
-	if not collision_enabled:
-		return
-	var body: StaticBody3D = StaticBody3D.new()
-	body.name = "CollisionBody"
-	add_child(body)
-	var collision: CollisionShape3D = CollisionShape3D.new()
-	var shape: BoxShape3D = BoxShape3D.new()
-	shape.size = target_size
-	collision.shape = shape
-	body.add_child(collision)
 
 func _load_visual() -> void:
 	loaded_asset_path = QuaterniusAssetLocator.find_city_building_variant(variant_index, preferred_tokens)
@@ -47,44 +40,62 @@ func _load_visual() -> void:
 
 	visual.name = "QuaterniusBuildingVisual"
 	add_child(visual)
-	if not _fit_visual_to_footprint(visual):
+	var bounds: AABB = _combined_bounds(visual)
+	if bounds.size.length_squared() <= 0.0001:
 		visual.queue_free()
 		_build_fallback()
 		return
 
+	_fit_native_visual(visual, bounds)
 	visual.rotation_degrees.y = yaw_degrees
+	if collision_enabled:
+		_build_fitted_collision()
 	using_external_asset = true
 	set_meta(&"quaternius_asset", loaded_asset_path)
-	print("Urban Brawl: building ", name, " -> ", loaded_asset_path.get_file())
+	set_meta(&"quaternius_native_scale", applied_scale)
+	print("Urban Brawl: building ", name, " -> ", loaded_asset_path.get_file(), " | natural fit ", fitted_size, " @ ", snappedf(applied_scale, 0.001))
 
-func _fit_visual_to_footprint(visual: Node3D) -> bool:
-	var bounds: AABB = _combined_bounds(visual)
-	if bounds.size.length_squared() <= 0.0001:
-		return false
+func _fit_native_visual(visual: Node3D, bounds: AABB) -> void:
+	# Downtown MegaKit is authored in meter scale. Respect that 1:1 scale and only
+	# shrink a building when its real footprint cannot fit the allocated lot.
+	var footprint := max_footprint
+	if footprint.x <= 0.01 or footprint.y <= 0.01:
+		footprint = Vector2(maxf(target_size.x, 1.0), maxf(target_size.z, 1.0))
+	var fit_x: float = footprint.x / maxf(bounds.size.x, 0.001)
+	var fit_z: float = footprint.y / maxf(bounds.size.z, 0.001)
+	var fit_scale: float = minf(fit_x, fit_z) * 0.97
+	applied_scale = fit_scale if allow_upscale else minf(1.0, fit_scale)
+	applied_scale = clampf(applied_scale, 0.05, 4.0)
+	visual.scale = Vector3.ONE * applied_scale
 
-	var width_scale: float = target_size.x / maxf(bounds.size.x, 0.001)
-	var depth_scale: float = target_size.z / maxf(bounds.size.z, 0.001)
-	var height_scale: float = target_size.y / maxf(bounds.size.y, 0.001)
-	# Keep architecture proportional. A little height overflow is preferable to
-	# flattening a real building into the old graybox dimensions.
-	var uniform_scale: float = minf(width_scale, depth_scale) * 0.94
-	if height_scale < uniform_scale * 0.45:
-		uniform_scale = maxf(height_scale / 0.45, 0.05)
-	uniform_scale = clampf(uniform_scale, 0.05, 10.0)
-	visual.scale = Vector3.ONE * uniform_scale
+	fitted_size = bounds.size * applied_scale
+	var scaled_center_x: float = (bounds.position.x + bounds.size.x * 0.5) * applied_scale
+	var scaled_center_z: float = (bounds.position.z + bounds.size.z * 0.5) * applied_scale
+	var scaled_min_y: float = bounds.position.y * applied_scale
+	# Node origin is ground-center. This makes authored lots/frontages independent
+	# of the building's height and removes the old graybox-center assumption.
+	visual.position = Vector3(-scaled_center_x, -scaled_min_y, -scaled_center_z)
 
-	var scaled_center_x: float = (bounds.position.x + bounds.size.x * 0.5) * uniform_scale
-	var scaled_center_z: float = (bounds.position.z + bounds.size.z * 0.5) * uniform_scale
-	var scaled_min_y: float = bounds.position.y * uniform_scale
-	visual.position = Vector3(-scaled_center_x, -target_size.y * 0.5 - scaled_min_y, -scaled_center_z)
-	return true
+func _build_fitted_collision() -> void:
+	if fitted_size.length_squared() <= 0.0001:
+		return
+	var body := StaticBody3D.new()
+	body.name = "CollisionBody"
+	add_child(body)
+	var collision := CollisionShape3D.new()
+	collision.position = Vector3(0.0, fitted_size.y * 0.5, 0.0)
+	var shape := BoxShape3D.new()
+	# Slight inset avoids awnings/fire escapes turning into invisible sidewalk walls.
+	shape.size = Vector3(maxf(fitted_size.x * 0.90, 0.5), maxf(fitted_size.y * 0.96, 0.5), maxf(fitted_size.z * 0.90, 0.5))
+	collision.shape = shape
+	body.add_child(collision)
 
 func _combined_bounds(root: Node3D) -> AABB:
 	var initialized: bool = false
-	var minimum: Vector3 = Vector3.ZERO
-	var maximum: Vector3 = Vector3.ZERO
+	var minimum := Vector3.ZERO
+	var maximum := Vector3.ZERO
 	for node: Node in root.find_children("*", "MeshInstance3D", true, false):
-		var mesh_instance: MeshInstance3D = node as MeshInstance3D
+		var mesh_instance := node as MeshInstance3D
 		if mesh_instance == null or mesh_instance.mesh == null:
 			continue
 		var mesh_bounds: AABB = mesh_instance.get_aabb()
@@ -121,13 +132,18 @@ func _aabb_corners(bounds: AABB) -> Array[Vector3]:
 	]
 
 func _build_fallback() -> void:
-	var mesh_instance: MeshInstance3D = MeshInstance3D.new()
+	fitted_size = target_size
+	applied_scale = 1.0
+	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.name = "FallbackBlockVisual"
-	var mesh: BoxMesh = BoxMesh.new()
+	var mesh := BoxMesh.new()
 	mesh.size = target_size
 	mesh_instance.mesh = mesh
-	var material: StandardMaterial3D = StandardMaterial3D.new()
+	mesh_instance.position = Vector3(0.0, target_size.y * 0.5, 0.0)
+	var material := StandardMaterial3D.new()
 	material.albedo_color = fallback_color
 	material.roughness = 0.90
 	mesh_instance.material_override = material
 	add_child(mesh_instance)
+	if collision_enabled:
+		_build_fitted_collision()
