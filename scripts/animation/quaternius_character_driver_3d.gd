@@ -75,6 +75,7 @@ func _try_activate() -> void:
 		_fallback_visual.process_mode = Node.PROCESS_MODE_DISABLED
 	_active = true
 	set_meta(&"external_character", character_path)
+	print("Urban Brawl: Quaternius player visual active — ", character_path, " / ", imported_count, " animations")
 	_update_animation(true)
 
 func _import_ual_animations() -> int:
@@ -122,8 +123,6 @@ func _retarget_animation(animation: Animation, target_skeleton_path: String) -> 
 		var source_path: String = str(animation.track_get_path(track_index))
 		var separator: int = source_path.find(":")
 		if separator < 0:
-			# Root-motion/object tracks are intentionally discarded. CharacterBody3D
-			# remains authoritative over movement and collision.
 			animation.remove_track(track_index)
 			continue
 		var bone_suffix: String = source_path.substr(separator)
@@ -191,7 +190,7 @@ func _find_animation(tokens: Array[String]) -> StringName:
 	for raw_name: String in names:
 		var name: String = raw_name.to_lower()
 		var score: int = 0
-		for index: int in tokens.size():
+		for index: int in range(tokens.size()):
 			if tokens[index] in name:
 				score += 100 - index * 18
 		if "root" in name:
@@ -260,14 +259,27 @@ func _combined_bounds(root: Node3D) -> AABB:
 				maximum = point
 				initialized = true
 			else:
-				minimum = minimum.min(point)
-				maximum = maximum.max(point)
+				minimum.x = minf(minimum.x, point.x)
+				minimum.y = minf(minimum.y, point.y)
+				minimum.z = minf(minimum.z, point.z)
+				maximum.x = maxf(maximum.x, point.x)
+				maximum.y = maxf(maximum.y, point.y)
+				maximum.z = maxf(maximum.z, point.z)
 	return AABB(minimum, maximum - minimum) if initialized else AABB()
 
 func _aabb_corners(bounds: AABB) -> Array[Vector3]:
 	var p: Vector3 = bounds.position
 	var s: Vector3 = bounds.size
-	return [p, p + Vector3(s.x, 0, 0), p + Vector3(0, s.y, 0), p + Vector3(0, 0, s.z), p + Vector3(s.x, s.y, 0), p + Vector3(s.x, 0, s.z), p + Vector3(0, s.y, s.z), p + s]
+	return [
+		p,
+		p + Vector3(s.x, 0.0, 0.0),
+		p + Vector3(0.0, s.y, 0.0),
+		p + Vector3(0.0, 0.0, s.z),
+		p + Vector3(s.x, s.y, 0.0),
+		p + Vector3(s.x, 0.0, s.z),
+		p + Vector3(0.0, s.y, s.z),
+		p + s,
+	]
 
 func _find_skeleton(root: Node) -> Skeleton3D:
 	if root is Skeleton3D:
@@ -291,7 +303,7 @@ func _collect_animation_players(root: Node, output: Array[AnimationPlayer]) -> v
 
 func _bone_name_set(skeleton: Skeleton3D) -> Dictionary:
 	var result: Dictionary = {}
-	for index: int in skeleton.get_bone_count():
+	for index: int in range(skeleton.get_bone_count()):
 		result[skeleton.get_bone_name(index).to_lower()] = true
 	return result
 
@@ -299,14 +311,14 @@ func _bone_overlap_ratio(target_bones: Dictionary, donor: Skeleton3D) -> float:
 	if donor.get_bone_count() <= 0:
 		return 0.0
 	var matched: int = 0
-	for index: int in donor.get_bone_count():
+	for index: int in range(donor.get_bone_count()):
 		if target_bones.has(donor.get_bone_name(index).to_lower()):
 			matched += 1
 	return float(matched) / float(donor.get_bone_count())
 
 func _find_right_hand_bone(skeleton: Skeleton3D) -> int:
 	var fallback: int = -1
-	for index: int in skeleton.get_bone_count():
+	for index: int in range(skeleton.get_bone_count()):
 		var name: String = skeleton.get_bone_name(index).to_lower().replace(" ", "").replace("_", "").replace(".", "")
 		if "righthand" in name or "handr" in name:
 			return index
