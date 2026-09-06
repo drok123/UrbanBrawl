@@ -40,7 +40,8 @@ func _build_city() -> void:
 
 	var raw_blocks: Variant = _plan.get("blocks", [])
 	if raw_blocks is Array:
-		for value: Variant in (raw_blocks as Array):
+		var blocks: Array = raw_blocks as Array
+		for value: Variant in blocks:
 			if value is Dictionary:
 				_build_block(value as Dictionary)
 
@@ -52,7 +53,8 @@ func _index_blocks() -> void:
 	var raw_blocks: Variant = _plan.get("blocks", [])
 	if not raw_blocks is Array:
 		return
-	for value: Variant in (raw_blocks as Array):
+	var blocks: Array = raw_blocks as Array
+	for value: Variant in blocks:
 		if not value is Dictionary:
 			continue
 		var block := value as Dictionary
@@ -129,8 +131,6 @@ func _build_regular_block(block: Dictionary, district: String) -> void:
 func _build_police_block(block: Dictionary) -> void:
 	var direction: Vector3 = block.get("primary_frontage", Vector3(1, 0, 0)) as Vector3
 	var center: Vector3 = block.get("center", Vector3.ZERO) as Vector3
-	var width: float = float(block.get("width", 40.0))
-	var depth: float = float(block.get("depth", 40.0))
 	var envelope := Vector2(minf(_lateral_span(block, direction) * 0.62, 23.0), minf(_depth_span(block, direction) * 0.55, 19.0))
 	var position_value := _frontage_center(block, direction, envelope.y, 2.4)
 	_spawn_building("PoliceHeadquarters", position_value, direction, envelope, Vector3(envelope.x, 8.0, envelope.y), ["office", "building", "example", "prebuilt"], 100)
@@ -192,12 +192,15 @@ func _spawn_secondary_corner(block: Dictionary, direction: Vector3, avoid_direct
 	var depth: float = minf(max_depth, _depth_span(block, direction) * 0.42)
 	var width: float = minf(_lateral_span(block, direction) * 0.34, 15.0)
 	var base := _frontage_center(block, direction, depth, 1.7)
-	# Shift away from the primary frontage corner so the two street walls do not overlap.
+	# Shift toward the corner opposite the primary frontage. Compare relative lot
+	# offsets, never absolute world coordinates, so this behaves the same anywhere.
+	var center: Vector3 = block.get("center", Vector3.ZERO) as Vector3
 	var lateral := _lateral(direction)
 	var test_a: Vector3 = base + lateral * (_lateral_span(block, direction) * 0.23)
 	var test_b: Vector3 = base - lateral * (_lateral_span(block, direction) * 0.23)
-	var choose_a: bool = test_a.dot(avoid_direction) < test_b.dot(avoid_direction)
-	var position_value: Vector3 = test_a if choose_a else test_b
+	var a_bias: float = (test_a - center).dot(avoid_direction)
+	var b_bias: float = (test_b - center).dot(avoid_direction)
+	var position_value: Vector3 = test_a if a_bias < b_bias else test_b
 	_spawn_building("CityBuilding_%03d" % _building_serial, position_value, direction, Vector2(width, depth), Vector3(width, fallback_height, depth), tokens, variant)
 	_building_serial += 1
 
@@ -215,7 +218,9 @@ func _spawn_building(node_name: String, position_value: Vector3, direction: Vect
 	add_child(building)
 
 func _building_fallback_color(tokens: Array[String]) -> Color:
-	var text: String = " ".join(tokens).to_lower()
+	var text := ""
+	for token: String in tokens:
+		text += " " + token.to_lower()
 	if "industrial" in text or "warehouse" in text:
 		return Color(0.19, 0.17, 0.15, 1.0)
 	if "office" in text:
