@@ -43,31 +43,31 @@ distance = 16.0
 follow_speed = 7.0
 
 [node name="PrecinctEntrance" type="Node3D" parent="."]
-position = Vector3(-34.0, 0, -9.5)
+position = Vector3(-34.0, 0, -13.0)
 script = ExtResource("6_base")
 faction_id = 3
 target_scene = "res://scenes/world/police_precinct.tscn"
 title = "PRECINCT 07"
 marker_color = Color(0.25, 0.55, 1, 0.62)
-city_return_position = Vector3(-33.0, 0.95, -9.5)
+city_return_position = Vector3(-33.0, 0.95, -13.0)
 
 [node name="SafehouseEntrance" type="Node3D" parent="."]
-position = Vector3(34.0, 0, -10.0)
+position = Vector3(34.0, 0, -35.0)
 script = ExtResource("6_base")
 faction_id = 2
 target_scene = "res://scenes/world/contraband_safehouse.tscn"
 title = "SAFEHOUSE"
 marker_color = Color(0.24, 0.82, 0.40, 0.62)
-city_return_position = Vector3(33.0, 0.95, -10.0)
+city_return_position = Vector3(33.0, 0.95, -35.0)
 
 [node name="WorkshopEntrance" type="Node3D" parent="."]
-position = Vector3(34.0, 0, 30.0)
+position = Vector3(34.0, 0, 35.0)
 script = ExtResource("6_base")
 faction_id = 1
 target_scene = "res://scenes/world/arms_workshop.tscn"
 title = "ARMS WORKSHOP"
 marker_color = Color(0.95, 0.42, 0.18, 0.62)
-city_return_position = Vector3(33.0, 0.95, 30.0)
+city_return_position = Vector3(33.0, 0.95, 35.0)
 
 [node name="DrugBuyer" type="Node3D" parent="."]
 position = Vector3(-13.8, 0, -16.0)
@@ -84,7 +84,7 @@ script = ExtResource("8_gunbuyer")
 criminal_flag_seconds = 30.0
 
 [node name="InterdictionCache" type="Node3D" parent="."]
-position = Vector3(13.8, 0, 15.5)
+position = Vector3(13.8, 0, 16.0)
 script = ExtResource("9_interdict")
 cash_reward = 160
 case_value_reward = 12
@@ -92,7 +92,7 @@ duty_flag_seconds = 30.0
 reset_seconds = 20.0
 
 [node name="FFAEntrance" type="Node3D" parent="."]
-position = Vector3(-9.5, 0, -11.5)
+position = Vector3(-9.5, 0, -12.0)
 script = ExtResource("10_ffa")
 target_scene = "res://scenes/arena/combat_lab.tscn"
 entry_fee = 100
@@ -123,32 +123,32 @@ price = 520
 stand_color = Color(0.13, 0.14, 0.15, 1)
 
 [node name="BeatCopA" parent="." instance=ExtResource("18_cop")]
-position = Vector3(-22.5, 0.95, -15.0)
+position = Vector3(-22.0, 0.95, -14.5)
 target_path = NodePath("../Player")
 observation_radius = 12.0
 
 [node name="BeatCopB" parent="." instance=ExtResource("18_cop")]
-position = Vector3(-33.0, 0.95, 7.0)
+position = Vector3(-34.0, 0.95, 13.0)
 target_path = NodePath("../Player")
 observation_radius = 10.0
 
 [node name="ContrabandGuardA" parent="." instance=ExtResource("19_contra")]
-position = Vector3(20.5, 0.95, -15.5)
+position = Vector3(20.0, 0.95, -14.5)
 target_path = NodePath("../Player")
 observation_radius = 11.0
 
 [node name="ContrabandGuardB" parent="." instance=ExtResource("19_contra")]
-position = Vector3(34.0, 0.95, -15.0)
+position = Vector3(34.0, 0.95, -14.5)
 target_path = NodePath("../Player")
 observation_radius = 9.0
 
 [node name="ArmsGuardA" parent="." instance=ExtResource("20_arms")]
-position = Vector3(20.5, 0.95, 15.0)
+position = Vector3(20.0, 0.95, 14.5)
 target_path = NodePath("../Player")
 observation_radius = 11.0
 
 [node name="ArmsGuardB" parent="." instance=ExtResource("20_arms")]
-position = Vector3(34.0, 0.95, 15.0)
+position = Vector3(34.0, 0.95, 14.5)
 target_path = NodePath("../Player")
 observation_radius = 9.0
 
