@@ -33,15 +33,20 @@ $dependencies = @(
         Name = "CityCrafter 3D"
         Repo = "SpartanDavie/CityCrafter3D-Aug2025"
         Tag = "04aee37b8d0d8279fbfe0b48d29c5aff7e05992e"
-        Zip = "https://codeload.github.com/SpartanDavie/CityCrafter3D-Aug2025/zip/04aee37b8d0d8279fbfe0b48d29c5aff7e05992e"
-        Folder = "CityCrafter3D-Aug2025-04aee37b8d0d8279fbfe0b48d29c5aff7e05992e"
+        RawBase = "https://raw.githubusercontent.com/SpartanDavie/CityCrafter3D-Aug2025/04aee37b8d0d8279fbfe0b48d29c5aff7e05992e/addons/citycrafter"
         License = "https://raw.githubusercontent.com/SpartanDavie/CityCrafter3D-Aug2025/04aee37b8d0d8279fbfe0b48d29c5aff7e05992e/addons/citycrafter/LICENSE"
     }
 )
 
 function Reset-Directory([string]$Path) {
     if (Test-Path $Path) {
-        Remove-Item $Path -Recurse -Force
+        Remove-Item $Path -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path $Path) {
+            # Windows PowerShell's archive module can leave partially extracted
+            # trees in a state Remove-Item dislikes. cmd/rmdir is more tolerant
+            # for cleaning our disposable dependency cache.
+            cmd /c "rmdir /s /q `"$Path`"" | Out-Null
+        }
     }
     New-Item -ItemType Directory -Path $Path -Force | Out-Null
 }
@@ -72,6 +77,17 @@ function Install-License($dep, [string]$destinationName) {
     $destination = Join-Path $runtimeRoot $destinationName
     Write-Host "Installing license for $($dep.Name)..." -ForegroundColor DarkGray
     Invoke-WebRequest -Uri $dep.License -OutFile $destination -UseBasicParsing
+}
+
+function Download-File([string]$Url, [string]$Destination) {
+    $parent = Split-Path -Parent $Destination
+    if (-not (Test-Path $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    Invoke-WebRequest -Uri $Url -OutFile $Destination -UseBasicParsing
+    if (-not (Test-Path $Destination)) {
+        throw "Download did not create expected file: $Destination"
+    }
 }
 
 Write-Host ""
@@ -181,20 +197,23 @@ foreach ($relativePath in $requiredRoadFiles) {
 Install-License $dependencies[2] "Godot-Road-Generator-LICENSE.txt"
 
 # --- CityCrafter 3D ---
-$cityCrafterRoot = Download-And-Expand $dependencies[3]
-Write-Host "Installing CityCrafter topology core (without bundled example city art)..." -ForegroundColor Green
-$cityCrafterSource = Join-Path $cityCrafterRoot "addons\citycrafter"
+# Do NOT download/extract the full CityCrafter repository. Its example asset
+# tree is large and Windows PowerShell 5.1 Expand-Archive can fail while
+# traversing it. Urban Brawl only needs the small topology/editor core.
+$cityCrafter = $dependencies[3]
 $cityCrafterDestination = Join-Path $projectRoot "addons\citycrafter"
-if (-not (Test-Path $cityCrafterSource)) {
-    throw "Missing expected CityCrafter addon folder: $cityCrafterSource"
-}
+Write-Host "Installing CityCrafter topology core directly (no archive extraction)..." -ForegroundColor Green
+
 if (Test-Path $cityCrafterDestination) {
-    Remove-Item $cityCrafterDestination -Recurse -Force
+    Remove-Item $cityCrafterDestination -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $cityCrafterDestination) {
+        cmd /c "rmdir /s /q `"$cityCrafterDestination`"" | Out-Null
+    }
 }
 New-Item -ItemType Directory -Path $cityCrafterDestination -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $cityCrafterDestination "assets") -Force | Out-Null
 
-foreach ($file in @(
+$cityCrafterCoreFiles = @(
     "LICENSE",
     "city_configuration.gd",
     "city_configuration.gd.uid",
@@ -203,19 +222,15 @@ foreach ($file in @(
     "plugin.cfg",
     "plugin.gd",
     "plugin.gd.uid"
-)) {
-    $sourceFile = Join-Path $cityCrafterSource $file
-    if (-not (Test-Path $sourceFile)) {
-        throw "Missing expected CityCrafter core file: $sourceFile"
-    }
-    Copy-Item $sourceFile (Join-Path $cityCrafterDestination $file) -Force
+)
+foreach ($file in $cityCrafterCoreFiles) {
+    $url = "$($cityCrafter.RawBase)/$file"
+    $destination = Join-Path $cityCrafterDestination $file
+    Write-Host "  $file" -ForegroundColor DarkGray
+    Download-File $url $destination
 }
 
-$cityCrafterIcon = Join-Path $cityCrafterSource "assets\citycrafter_icon.png"
-if (-not (Test-Path $cityCrafterIcon)) {
-    throw "Missing CityCrafter editor icon: $cityCrafterIcon"
-}
-Copy-Item $cityCrafterIcon (Join-Path $cityCrafterDestination "assets\citycrafter_icon.png") -Force
+Download-File "$($cityCrafter.RawBase)/assets/citycrafter_icon.png" (Join-Path $cityCrafterDestination "assets\citycrafter_icon.png")
 
 $requiredCityCrafterFiles = @(
     "addons\citycrafter\plugin.cfg",
@@ -229,10 +244,13 @@ foreach ($relativePath in $requiredCityCrafterFiles) {
         throw "CityCrafter install is incomplete; required file is missing: $absolutePath"
     }
 }
-Install-License $dependencies[3] "CityCrafter-LICENSE.txt"
+Install-License $cityCrafter "CityCrafter-LICENSE.txt"
 
 if (Test-Path $cacheRoot) {
-    Remove-Item $cacheRoot -Recurse -Force
+    Remove-Item $cacheRoot -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $cacheRoot) {
+        cmd /c "rmdir /s /q `"$cacheRoot`"" | Out-Null
+    }
 }
 
 Write-Host ""
