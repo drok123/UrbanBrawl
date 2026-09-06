@@ -28,6 +28,14 @@ $dependencies = @(
         Zip = "https://codeload.github.com/TheDuckCow/godot-road-generator/zip/refs/tags/0.9.3"
         Folder = "godot-road-generator-0.9.3"
         License = "https://raw.githubusercontent.com/TheDuckCow/godot-road-generator/0.9.3/LICENSE"
+    },
+    @{
+        Name = "CityCrafter 3D"
+        Repo = "SpartanDavie/CityCrafter3D-Aug2025"
+        Tag = "04aee37b8d0d8279fbfe0b48d29c5aff7e05992e"
+        Zip = "https://codeload.github.com/SpartanDavie/CityCrafter3D-Aug2025/zip/04aee37b8d0d8279fbfe0b48d29c5aff7e05992e"
+        Folder = "CityCrafter3D-Aug2025-04aee37b8d0d8279fbfe0b48d29c5aff7e05992e"
+        License = "https://raw.githubusercontent.com/SpartanDavie/CityCrafter3D-Aug2025/04aee37b8d0d8279fbfe0b48d29c5aff7e05992e/addons/citycrafter/LICENSE"
     }
 )
 
@@ -75,7 +83,6 @@ Reset-Directory $cacheRoot
 New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $projectRoot "addons") -Force | Out-Null
 
-# Remove the abandoned external prototype character pack if an older installer placed it.
 $legacyKaykit = Join-Path $projectRoot "assets\third_party\kaykit_adventurers"
 if (Test-Path $legacyKaykit) {
     Write-Host "Removing obsolete KayKit prototype character files..." -ForegroundColor DarkGray
@@ -129,20 +136,16 @@ foreach ($relativePath in $requiredInventoryFiles) {
         throw "Oen44 install is incomplete; required runtime file is missing: $absolutePath"
     }
 }
-
 Install-License $dependencies[0] "Oen44-Godot-Inventory-LICENSE.txt"
 
 # --- Beehave ---
 $beehaveRoot = Download-And-Expand $dependencies[1]
-
 Write-Host "Installing Beehave behavior-tree addon..." -ForegroundColor Green
 $beehaveSource = Join-Path $beehaveRoot "addons\beehave"
 $beehaveDestination = Join-Path $projectRoot "addons\beehave"
-
 if (-not (Test-Path $beehaveSource)) {
     throw "Missing expected Beehave addon folder: $beehaveSource"
 }
-
 if (Test-Path $beehaveDestination) {
     Remove-Item $beehaveDestination -Recurse -Force
 }
@@ -151,15 +154,12 @@ Install-License $dependencies[1] "Beehave-LICENSE.txt"
 
 # --- Godot Road Generator ---
 $roadRoot = Download-And-Expand $dependencies[2]
-
 Write-Host "Installing Godot Road Generator addon..." -ForegroundColor Green
 $roadSource = Join-Path $roadRoot "addons\road-generator"
 $roadDestination = Join-Path $projectRoot "addons\road-generator"
-
 if (-not (Test-Path $roadSource)) {
     throw "Missing expected Road Generator addon folder: $roadSource"
 }
-
 if (Test-Path $roadDestination) {
     Remove-Item $roadDestination -Recurse -Force
 }
@@ -180,6 +180,57 @@ foreach ($relativePath in $requiredRoadFiles) {
 }
 Install-License $dependencies[2] "Godot-Road-Generator-LICENSE.txt"
 
+# --- CityCrafter 3D ---
+$cityCrafterRoot = Download-And-Expand $dependencies[3]
+Write-Host "Installing CityCrafter topology core (without bundled example city art)..." -ForegroundColor Green
+$cityCrafterSource = Join-Path $cityCrafterRoot "addons\citycrafter"
+$cityCrafterDestination = Join-Path $projectRoot "addons\citycrafter"
+if (-not (Test-Path $cityCrafterSource)) {
+    throw "Missing expected CityCrafter addon folder: $cityCrafterSource"
+}
+if (Test-Path $cityCrafterDestination) {
+    Remove-Item $cityCrafterDestination -Recurse -Force
+}
+New-Item -ItemType Directory -Path $cityCrafterDestination -Force | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $cityCrafterDestination "assets") -Force | Out-Null
+
+foreach ($file in @(
+    "LICENSE",
+    "city_configuration.gd",
+    "city_configuration.gd.uid",
+    "citycrafter.gd",
+    "citycrafter.gd.uid",
+    "plugin.cfg",
+    "plugin.gd",
+    "plugin.gd.uid"
+)) {
+    $sourceFile = Join-Path $cityCrafterSource $file
+    if (-not (Test-Path $sourceFile)) {
+        throw "Missing expected CityCrafter core file: $sourceFile"
+    }
+    Copy-Item $sourceFile (Join-Path $cityCrafterDestination $file) -Force
+}
+
+$cityCrafterIcon = Join-Path $cityCrafterSource "assets\citycrafter_icon.png"
+if (-not (Test-Path $cityCrafterIcon)) {
+    throw "Missing CityCrafter editor icon: $cityCrafterIcon"
+}
+Copy-Item $cityCrafterIcon (Join-Path $cityCrafterDestination "assets\citycrafter_icon.png") -Force
+
+$requiredCityCrafterFiles = @(
+    "addons\citycrafter\plugin.cfg",
+    "addons\citycrafter\city_configuration.gd",
+    "addons\citycrafter\citycrafter.gd",
+    "addons\citycrafter\assets\citycrafter_icon.png"
+)
+foreach ($relativePath in $requiredCityCrafterFiles) {
+    $absolutePath = Join-Path $projectRoot $relativePath
+    if (-not (Test-Path $absolutePath)) {
+        throw "CityCrafter install is incomplete; required file is missing: $absolutePath"
+    }
+}
+Install-License $dependencies[3] "CityCrafter-LICENSE.txt"
+
 if (Test-Path $cacheRoot) {
     Remove-Item $cacheRoot -Recurse -Force
 }
@@ -189,6 +240,7 @@ Write-Host "Code dependencies installed successfully." -ForegroundColor Green
 Write-Host "  Oen44/Godot-Inventory @ v4.0.1a"
 Write-Host "  bitbrain/beehave @ v2.9.3"
 Write-Host "  TheDuckCow/godot-road-generator @ 0.9.3"
+Write-Host "  SpartanDavie/CityCrafter3D-Aug2025 @ 04aee37 (core topology only)"
 Write-Host ""
 Write-Host "Quaternius city/character assets remain installed separately with INSTALL-VISUAL-PACKS.bat." -ForegroundColor DarkGray
 Write-Host "Restart Godot after dependency changes." -ForegroundColor Yellow
