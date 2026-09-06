@@ -32,8 +32,17 @@ scenes/quantity_selector.tscn
 addons/beehave/
 script_templates/beehave/
 
-# KayKit animated prototype character rig
+# Legacy KayKit animated prototype character rig
 assets/third_party/kaykit_adventurers/
+
+# Locally installed Quaternius Standard/free visual packs.
+# These are CC0 but large binary art dependencies and are intentionally not
+# committed; INSTALL-VISUAL-PACKS.bat installs them on each development machine.
+assets/third_party/quaternius_city/
+assets/third_party/quaternius_characters/
+assets/third_party/quaternius_ual/
+visual_pack_downloads/
+.visual_pack_cache/
 
 # Dependency installer cache / licenses copied locally
 .third_party_cache/
