@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/city_world.gd" id="1_city"]
 [ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" path="res://scenes/actors/beat_cop.tscn" id="18_cop"]
 [ext_resource type="PackedScene" path="res://scenes/actors/contraband_guard.tscn" id="19_contra"]
 [ext_resource type="PackedScene" path="res://scenes/actors/arms_guard.tscn" id="20_arms"]
+[ext_resource type="Script" path="res://scripts/world/city_authored_refinement_3d.gd" id="21_refine"]
 
 [node name="CityWorld" type="Node3D"]
 script = ExtResource("1_city")
@@ -41,6 +42,10 @@ target_path = NodePath("../Player")
 height = 18.0
 distance = 16.0
 follow_speed = 7.0
+
+[node name="AuthoredCityRefinement" type="Node3D" parent="."]
+script = ExtResource("21_refine")
+city_root_path = NodePath("..")
 
 [node name="PrecinctEntrance" type="Node3D" parent="."]
 position = Vector3(-34.0, 0, -13.0)
