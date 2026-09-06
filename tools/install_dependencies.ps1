@@ -28,13 +28,6 @@ $dependencies = @(
         Zip = "https://codeload.github.com/TheDuckCow/godot-road-generator/zip/refs/tags/0.9.3"
         Folder = "godot-road-generator-0.9.3"
         License = "https://raw.githubusercontent.com/TheDuckCow/godot-road-generator/0.9.3/LICENSE"
-    },
-    @{
-        Name = "CityCrafter 3D"
-        Repo = "SpartanDavie/CityCrafter3D-Aug2025"
-        Tag = "04aee37b8d0d8279fbfe0b48d29c5aff7e05992e"
-        RawBase = "https://raw.githubusercontent.com/SpartanDavie/CityCrafter3D-Aug2025/04aee37b8d0d8279fbfe0b48d29c5aff7e05992e/addons/citycrafter"
-        License = "https://raw.githubusercontent.com/SpartanDavie/CityCrafter3D-Aug2025/04aee37b8d0d8279fbfe0b48d29c5aff7e05992e/addons/citycrafter/LICENSE"
     }
 )
 
@@ -74,7 +67,6 @@ function Download-And-Expand($dep) {
         }
         $root = $candidate.FullName
     }
-
     return $root
 }
 
@@ -82,17 +74,6 @@ function Install-License($dep, [string]$destinationName) {
     $destination = Join-Path $runtimeRoot $destinationName
     Write-Host "Installing license for $($dep.Name)..." -ForegroundColor DarkGray
     Invoke-WebRequest -Uri $dep.License -OutFile $destination -UseBasicParsing
-}
-
-function Download-File([string]$Url, [string]$Destination) {
-    $parent = Split-Path -Parent $Destination
-    if (-not (Test-Path $parent)) {
-        New-Item -ItemType Directory -Path $parent -Force | Out-Null
-    }
-    Invoke-WebRequest -Uri $Url -OutFile $Destination -UseBasicParsing
-    if (-not (Test-Path $Destination)) {
-        throw "Download did not create expected file: $Destination"
-    }
 }
 
 function Validate-Files([string[]]$RelativePaths, [string]$Label) {
@@ -117,6 +98,19 @@ $legacyKaykit = Join-Path $projectRoot "assets\third_party\kaykit_adventurers"
 if (Test-Path $legacyKaykit) {
     Write-Host "Removing obsolete KayKit prototype character files..." -ForegroundColor DarkGray
     Remove-DirectoryRobust $legacyKaykit
+}
+
+# CityCrafter was evaluated but is intentionally retired from the production
+# public-city pipeline. Its own generator targets blocky/random layouts, while
+# Urban Brawl now uses an authored master plan with Road Generator geometry.
+$staleCityCrafter = Join-Path $projectRoot "addons\citycrafter"
+if (Test-Path $staleCityCrafter) {
+    Write-Host "Removing retired CityCrafter runtime files..." -ForegroundColor DarkGray
+    Remove-DirectoryRobust $staleCityCrafter
+}
+$staleCityCrafterLicense = Join-Path $runtimeRoot "CityCrafter-LICENSE.txt"
+if (Test-Path $staleCityCrafterLicense) {
+    Remove-Item $staleCityCrafterLicense -Force
 }
 
 # --- Oen44 inventory/itemization ---
@@ -182,37 +176,13 @@ Validate-Files @(
     "addons\road-generator\nodes\road_manager.gd",
     "addons\road-generator\nodes\road_container.gd",
     "addons\road-generator\nodes\road_point.gd",
-    "addons\road-generator\nodes\road_intersection.gd",
-    "addons\road-generator\resources\road_texture.material"
+    "addons\road-generator\resources\road_texture.material",
+    "addons\road-generator\custom_containers\4way_1x1.tscn",
+    "addons\road-generator\custom_containers\4way_1x1.glb",
+    "addons\road-generator\custom_containers\3way_1x1.tscn",
+    "addons\road-generator\custom_containers\3way_1x1.glb"
 ) "Road Generator"
 Install-License $dependencies[2] "Godot-Road-Generator-LICENSE.txt"
-
-# --- CityCrafter 3D topology runtime only ---
-# Urban Brawl calls CityCrafter's topology scripts directly. Its EditorPlugin,
-# icon and bundled example assets are intentionally NOT installed or enabled.
-# This avoids editor-startup import ordering problems and keeps the dependency tiny.
-$cityCrafter = $dependencies[3]
-$cityCrafterDestination = Join-Path $projectRoot "addons\citycrafter"
-Write-Host "Installing CityCrafter topology runtime core directly..." -ForegroundColor Green
-Remove-DirectoryRobust $cityCrafterDestination
-New-Item -ItemType Directory -Path $cityCrafterDestination -Force | Out-Null
-
-foreach ($file in @(
-    "LICENSE",
-    "city_configuration.gd",
-    "city_configuration.gd.uid",
-    "citycrafter.gd",
-    "citycrafter.gd.uid"
-)) {
-    Write-Host "  $file" -ForegroundColor DarkGray
-    Download-File "$($cityCrafter.RawBase)/$file" (Join-Path $cityCrafterDestination $file)
-}
-
-Validate-Files @(
-    "addons\citycrafter\city_configuration.gd",
-    "addons\citycrafter\citycrafter.gd"
-) "CityCrafter"
-Install-License $cityCrafter "CityCrafter-LICENSE.txt"
 
 Remove-DirectoryRobust $cacheRoot
 
@@ -220,9 +190,9 @@ Write-Host ""
 Write-Host "Code dependencies installed successfully." -ForegroundColor Green
 Write-Host "  Oen44/Godot-Inventory @ v4.0.1a"
 Write-Host "  bitbrain/beehave @ v2.9.3"
-Write-Host "  TheDuckCow/godot-road-generator @ 0.9.3"
-Write-Host "  SpartanDavie/CityCrafter3D-Aug2025 @ 04aee37 (runtime topology core only)"
+Write-Host "  TheDuckCow/godot-road-generator @ 0.9.3 (including authored intersection prefabs)"
 Write-Host ""
+Write-Host "CityCrafter is retired from the production city pipeline and will be removed if present." -ForegroundColor DarkGray
 Write-Host "Quaternius city/character assets remain installed separately with INSTALL-VISUAL-PACKS.bat." -ForegroundColor DarkGray
 Write-Host "Restart Godot after dependency changes." -ForegroundColor Yellow
 Write-Host ""
