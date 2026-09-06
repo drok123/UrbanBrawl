@@ -8,6 +8,10 @@ const ROAD_INTERSECTION_SCRIPT := "res://addons/road-generator/nodes/road_inters
 
 const LANE_FORWARD := 1
 const LANE_REVERSE := 2
+const ARM_WEST := 1
+const ARM_EAST := 2
+const ARM_NORTH := 4
+const ARM_SOUTH := 8
 
 var _layout: Dictionary = {}
 var _manager: Node3D = null
@@ -18,6 +22,8 @@ var _road_records: Array[Dictionary] = []
 var _junction_positions: Dictionary = {}
 var _junction_nodes: Dictionary = {}
 var _junction_degrees: Dictionary = {}
+var _junction_arms: Dictionary = {}
+var _junction_radii: Dictionary = {}
 var _point_serial: int = 0
 
 func configure_from_layout(layout: Dictionary) -> void:
@@ -56,6 +62,7 @@ func _build_network() -> void:
 	add_child(_manager)
 
 	_build_native_graph()
+	_build_junction_markings()
 
 	_manager.set("auto_refresh", true)
 	if _manager.has_method("rebuild_all_containers"):
@@ -84,8 +91,7 @@ func _build_native_graph() -> void:
 	container.name = "CityStreetGraph"
 	# Build the entire graph atomically. RoadIntersection.add_branch() emits
 	# transform/update signals, and rebuilding while only half the arms exist can
-	# create transient bad geometry. The addon itself exposes this internal flag
-	# for batching road edits; turn it back on immediately before the final build.
+	# create transient bad geometry.
 	container.set("_auto_refresh", false)
 	container.set("generate_ai_lanes", true)
 	container.set("ai_lane_group", "city_traffic_lane")
@@ -121,6 +127,8 @@ func _build_native_graph() -> void:
 func _collect_junction_positions() -> void:
 	_junction_positions.clear()
 	_junction_degrees.clear()
+	_junction_arms.clear()
+	_junction_radii.clear()
 	var horizontals: Array[Dictionary] = []
 	var verticals: Array[Dictionary] = []
 	for record: Dictionary in _road_records:
@@ -129,6 +137,7 @@ func _collect_junction_positions() -> void:
 		else:
 			verticals.append(record)
 
+	var street_width: float = float(_layout.get("street_width", 8.2))
 	for horizontal: Dictionary in horizontals:
 		var z: float = float(horizontal.get("coordinate", 0.0))
 		var h_min: float = float(horizontal.get("min", 0.0))
@@ -142,25 +151,40 @@ func _collect_junction_positions() -> void:
 			if z < v_min - 0.01 or z > v_max + 0.01:
 				continue
 
-			# Count the actual street arms at this crossing. Outer 90-degree corners
-			# have two arms, T junctions have three, and interior crossings have four.
-			# Road Generator's NGon shape is driven by branch-point positions, so the
-			# degree is used later to give each junction an appropriately sized throat.
-			var degree: int = 0
+			var arms: int = 0
 			if x > h_min + 0.05:
-				degree += 1
+				arms |= ARM_WEST
 			if x < h_max - 0.05:
-				degree += 1
+				arms |= ARM_EAST
 			if z > v_min + 0.05:
-				degree += 1
+				arms |= ARM_NORTH
 			if z < v_max - 0.05:
-				degree += 1
+				arms |= ARM_SOUTH
+			var degree: int = _count_arm_bits(arms)
 			if degree < 2:
 				continue
 
 			var key: Vector2i = _junction_key(x, z)
 			_junction_positions[key] = Vector3(x, 0.045, z)
 			_junction_degrees[key] = degree
+			_junction_arms[key] = arms
+			_junction_radii[key] = _radius_for_degree(degree, street_width)
+
+func _count_arm_bits(arms: int) -> int:
+	var count: int = 0
+	for mask: int in [ARM_WEST, ARM_EAST, ARM_NORTH, ARM_SOUTH]:
+		if (arms & mask) != 0:
+			count += 1
+	return count
+
+func _radius_for_degree(degree: int, street_width: float) -> float:
+	match degree:
+		2:
+			return clampf(street_width * 0.34, 2.5, 3.0)
+		3:
+			return clampf(street_width * 0.43, 3.2, 3.7)
+		_:
+			return clampf(street_width * 0.48, 3.6, 4.1)
 
 func _create_junction_nodes(container: Node3D) -> void:
 	_junction_nodes.clear()
@@ -220,14 +244,13 @@ func _build_graph_edge(container: Node3D, a_position: Vector3, b_position: Vecto
 
 	var a_intersection: Node3D = _junction_node_at(a_position)
 	var b_intersection: Node3D = _junction_node_at(b_position)
-	var street_width: float = float(_layout.get("street_width", 8.2))
-	var a_approach: float = _junction_approach(a_position, street_width, segment_length) if a_intersection != null else 0.0
-	var b_approach: float = _junction_approach(b_position, street_width, segment_length) if b_intersection != null else 0.0
+	var a_approach: float = _junction_radius_at(a_position) if a_intersection != null else 0.0
+	var b_approach: float = _junction_radius_at(b_position) if b_intersection != null else 0.0
 
-	# Never let two junction throats consume an entire short block edge. Preserve
-	# a small straight section between them so lane markings and curb edges have
-	# room to settle before entering the next generated polygon.
-	var minimum_straight: float = 2.4
+	# A junction uses one fixed radius for all of its arms. This keeps the NGon
+	# centered and symmetric even when the surrounding block-edge lengths differ.
+	# Only reduce a pair when a genuinely tiny street segment demands it.
+	var minimum_straight: float = 3.0
 	var available_for_approaches: float = maxf(segment_length - minimum_straight, 0.0)
 	var approach_total: float = a_approach + b_approach
 	if approach_total > available_for_approaches and approach_total > 0.001:
@@ -237,19 +260,16 @@ func _build_graph_edge(container: Node3D, a_position: Vector3, b_position: Vecto
 
 	var point_a_position: Vector3 = a_position + direction * a_approach
 	var point_b_position: Vector3 = b_position - direction * b_approach
-	if point_a_position.distance_to(point_b_position) < 1.2:
+	if point_a_position.distance_to(point_b_position) < 1.4:
 		var midpoint: Vector3 = (a_position + b_position) * 0.5
-		point_a_position = midpoint - direction * 0.65
-		point_b_position = midpoint + direction * 0.65
+		point_a_position = midpoint - direction * 0.75
+		point_b_position = midpoint + direction * 0.75
 
 	var point_a: Node3D = _create_road_point(container, point_a_position, direction, is_major)
 	var point_b: Node3D = _create_road_point(container, point_b_position, direction, is_major)
 	if point_a == null or point_b == null:
 		return
 
-	# Every graph edge is one coherent chain. Intersections attach to the free
-	# end of the nearest approach point using RoadIntersection.add_branch(), the
-	# same API exercised by the addon's own tests.
 	point_a.set("next_pt_init", point_a.get_path_to(point_b))
 	point_b.set("prior_pt_init", point_b.get_path_to(point_a))
 
@@ -258,24 +278,11 @@ func _build_graph_edge(container: Node3D, a_position: Vector3, b_position: Vecto
 	if b_intersection != null and b_intersection.has_method("add_branch"):
 		b_intersection.call("add_branch", point_b)
 
-func _junction_approach(position_value: Vector3, street_width: float, segment_length: float) -> float:
+func _junction_radius_at(position_value: Vector3) -> float:
 	var key: Vector2i = _junction_key(position_value.x, position_value.z)
-	var degree: int = int(_junction_degrees.get(key, 4))
-	var width_scale: float
-	match degree:
-		2:
-			# Compact outer corner. A full-sized NGon here creates the stretched
-			# diamond look that was still showing up on perimeter intersections.
-			width_scale = 0.40
-		3:
-			width_scale = 0.48
-		_:
-			width_scale = 0.54
-	var desired: float = street_width * width_scale
-	var segment_cap: float = segment_length * 0.28
-	return clampf(minf(desired, segment_cap), 2.2, 4.6)
+	return float(_junction_radii.get(key, 3.4))
 
-func _create_road_point(container: Node3D, position_value: Vector3, direction: Vector3, is_major: bool) -> Node3D:
+func _create_road_point(container: Node3D, position_value: Vector3, direction: Vector3, _is_major: bool) -> Node3D:
 	var point: Node3D = _road_point_script.new() as Node3D
 	if point == null:
 		return null
@@ -285,12 +292,15 @@ func _create_road_point(container: Node3D, position_value: Vector3, direction: V
 	point.rotation.y = atan2(direction.x, direction.z)
 	container.add_child(point)
 	point.set("container", container)
-	point.set("lane_width", 3.20 if is_major else 3.05)
-	point.set("shoulder_width_l", 0.78 if is_major else 0.58)
-	point.set("shoulder_width_r", 0.78 if is_major else 0.58)
-	point.set("gutter_profile", Vector2(0.32, -0.05))
-	point.set("prior_mag", 2.8)
-	point.set("next_mag", 2.8)
+	# Keep one consistent compact-city cross section through every junction.
+	# Hierarchy is communicated by markings/traffic/land use rather than forcing
+	# mismatched widths through Road Generator's experimental intersection mesh.
+	point.set("lane_width", 3.10)
+	point.set("shoulder_width_l", 0.62)
+	point.set("shoulder_width_r", 0.62)
+	point.set("gutter_profile", Vector2(0.30, -0.045))
+	point.set("prior_mag", 2.45)
+	point.set("next_mag", 2.45)
 	point.set("auto_lanes", true)
 	point.set("traffic_dir", [LANE_REVERSE, LANE_FORWARD])
 	return point
@@ -301,6 +311,63 @@ func _junction_node_at(position_value: Vector3) -> Node3D:
 
 func _junction_key(x: float, z: float) -> Vector2i:
 	return Vector2i(int(round(x * 100.0)), int(round(z * 100.0)))
+
+func _build_junction_markings() -> void:
+	# Mark only true intersections. Perimeter two-arm corners stay visually quiet.
+	for key_value: Variant in _junction_positions.keys():
+		if not key_value is Vector2i:
+			continue
+		var key := key_value as Vector2i
+		var degree: int = int(_junction_degrees.get(key, 2))
+		if degree < 3:
+			continue
+		var center: Vector3 = _junction_positions[key] as Vector3
+		var arms: int = int(_junction_arms.get(key, 0))
+		var radius: float = float(_junction_radii.get(key, 3.5))
+		if (arms & ARM_WEST) != 0:
+			_add_crosswalk_arm(center, Vector3(-1, 0, 0), radius)
+		if (arms & ARM_EAST) != 0:
+			_add_crosswalk_arm(center, Vector3(1, 0, 0), radius)
+		if (arms & ARM_NORTH) != 0:
+			_add_crosswalk_arm(center, Vector3(0, 0, -1), radius)
+		if (arms & ARM_SOUTH) != 0:
+			_add_crosswalk_arm(center, Vector3(0, 0, 1), radius)
+
+func _add_crosswalk_arm(center: Vector3, arm_direction: Vector3, radius: float) -> void:
+	var lateral := Vector3(-arm_direction.z, 0.0, arm_direction.x)
+	var crossing_center: Vector3 = center + arm_direction * (radius + 0.72)
+	for index: int in range(-2, 3):
+		var stripe := MeshInstance3D.new()
+		stripe.name = "CrosswalkStripe"
+		var mesh := BoxMesh.new()
+		var stripe_center: Vector3 = crossing_center + arm_direction * (float(index) * 0.58)
+		if absf(arm_direction.x) > 0.5:
+			mesh.size = Vector3(0.30, 0.014, 5.8)
+		else:
+			mesh.size = Vector3(5.8, 0.014, 0.30)
+		stripe.mesh = mesh
+		stripe.position = stripe_center + Vector3(0.0, 0.105, 0.0)
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.72, 0.72, 0.69, 1.0)
+		material.roughness = 0.92
+		stripe.material_override = material
+		add_child(stripe)
+	# One stop line slightly farther from the junction makes the crossing read
+	# like a designed street instead of decoration floating on asphalt.
+	var stop_line := MeshInstance3D.new()
+	stop_line.name = "StopLine"
+	var stop_mesh := BoxMesh.new()
+	if absf(arm_direction.x) > 0.5:
+		stop_mesh.size = Vector3(0.16, 0.014, 6.2)
+	else:
+		stop_mesh.size = Vector3(6.2, 0.014, 0.16)
+	stop_line.mesh = stop_mesh
+	stop_line.position = crossing_center + arm_direction * 1.9 + Vector3(0.0, 0.104, 0.0)
+	var stop_material := StandardMaterial3D.new()
+	stop_material.albedo_color = Color(0.68, 0.68, 0.66, 1.0)
+	stop_material.roughness = 0.92
+	stop_line.material_override = stop_material
+	add_child(stop_line)
 
 func _collect_road_records() -> Array[Dictionary]:
 	var active_variant: Variant = _layout.get("active_blocks", [])
