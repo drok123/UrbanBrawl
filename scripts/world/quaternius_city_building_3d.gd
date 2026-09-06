@@ -4,6 +4,9 @@ extends Node3D
 @export var target_size: Vector3 = Vector3(11.0, 5.0, 13.0)
 @export var fallback_color: Color = Color(0.18, 0.20, 0.24, 1.0)
 @export var collision_enabled: bool = true
+@export var variant_index: int = 0
+@export var preferred_tokens: Array[String] = []
+@export var yaw_degrees: float = 0.0
 
 var using_external_asset: bool = false
 var loaded_asset_path: String = ""
@@ -25,13 +28,12 @@ func _build_collision() -> void:
 	body.add_child(collision)
 
 func _load_visual() -> void:
-	loaded_asset_path = QuaterniusAssetLocator.find_best_city_building()
+	loaded_asset_path = QuaterniusAssetLocator.find_city_building_variant(variant_index, preferred_tokens)
 	if loaded_asset_path.is_empty():
 		_build_fallback()
 		return
 
-	var resource: Resource = load(loaded_asset_path)
-	var packed: PackedScene = resource as PackedScene
+	var packed: PackedScene = load(loaded_asset_path) as PackedScene
 	if packed == null:
 		_build_fallback()
 		return
@@ -50,8 +52,10 @@ func _load_visual() -> void:
 		_build_fallback()
 		return
 
+	visual.rotation_degrees.y = yaw_degrees
 	using_external_asset = true
 	set_meta(&"quaternius_asset", loaded_asset_path)
+	print("Urban Brawl: building ", name, " -> ", loaded_asset_path.get_file())
 
 func _fit_visual_to_footprint(visual: Node3D) -> bool:
 	var bounds: AABB = _combined_bounds(visual)
@@ -60,20 +64,19 @@ func _fit_visual_to_footprint(visual: Node3D) -> bool:
 
 	var width_scale: float = target_size.x / maxf(bounds.size.x, 0.001)
 	var depth_scale: float = target_size.z / maxf(bounds.size.z, 0.001)
-	var uniform_scale: float = minf(width_scale, depth_scale) * 0.92
-	uniform_scale = clampf(uniform_scale, 0.05, 8.0)
+	var height_scale: float = target_size.y / maxf(bounds.size.y, 0.001)
+	# Keep architecture proportional. A little height overflow is preferable to
+	# flattening a real building into the old graybox dimensions.
+	var uniform_scale: float = minf(width_scale, depth_scale) * 0.94
+	if height_scale < uniform_scale * 0.45:
+		uniform_scale = maxf(height_scale / 0.45, 0.05)
+	uniform_scale = clampf(uniform_scale, 0.05, 10.0)
 	visual.scale = Vector3.ONE * uniform_scale
 
-	# Recompute center/base in scaled space. The collision box remains the stable
-	# gameplay footprint while the authored building supplies presentation.
 	var scaled_center_x: float = (bounds.position.x + bounds.size.x * 0.5) * uniform_scale
 	var scaled_center_z: float = (bounds.position.z + bounds.size.z * 0.5) * uniform_scale
 	var scaled_min_y: float = bounds.position.y * uniform_scale
-	visual.position = Vector3(
-		-scaled_center_x,
-		-target_size.y * 0.5 - scaled_min_y,
-		-scaled_center_z
-	)
+	visual.position = Vector3(-scaled_center_x, -target_size.y * 0.5 - scaled_min_y, -scaled_center_z)
 	return true
 
 func _combined_bounds(root: Node3D) -> AABB:
