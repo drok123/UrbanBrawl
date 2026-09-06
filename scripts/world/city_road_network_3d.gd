@@ -81,15 +81,21 @@ func _build_native_graph() -> void:
 		_build_fallback_network()
 		return
 	container.name = "CityStreetGraph"
-	_manager.add_child(container)
+	# Build the entire graph atomically. RoadIntersection.add_branch() emits
+	# transform/update signals, and rebuilding while only half the arms exist can
+	# create transient bad geometry. The addon itself exposes this internal flag
+	# for batching road edits; turn it back on immediately before the final build.
+	container.set("_auto_refresh", false)
 	container.set("generate_ai_lanes", true)
 	container.set("ai_lane_group", "city_traffic_lane")
 	container.set("create_edge_curves", true)
 	container.set("flatten_terrain", false)
 	container.set("underside_thickness", 0.06)
+	_manager.add_child(container)
 	if container.has_method("setup_road_container"):
 		container.call("setup_road_container")
 
+	_point_serial = 0
 	_collect_junction_positions()
 	_create_junction_nodes(container)
 
@@ -107,6 +113,7 @@ func _build_native_graph() -> void:
 
 	if container.has_method("update_edges"):
 		container.call("update_edges")
+	container.set("_auto_refresh", true)
 	if container.has_method("rebuild_segments"):
 		container.call_deferred("rebuild_segments", true)
 
