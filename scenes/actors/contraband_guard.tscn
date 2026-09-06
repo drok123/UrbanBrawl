@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat/territory_guard.gd" id="1_guard"]
 [ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="2_animation"]
+[ext_resource type="Script" path="res://scripts/animation/quaternius_character_driver_3d.gd" id="3_quaternius"]
 
 [sub_resource type="StandardMaterial3D" id="LegacyMaterial"]
 albedo_color = Color(0.13, 0.34, 0.18, 1)
@@ -34,6 +35,11 @@ script = ExtResource("2_animation")
 body_color = Color(0.16, 0.48, 0.22, 1)
 accent_color = Color(0.05, 0.13, 0.07, 1)
 visual_offset = Vector3(0, -0.95, 0)
+
+[node name="ImportedCharacterVisual" type="Node3D" parent="."]
+script = ExtResource("3_quaternius")
+fallback_visual_path = NodePath("../CharacterVisual")
+character_variant_index = 2
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 shape = SubResource("GuardShape")
