@@ -12,22 +12,22 @@ static func find_best_city_building() -> String:
 	for path: String in files:
 		var name: String = path.get_file().to_lower()
 		var score: int = 0
-		if "example" in name:
-			score += 85
+		if "example" in name or "prebuilt" in name or "assembled" in name:
+			score += 100
 		if "building" in name:
 			score += 65
-		if "facade" in name:
-			score += 30
 		if "apartment" in name or "office" in name or "store" in name:
-			score += 25
+			score += 35
+		if "facade" in name:
+			score -= 10
 		if "wall" in name or "window" in name or "door" in name or "roof" in name:
-			score -= 35
-		if "prop" in name or "trash" in name or "streetlight" in name or "sign" in name:
 			score -= 55
+		if "prop" in name or "trash" in name or "streetlight" in name or "sign" in name or "sidewalk" in name or "road" in name:
+			score -= 70
 		if score > best_score:
 			best_score = score
 			best_path = path
-	return best_path if best_score > 0 else ""
+	return best_path if best_score >= 45 else ""
 
 static func find_best_character_scene() -> String:
 	var files: Array[String] = _scene_files(CHARACTER_ROOT)
@@ -85,8 +85,6 @@ static func find_animation_sources(max_files: int = 28) -> Array[String]:
 		else:
 			fallback.append(path)
 
-	# Some Quaternius downloads use one GLB containing the whole library. Keep
-	# that file when filename-level filtering finds little or nothing.
 	if preferred.size() < 3:
 		preferred.append_array(fallback)
 
