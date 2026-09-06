@@ -20,10 +20,6 @@ var _segment_serial: int = 0
 func configure_from_plan(plan: Dictionary) -> void:
 	_plan = plan.duplicate(true)
 
-# Compatibility for old scenes during migration. CityWorld now calls configure_from_plan.
-func configure_from_layout(_layout: Dictionary) -> void:
-	_plan = CityMasterPlan.build_plan()
-
 func _ready() -> void:
 	call_deferred("_build_network")
 
@@ -31,7 +27,7 @@ func _build_network() -> void:
 	if _plan.is_empty():
 		_plan = CityMasterPlan.build_plan()
 	if not _road_generator_available():
-		push_warning("Urban Brawl: Road Generator is unavailable; using simple emergency road geometry. Run INSTALL-DEPENDENCIES.bat.")
+		push_warning("Urban Brawl: Road Generator is unavailable; using emergency road geometry. Run INSTALL-DEPENDENCIES.bat.")
 		_build_fallback_network()
 		return
 
@@ -74,7 +70,8 @@ func _create_prefab_junctions(intersection_scene: PackedScene) -> void:
 	var raw: Variant = _plan.get("intersections", [])
 	if not raw is Array:
 		return
-	for value: Variant in raw as Array:
+	var records: Array = raw as Array
+	for value: Variant in records:
 		if not value is Dictionary:
 			continue
 		var record := value as Dictionary
@@ -85,8 +82,7 @@ func _create_prefab_junctions(intersection_scene: PackedScene) -> void:
 		junction.name = junction_id
 		junction.position = (record.get("position", Vector3.ZERO) as Vector3) + Vector3(0.0, 0.035, 0.0)
 		_manager.add_child(junction)
-		# Prefab containers already carry their authored mesh, collision and lane
-		# curves. Do not rebuild them as procedural NGons.
+		# The prefab owns its hand-modeled mesh, collision and RoadLanes.
 		if junction.has_method("update_edges"):
 			junction.call("update_edges")
 		_junctions[junction_id] = junction
@@ -95,7 +91,8 @@ func _connect_authored_segments() -> void:
 	var raw: Variant = _plan.get("segments", [])
 	if not raw is Array:
 		return
-	for value: Variant in raw as Array:
+	var records: Array = raw as Array
+	for value: Variant in records:
 		if not value is Dictionary:
 			continue
 		var record := value as Dictionary
@@ -128,11 +125,11 @@ func _extend_outer_streets() -> void:
 		var containers_variant: Variant = junction.get("edge_containers")
 		if not locals_variant is Array or not dirs_variant is Array or not containers_variant is Array:
 			continue
-		var locals := locals_variant as Array
-		var dirs := dirs_variant as Array
-		var containers := containers_variant as Array
+		var locals: Array = locals_variant as Array
+		var dirs: Array = dirs_variant as Array
+		var containers: Array = containers_variant as Array
 		for index: int in range(locals.size()):
-			if index < containers.size() and NodePath(containers[index]) != NodePath(""):
+			if index < containers.size() and not str(containers[index]).is_empty():
 				continue
 			var rp: Node3D = junction.get_node_or_null(locals[index]) as Node3D
 			if rp == null:
@@ -149,8 +146,8 @@ func _edge_toward(container: Node3D, wanted_direction: Vector3) -> Dictionary:
 	var dirs_variant: Variant = container.get("edge_rp_local_dirs")
 	if not locals_variant is Array or not dirs_variant is Array:
 		return {}
-	var locals := locals_variant as Array
-	var dirs := dirs_variant as Array
+	var locals: Array = locals_variant as Array
+	var dirs: Array = dirs_variant as Array
 	var best_score: float = -1000.0
 	var best: Dictionary = {}
 	for index: int in range(locals.size()):
@@ -187,10 +184,11 @@ func _create_straight_container(a_edge: Dictionary, b_edge: Dictionary, directio
 		return
 	if segment.has_method("update_edges"):
 		segment.call("update_edges")
-	# Cross-container links are metadata/lane connections. The straight road mesh
-	# itself is generated only by the two points inside this segment container.
-	a_rp.call("connect_container", int(a_edge.get("dir", POINT_NEXT)), point_a, POINT_PRIOR)
-	b_rp.call("connect_container", int(b_edge.get("dir", POINT_PRIOR)), point_b, POINT_NEXT)
+
+	var a_connected: bool = bool(a_rp.call("connect_container", int(a_edge.get("dir", POINT_NEXT)), point_a, POINT_PRIOR))
+	var b_connected: bool = bool(b_rp.call("connect_container", int(b_edge.get("dir", POINT_PRIOR)), point_b, POINT_NEXT))
+	if not a_connected or not b_connected:
+		push_warning("Urban Brawl: failed to bridge RoadContainer prefab edges for %s" % segment.name)
 	_finalize_segment_container(segment)
 	_segment_serial += 1
 
@@ -211,7 +209,8 @@ func _create_tail_container(source_edge: Dictionary, outward: Vector3, tail_leng
 		return
 	if segment.has_method("update_edges"):
 		segment.call("update_edges")
-	source_rp.call("connect_container", int(source_edge.get("dir", POINT_NEXT)), point_a, POINT_PRIOR)
+	if not bool(source_rp.call("connect_container", int(source_edge.get("dir", POINT_NEXT)), point_a, POINT_PRIOR)):
+		push_warning("Urban Brawl: failed to bridge outer RoadContainer edge for %s" % segment.name)
 	_finalize_segment_container(segment)
 	_segment_serial += 1
 
@@ -240,12 +239,13 @@ func _new_segment_point(container: Node3D, world_position: Vector3, direction: V
 	container.add_child(point)
 	point.set("container", container)
 	if point.has_method("copy_settings_from"):
-		point.call("copy_settings_from", template)
-	point.global_position = world_position
-	point.global_position.y = 0.035
+		point.call("copy_settings_from", template, false)
+	var snapped_position := world_position
+	snapped_position.y = 0.035
+	point.global_position = snapped_position
 	point.rotation.y = atan2(direction.x, direction.z)
-	# The prefab is the cross-section authority. Keep any copied lane/shoulder
-	# dimensions and only tune handle length for a straight connection.
+	# Preserve the prefab's copied cross-section; only make the connecting road
+	# handles straight and long enough to leave the modeled junction cleanly.
 	point.set("prior_mag", 8.0)
 	point.set("next_mag", 8.0)
 	return point
@@ -262,8 +262,8 @@ func _build_fallback_network() -> void:
 	var road_z_variant: Variant = _plan.get("road_z", [])
 	if not road_x_variant is Array or not road_z_variant is Array:
 		return
-	var road_x := road_x_variant as Array
-	var road_z := road_z_variant as Array
+	var road_x: Array = road_x_variant as Array
+	var road_z: Array = road_z_variant as Array
 	if road_x.is_empty() or road_z.is_empty():
 		return
 	var tail: float = float(_plan.get("road_tail", 34.0))
