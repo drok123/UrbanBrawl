@@ -41,18 +41,17 @@ func _build_network() -> void:
 	_manager.set("auto_refresh", false)
 	add_child(_manager)
 
-	# A compact believable street hierarchy: one four-lane avenue, one major
-	# cross street, two district spines and two slightly offset neighborhood
-	# streets. The tiny bends stop the city reading like a spreadsheet while
-	# still giving gameplay clear sightlines.
+	# Street hierarchy first. 24.5 m between the central cross street and the
+	# neighborhood collectors leaves genuinely usable city blocks after the road
+	# widths and sidewalks/setbacks are accounted for.
 	_add_generated_road(
 		"CentralAvenue",
 		[
-			Vector3(-1.2, 0.04, -38.0),
-			Vector3(-0.8, 0.04, -21.0),
+			Vector3(-1.2, 0.04, -42.0),
+			Vector3(-0.8, 0.04, -24.5),
 			Vector3(0.0, 0.04, 0.0),
-			Vector3(0.7, 0.04, 20.0),
-			Vector3(0.0, 0.04, 38.0),
+			Vector3(0.7, 0.04, 24.5),
+			Vector3(0.0, 0.04, 42.0),
 		],
 		4,
 		3.25
@@ -60,11 +59,11 @@ func _build_network() -> void:
 	_add_generated_road(
 		"DivisionStreet",
 		[
-			Vector3(-51.0, 0.045, -0.8),
+			Vector3(-53.0, 0.045, -0.8),
 			Vector3(-28.0, 0.045, -0.3),
 			Vector3(0.0, 0.045, 0.0),
 			Vector3(27.0, 0.045, 0.4),
-			Vector3(51.0, 0.045, 1.2),
+			Vector3(53.0, 0.045, 1.2),
 		],
 		4,
 		3.15
@@ -72,11 +71,11 @@ func _build_network() -> void:
 	_add_generated_road(
 		"WestAvenue",
 		[
-			Vector3(-27.0, 0.05, -38.0),
-			Vector3(-27.8, 0.05, -21.0),
+			Vector3(-27.0, 0.05, -42.0),
+			Vector3(-27.8, 0.05, -24.5),
 			Vector3(-27.0, 0.05, 0.0),
-			Vector3(-26.2, 0.05, 20.0),
-			Vector3(-27.0, 0.05, 38.0),
+			Vector3(-26.2, 0.05, 24.5),
+			Vector3(-27.0, 0.05, 42.0),
 		],
 		2,
 		3.05
@@ -84,11 +83,11 @@ func _build_network() -> void:
 	_add_generated_road(
 		"EastAvenue",
 		[
-			Vector3(27.0, 0.05, -38.0),
-			Vector3(26.2, 0.05, -20.0),
+			Vector3(27.0, 0.05, -42.0),
+			Vector3(26.2, 0.05, -24.5),
 			Vector3(27.0, 0.05, 0.0),
-			Vector3(27.8, 0.05, 20.0),
-			Vector3(27.0, 0.05, 38.0),
+			Vector3(27.8, 0.05, 24.5),
+			Vector3(27.0, 0.05, 42.0),
 		],
 		2,
 		3.05
@@ -96,11 +95,11 @@ func _build_network() -> void:
 	_add_generated_road(
 		"NorthStreet",
 		[
-			Vector3(-51.0, 0.055, -21.5),
-			Vector3(-27.5, 0.055, -21.0),
-			Vector3(-0.8, 0.055, -21.0),
-			Vector3(26.2, 0.055, -20.0),
-			Vector3(51.0, 0.055, -19.2),
+			Vector3(-53.0, 0.055, -25.0),
+			Vector3(-27.8, 0.055, -24.5),
+			Vector3(-0.8, 0.055, -24.5),
+			Vector3(26.2, 0.055, -24.5),
+			Vector3(53.0, 0.055, -23.7),
 		],
 		2,
 		3.0
@@ -108,11 +107,11 @@ func _build_network() -> void:
 	_add_generated_road(
 		"SouthStreet",
 		[
-			Vector3(-51.0, 0.055, 20.8),
-			Vector3(-26.2, 0.055, 20.0),
-			Vector3(0.7, 0.055, 20.0),
-			Vector3(27.8, 0.055, 20.0),
-			Vector3(51.0, 0.055, 20.8),
+			Vector3(-53.0, 0.055, 25.3),
+			Vector3(-26.2, 0.055, 24.5),
+			Vector3(0.7, 0.055, 24.5),
+			Vector3(27.8, 0.055, 24.5),
+			Vector3(53.0, 0.055, 25.3),
 		],
 		2,
 		3.0
@@ -214,17 +213,17 @@ func _handle_length(points: Array[Vector3], index: int) -> float:
 	return clampf(nearest * 0.30, 3.5, 8.5)
 
 func _build_intersections() -> void:
-	# These pads intentionally sit just above the generated street meshes. They
-	# suppress overlapping lane markings where independent authored roads cross;
-	# the Road Generator still owns the actual road geometry, collision and AI lanes.
-	var major: Array[Vector3] = [Vector3(0, 0, 0), Vector3(0, 0, -21), Vector3(0.7, 0, 20)]
+	# Temporary cover pads suppress overlapping lane markings while we validate
+	# the new network. Once the plugin pass is stable, these are replaced by the
+	# addon's native RoadIntersection graph nodes.
+	var major: Array[Vector3] = [Vector3(0, 0, 0), Vector3(-0.8, 0, -24.5), Vector3(0.7, 0, 24.5)]
 	for position_value: Vector3 in major:
 		_add_intersection_pad(position_value, Vector2(15.5, 12.0), true)
 
 	var local: Array[Vector3] = [
 		Vector3(-27, 0, 0), Vector3(27, 0, 0),
-		Vector3(-27.5, 0, -21), Vector3(26.2, 0, -20),
-		Vector3(-26.2, 0, 20), Vector3(27.8, 0, 20),
+		Vector3(-27.8, 0, -24.5), Vector3(26.2, 0, -24.5),
+		Vector3(-26.2, 0, 24.5), Vector3(27.8, 0, 24.5),
 	]
 	for position_value: Vector3 in local:
 		_add_intersection_pad(position_value, Vector2(9.0, 9.0), false)
@@ -260,7 +259,7 @@ func _add_crosswalk(position_value: Vector3, horizontal_stripes: bool) -> void:
 func _build_civic_plazas() -> void:
 	# Two small neutral pedestrian pockets stop Central Commons from being a road
 	# median with vendors standing in traffic.
-	_add_plaza(Vector3(-9.5, 0.0, -11.5), Vector2(8.0, 9.0))
+	_add_plaza(Vector3(-9.5, 0.0, -12.0), Vector2(8.0, 10.0))
 	_add_plaza(Vector3(-9.5, 0.0, 12.5), Vector2(8.0, 10.0))
 
 func _add_plaza(position_value: Vector3, size: Vector2) -> void:
@@ -278,12 +277,12 @@ func _add_plaza(position_value: Vector3, size: Vector2) -> void:
 func _build_fallback_network() -> void:
 	# Only used when the managed addon is missing. It deliberately mirrors the
 	# authored network rather than returning to the old three giant rectangles.
-	_add_fallback_road(Vector3(0, 0.01, 0), Vector3(14.0, 0.04, 76.0))
-	_add_fallback_road(Vector3(0, 0.015, 0), Vector3(102.0, 0.04, 13.0))
-	_add_fallback_road(Vector3(-27, 0.02, 0), Vector3(7.0, 0.04, 76.0))
-	_add_fallback_road(Vector3(27, 0.02, 0), Vector3(7.0, 0.04, 76.0))
-	_add_fallback_road(Vector3(0, 0.025, -21), Vector3(102.0, 0.04, 7.0))
-	_add_fallback_road(Vector3(0, 0.025, 20), Vector3(102.0, 0.04, 7.0))
+	_add_fallback_road(Vector3(0, 0.01, 0), Vector3(14.0, 0.04, 84.0))
+	_add_fallback_road(Vector3(0, 0.015, 0), Vector3(106.0, 0.04, 13.0))
+	_add_fallback_road(Vector3(-27, 0.02, 0), Vector3(7.0, 0.04, 84.0))
+	_add_fallback_road(Vector3(27, 0.02, 0), Vector3(7.0, 0.04, 84.0))
+	_add_fallback_road(Vector3(0, 0.025, -24.5), Vector3(106.0, 0.04, 7.0))
+	_add_fallback_road(Vector3(0, 0.025, 24.5), Vector3(106.0, 0.04, 7.0))
 	_build_intersections()
 	_build_civic_plazas()
 
