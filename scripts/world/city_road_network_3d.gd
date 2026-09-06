@@ -6,8 +6,11 @@ const ROAD_CONTAINER_SCRIPT := "res://addons/road-generator/nodes/road_container
 const ROAD_POINT_SCRIPT := "res://addons/road-generator/nodes/road_point.gd"
 const PREFAB_4WAY := "res://addons/road-generator/custom_containers/4way_1x1.tscn"
 
-const POINT_PRIOR := 0
-const POINT_NEXT := 1
+# Road Generator 0.9.3 intentionally defines PointInit in this order:
+# NEXT = 0, PRIOR = 1, NEITHER = 2. Do not "correct" this ordering locally.
+const POINT_NEXT := 0
+const POINT_PRIOR := 1
+const POINT_NEITHER := 2
 
 var _plan: Dictionary = {}
 var _manager: Node3D = null
@@ -61,7 +64,8 @@ func _build_network() -> void:
 		" prefab intersections / ",
 		_segment_serial,
 		" straight containers @ scale ",
-		_road_scale()
+		_road_scale(),
+		" | native bridge semantics"
 	)
 
 func _road_scale() -> float:
@@ -91,9 +95,9 @@ func _create_prefab_junctions(intersection_scene: PackedScene) -> void:
 			continue
 		var junction_id: String = str(record.get("id", "Junction"))
 		junction.name = junction_id
-		# Scale every RoadContainer uniformly. This turns the stock 4m lanes into
-		# 3m urban lanes at 0.75 without distorting the prefab or breaking the
-		# cross-container basis/orientation contract.
+		# Scale the complete authored RoadContainer uniformly. Connecting straight
+		# containers receive the same scale, so lane/shoulder/gutter proportions and
+		# endpoint transforms remain compatible with the prefab.
 		junction.scale = Vector3.ONE * scale_value
 		junction.position = (record.get("position", Vector3.ZERO) as Vector3) + Vector3(0.0, 0.035, 0.0)
 		_manager.add_child(junction)
@@ -126,7 +130,7 @@ func _connect_authored_segments() -> void:
 		if a_edge.is_empty() or b_edge.is_empty():
 			push_warning("Urban Brawl: Road Generator prefab edge lookup failed for %s -> %s" % [a_id, b_id])
 			continue
-		_create_straight_container(a_edge, b_edge, direction, str(record.get("class", "local")))
+		_create_straight_container(a_edge, b_edge, str(record.get("class", "local")))
 
 func _extend_outer_streets() -> void:
 	var tail: float = float(_plan.get("road_tail", 34.0))
@@ -148,12 +152,16 @@ func _extend_outer_streets() -> void:
 			var rp: Node3D = junction.get_node_or_null(locals[index]) as Node3D
 			if rp == null:
 				continue
-			var outward: Vector3 = rp.global_position - junction.global_position
-			outward.y = 0.0
-			if outward.length_squared() <= 0.001:
+			var open_dir: int = _open_dir(rp)
+			if open_dir == POINT_NEITHER:
 				continue
-			outward = outward.normalized()
-			_create_tail_container({"rp": rp, "dir": int(dirs[index])}, outward, tail)
+			if index < dirs.size() and int(dirs[index]) != open_dir:
+				push_warning(
+					"Urban Brawl: prefab edge metadata/open-direction mismatch at %s/%s (edge %d, open %d)" % [
+						junction.name, rp.name, int(dirs[index]), open_dir
+					]
+				)
+			_create_tail_container(rp, open_dir, tail)
 
 func _edge_toward(container: Node3D, wanted_direction: Vector3) -> Dictionary:
 	var locals_variant: Variant = container.get("edge_rp_locals")
@@ -176,55 +184,85 @@ func _edge_toward(container: Node3D, wanted_direction: Vector3) -> Dictionary:
 		var score: float = radial.dot(wanted_direction)
 		if score > best_score:
 			best_score = score
-			best = {"rp": rp, "dir": int(dirs[index]) if index < dirs.size() else POINT_NEXT}
+			best = {
+				"rp": rp,
+				"dir": int(dirs[index]) if index < dirs.size() else _open_dir(rp),
+			}
 	return best if best_score > 0.80 else {}
 
-func _create_straight_container(a_edge: Dictionary, b_edge: Dictionary, direction: Vector3, road_class: String) -> void:
+func _create_straight_container(a_edge: Dictionary, b_edge: Dictionary, road_class: String) -> void:
 	var a_rp: Node3D = a_edge.get("rp", null) as Node3D
 	var b_rp: Node3D = b_edge.get("rp", null) as Node3D
 	if a_rp == null or b_rp == null:
 		return
+
+	# Mirror Road Generator's own bridge_rps_with_new_container() semantics:
+	# 1) determine which side of each existing edge point is actually open;
+	# 2) copy each endpoint's complete transform and cross-section settings;
+	# 3) use the same open side for the bridge's internal road connection;
+	# 4) use the flipped side for the cross-container connection back to the prefab.
+	var a_dir: int = _open_dir(a_rp)
+	var b_dir: int = _open_dir(b_rp)
+	if a_dir == POINT_NEITHER or b_dir == POINT_NEITHER:
+		push_warning("Urban Brawl: cannot bridge fully-connected prefab RoadPoints %s / %s" % [a_rp.name, b_rp.name])
+		return
+	var a_edge_dir: int = _opposite_dir(a_dir)
+	var b_edge_dir: int = _opposite_dir(b_dir)
+
+	if int(a_edge.get("dir", a_dir)) != a_dir or int(b_edge.get("dir", b_dir)) != b_dir:
+		push_warning(
+			"Urban Brawl: prefab edge table disagrees with live RoadPoint state for %s -> %s; live open directions win" % [
+				a_rp.name, b_rp.name
+			]
+		)
+
 	var segment := _new_segment_container("Street_%03d_%s" % [_segment_serial, road_class])
 	if segment == null:
 		return
-	var point_a := _new_segment_point(segment, a_rp.global_position, direction, a_rp)
-	var point_b := _new_segment_point(segment, b_rp.global_position, direction, b_rp)
+	var point_a := _new_segment_point_from_template(segment, a_rp)
+	var point_b := _new_segment_point_from_template(segment, b_rp)
 	if point_a == null or point_b == null:
 		segment.queue_free()
 		return
 
-	if not bool(point_a.call("connect_roadpoint", POINT_NEXT, point_b, POINT_PRIOR)):
+	if not bool(point_a.call("connect_roadpoint", a_dir, point_b, b_dir)):
+		push_warning("Urban Brawl: internal RoadPoint bridge failed for %s" % segment.name)
 		segment.queue_free()
 		return
 	if segment.has_method("update_edges"):
 		segment.call("update_edges")
 
-	var a_connected: bool = bool(a_rp.call("connect_container", int(a_edge.get("dir", POINT_NEXT)), point_a, POINT_PRIOR))
-	var b_connected: bool = bool(b_rp.call("connect_container", int(b_edge.get("dir", POINT_PRIOR)), point_b, POINT_NEXT))
+	var a_connected: bool = bool(point_a.call("connect_container", a_edge_dir, a_rp, a_dir))
+	var b_connected: bool = bool(point_b.call("connect_container", b_edge_dir, b_rp, b_dir))
 	if not a_connected or not b_connected:
-		push_warning("Urban Brawl: failed to bridge RoadContainer prefab edges for %s" % segment.name)
+		push_warning("Urban Brawl: failed native-style prefab bridge for %s (A=%s B=%s)" % [segment.name, a_connected, b_connected])
 	_finalize_segment_container(segment)
 	_segment_serial += 1
 
-func _create_tail_container(source_edge: Dictionary, outward: Vector3, tail_length: float) -> void:
-	var source_rp: Node3D = source_edge.get("rp", null) as Node3D
-	if source_rp == null:
+func _create_tail_container(source_rp: Node3D, source_dir: int, tail_length: float) -> void:
+	if source_rp == null or source_dir == POINT_NEITHER:
 		return
 	var segment := _new_segment_container("StreetTail_%03d" % _segment_serial)
 	if segment == null:
 		return
-	var point_a := _new_segment_point(segment, source_rp.global_position, outward, source_rp)
-	var point_b := _new_segment_point(segment, source_rp.global_position + outward * tail_length, outward, source_rp)
+
+	var point_a := _new_segment_point_from_template(segment, source_rp)
+	var point_b := _new_tail_end_point(segment, source_rp, source_dir, tail_length)
 	if point_a == null or point_b == null:
 		segment.queue_free()
 		return
-	if not bool(point_a.call("connect_roadpoint", POINT_NEXT, point_b, POINT_PRIOR)):
+
+	var end_connection_dir: int = _opposite_dir(source_dir)
+	if not bool(point_a.call("connect_roadpoint", source_dir, point_b, end_connection_dir)):
+		push_warning("Urban Brawl: outer street internal connection failed for %s" % segment.name)
 		segment.queue_free()
 		return
 	if segment.has_method("update_edges"):
 		segment.call("update_edges")
-	if not bool(source_rp.call("connect_container", int(source_edge.get("dir", POINT_NEXT)), point_a, POINT_PRIOR)):
-		push_warning("Urban Brawl: failed to bridge outer RoadContainer edge for %s" % segment.name)
+
+	var seam_dir: int = _opposite_dir(source_dir)
+	if not bool(point_a.call("connect_container", seam_dir, source_rp, source_dir)):
+		push_warning("Urban Brawl: failed native-style outer RoadContainer bridge for %s" % segment.name)
 	_finalize_segment_container(segment)
 	_segment_serial += 1
 
@@ -245,7 +283,7 @@ func _new_segment_container(node_name: String) -> Node3D:
 		container.call("setup_road_container")
 	return container
 
-func _new_segment_point(container: Node3D, world_position: Vector3, direction: Vector3, template: Node3D) -> Node3D:
+func _new_segment_point_from_template(container: Node3D, template: Node3D) -> Node3D:
 	var point := _road_point_script.new() as Node3D
 	if point == null:
 		return null
@@ -254,17 +292,42 @@ func _new_segment_point(container: Node3D, world_position: Vector3, direction: V
 	container.add_child(point)
 	point.set("container", container)
 	if point.has_method("copy_settings_from"):
-		point.call("copy_settings_from", template, false)
-	var snapped_position := world_position
-	snapped_position.y = 0.035
-	point.global_position = snapped_position
-	point.rotation.y = atan2(direction.x, direction.z)
-	# Magnitudes remain in prefab-local units. Because both the prefab and every
-	# connecting container share the same uniform scale, their world-space curves
-	# and bases stay compatible at the bridge.
-	point.set("prior_mag", 8.0)
-	point.set("next_mag", 8.0)
+		# The addon bridge copies settings and the original transform. Keeping the
+		# authored basis is critical: it preserves lane ordering and which side is
+		# PRIOR/NEXT at the exact intersection seam.
+		point.call("copy_settings_from", template, true)
+	point.global_transform = template.global_transform
 	return point
+
+func _new_tail_end_point(container: Node3D, template: Node3D, source_dir: int, tail_length: float) -> Node3D:
+	var point := _new_segment_point_from_template(container, template)
+	if point == null:
+		return null
+	var outward: Vector3 = template.global_basis.z.normalized()
+	if source_dir == POINT_PRIOR:
+		outward = -outward
+	var target_transform: Transform3D = template.global_transform
+	target_transform.origin = template.global_position + outward * tail_length
+	point.global_transform = target_transform
+	return point
+
+func _open_dir(rp: Node3D) -> int:
+	if rp == null:
+		return POINT_NEITHER
+	var prior_path: NodePath = rp.get("prior_pt_init")
+	var next_path: NodePath = rp.get("next_pt_init")
+	if prior_path.is_empty():
+		return POINT_PRIOR
+	if next_path.is_empty():
+		return POINT_NEXT
+	return POINT_NEITHER
+
+func _opposite_dir(direction_value: int) -> int:
+	if direction_value == POINT_NEXT:
+		return POINT_PRIOR
+	if direction_value == POINT_PRIOR:
+		return POINT_NEXT
+	return POINT_NEITHER
 
 func _finalize_segment_container(container: Node3D) -> void:
 	container.set("_auto_refresh", true)
