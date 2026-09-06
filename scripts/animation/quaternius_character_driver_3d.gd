@@ -57,8 +57,10 @@ func _try_activate() -> void:
 	_animation_player.name = "UrbanAnimationPlayer"
 	add_child(_animation_player)
 	_animation_player.root_node = NodePath("..")
-	_animation_library = AnimationLibrary.new()
-	_animation_player.add_animation_library(&"", _animation_library)
+	_animation_library = _animation_player.get_animation_library(&"")
+	if _animation_library == null:
+		_animation_library = AnimationLibrary.new()
+		_animation_player.add_animation_library(&"", _animation_library)
 
 	var imported_count: int = _import_ual_animations()
 	if imported_count <= 0:
@@ -204,7 +206,7 @@ func _unique_animation_name(source_path: String, donor_name: StringName) -> Stri
 	var source: String = source_path.get_file().get_basename().to_lower()
 	var animation: String = str(donor_name).to_lower()
 	var combined: String = "%s__%s" % [source, animation]
-	combined = combined.replace(" ", "_").replace("-", "_").replace(".", "_")
+	combined = combined.replace(" ", "_").replace("-", "_").replace(".", "_").replace("/", "_")
 	return StringName(combined)
 
 func _create_weapon_attachment() -> void:
