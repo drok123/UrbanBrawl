@@ -15,22 +15,25 @@ $packPages = @{
 }
 
 function Reset-Directory([string]$Path) {
-    if (Test-Path $Path) {
-        Remove-Item $Path -Recurse -Force
+    if (Test-Path -LiteralPath $Path) {
+        Remove-Item -LiteralPath $Path -Recurse -Force
     }
     New-Item -ItemType Directory -Path $Path -Force | Out-Null
 }
 
 function Get-CandidateZips {
-    $roots = @($projectDownloads, $userDownloads) | Where-Object { Test-Path $_ }
+    $roots = @($projectDownloads, $userDownloads) | Where-Object { Test-Path -LiteralPath $_ -PathType Container }
     $items = @()
     foreach ($root in $roots) {
-        $items += Get-ChildItem -Path $root -Filter "*.zip" -File -ErrorAction SilentlyContinue
+        $items += Get-ChildItem -LiteralPath $root -Filter "*.zip" -File -ErrorAction SilentlyContinue
     }
-    return $items | Sort-Object LastWriteTime -Descending -Unique
+    return @($items | Sort-Object LastWriteTime -Descending -Unique)
 }
 
 function Get-ZipEntryNames([string]$ZipPath) {
+    if ([string]::IsNullOrWhiteSpace($ZipPath) -or -not (Test-Path -LiteralPath $ZipPath -PathType Leaf)) {
+        throw "ZIP path does not exist: '$ZipPath'"
+    }
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
     try {
         return @($archive.Entries | ForEach-Object { $_.FullName })
@@ -41,6 +44,9 @@ function Get-ZipEntryNames([string]$ZipPath) {
 }
 
 function Score-Pack([System.IO.FileInfo]$Zip, [string]$Kind) {
+    if ($null -eq $Zip -or [string]::IsNullOrWhiteSpace($Zip.FullName)) {
+        return -100000
+    }
     $name = $Zip.Name.ToLowerInvariant()
     $entries = Get-ZipEntryNames $Zip.FullName
     $joined = ($entries -join "`n").ToLowerInvariant()
@@ -70,35 +76,39 @@ function Score-Pack([System.IO.FileInfo]$Zip, [string]$Kind) {
 }
 
 function Find-Pack([string]$Kind) {
-    $best = $null
+    $bestPath = ""
     $bestScore = 0
     foreach ($zip in Get-CandidateZips) {
         try {
             $score = Score-Pack $zip $Kind
             if ($score -gt $bestScore) {
                 $bestScore = $score
-                $best = $zip
+                $bestPath = [string]$zip.FullName
             }
         }
         catch {
             Write-Host "Skipping unreadable ZIP: $($zip.FullName)" -ForegroundColor DarkGray
         }
     }
-    if ($bestScore -lt 80) { return $null }
-    return $best
+    if ($bestScore -lt 80 -or [string]::IsNullOrWhiteSpace($bestPath)) {
+        return ""
+    }
+    return $bestPath
 }
 
 function Resolve-Packs {
-    return @{
-        City = Find-Pack "City"
-        Characters = Find-Pack "Characters"
-        UAL1 = Find-Pack "UAL1"
-        UAL2 = Find-Pack "UAL2"
+    $resolved = @{}
+    foreach ($kind in @("City", "Characters", "UAL1", "UAL2")) {
+        $resolved[$kind] = Find-Pack $kind
     }
+    return $resolved
 }
 
 function Missing-Packs($packs) {
-    return @("City", "Characters", "UAL1", "UAL2") | Where-Object { $null -eq $packs[$_] }
+    return @("City", "Characters", "UAL1", "UAL2") | Where-Object {
+        $path = [string]$packs[$_]
+        [string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)
+    }
 }
 
 function Open-MissingPackPages($missing) {
@@ -108,25 +118,44 @@ function Open-MissingPackPages($missing) {
     }
 }
 
-function Expand-Pack([System.IO.FileInfo]$Zip, [string]$Name) {
+function Expand-Pack([string]$ZipPath, [string]$Name) {
+    if ([string]::IsNullOrWhiteSpace($ZipPath)) {
+        throw "Cannot extract $Name pack because its ZIP path is empty. Re-run the installer and make sure the official ZIP finished downloading."
+    }
+
+    $resolvedZip = $null
+    try {
+        $resolvedZip = (Resolve-Path -LiteralPath $ZipPath -ErrorAction Stop).Path
+    }
+    catch {
+        throw "Cannot extract $Name pack because the ZIP does not exist: '$ZipPath'"
+    }
+
+    if (-not (Test-Path -LiteralPath $resolvedZip -PathType Leaf)) {
+        throw "Cannot extract $Name pack because this is not a file: '$resolvedZip'"
+    }
+    if ([System.IO.Path]::GetExtension($resolvedZip).ToLowerInvariant() -ne ".zip") {
+        throw "Cannot extract $Name pack because this is not a ZIP: '$resolvedZip'"
+    }
+
     $destination = Join-Path $cacheRoot $Name
     Reset-Directory $destination
-    Write-Host "Extracting $($Zip.Name)..." -ForegroundColor Cyan
-    Expand-Archive -Path $Zip.FullName -DestinationPath $destination -Force
+    Write-Host "Extracting $Name from: $resolvedZip" -ForegroundColor Cyan
+    Expand-Archive -LiteralPath $resolvedZip -DestinationPath $destination -Force
     return $destination
 }
 
 function Find-BestSceneTree([string]$ExtractRoot) {
-    $sceneFiles = Get-ChildItem -Path $ExtractRoot -Recurse -File | Where-Object { $_.Extension -in @(".glb", ".gltf") }
+    $sceneFiles = Get-ChildItem -LiteralPath $ExtractRoot -Recurse -File | Where-Object { $_.Extension -in @(".glb", ".gltf") }
     if (-not $sceneFiles) {
         throw "No GLB/glTF files found under $ExtractRoot"
     }
 
-    $namedFolders = Get-ChildItem -Path $ExtractRoot -Recurse -Directory | Where-Object { $_.Name -match "(?i)^gltf$|^glb$|gltf|glb" }
+    $namedFolders = Get-ChildItem -LiteralPath $ExtractRoot -Recurse -Directory | Where-Object { $_.Name -match "(?i)^gltf$|^glb$|gltf|glb" }
     $bestFolder = $null
     $bestCount = 0
     foreach ($folder in $namedFolders) {
-        $count = @(Get-ChildItem -Path $folder.FullName -Recurse -File | Where-Object { $_.Extension -in @(".glb", ".gltf") }).Count
+        $count = @(Get-ChildItem -LiteralPath $folder.FullName -Recurse -File | Where-Object { $_.Extension -in @(".glb", ".gltf") }).Count
         if ($count -gt $bestCount) {
             $bestCount = $count
             $bestFolder = $folder
@@ -148,7 +177,7 @@ function Install-SceneTree([string]$ExtractRoot, [string]$Destination) {
 
 function Install-UalSubset([string]$ExtractRoot, [string]$Destination) {
     Reset-Directory $Destination
-    $glbs = @(Get-ChildItem -Path $ExtractRoot -Recurse -File | Where-Object { $_.Extension -eq ".glb" })
+    $glbs = @(Get-ChildItem -LiteralPath $ExtractRoot -Recurse -File | Where-Object { $_.Extension -eq ".glb" })
     if (-not $glbs) {
         throw "No GLB animation files found under $ExtractRoot"
     }
@@ -156,7 +185,6 @@ function Install-UalSubset([string]$ExtractRoot, [string]$Destination) {
     $pattern = "idle|walk|jog|run|sprint|punch|kick|attack|melee|hit|impact|death|dodge|roll|shoot|aim|gun|pistol|stab|swing"
     $selected = @($glbs | Where-Object { $_.BaseName -match $pattern } | Sort-Object Length -Descending)
 
-    # Some releases use one all-in-one GLB with a generic filename.
     if ($selected.Count -lt 3) {
         $selected = @($glbs | Sort-Object Length -Descending | Select-Object -First 8)
     }
@@ -168,12 +196,12 @@ function Install-UalSubset([string]$ExtractRoot, [string]$Destination) {
         $safeName = $file.Name
         $target = Join-Path $Destination $safeName
         $counter = 2
-        while (Test-Path $target) {
+        while (Test-Path -LiteralPath $target) {
             $safeName = "$($file.BaseName)_$counter$($file.Extension)"
             $target = Join-Path $Destination $safeName
             $counter++
         }
-        Copy-Item $file.FullName $target -Force
+        Copy-Item -LiteralPath $file.FullName -Destination $target -Force
     }
     Write-Host "Installed $($selected.Count) animation GLB file(s) into $Destination" -ForegroundColor Green
 }
@@ -187,7 +215,7 @@ New-Item -ItemType Directory -Path $projectDownloads -Force | Out-Null
 Reset-Directory $cacheRoot
 
 $packs = Resolve-Packs
-$missing = Missing-Packs $packs
+$missing = @(Missing-Packs $packs)
 if ($missing.Count -gt 0) {
     Write-Host "Missing official Standard ZIPs: $($missing -join ', ')" -ForegroundColor Yellow
     Write-Host "The official pages will open. Click the free/Standard Download on each page." -ForegroundColor Yellow
@@ -196,7 +224,7 @@ if ($missing.Count -gt 0) {
     Write-Host ""
     Read-Host "Finish the downloads, then press Enter to scan again"
     $packs = Resolve-Packs
-    $missing = Missing-Packs $packs
+    $missing = @(Missing-Packs $packs)
 }
 
 if ($missing.Count -gt 0) {
@@ -205,14 +233,19 @@ if ($missing.Count -gt 0) {
     throw "Visual pack installation stopped because one or more official ZIPs could not be identified."
 }
 
+Write-Host "Resolved visual pack ZIPs:" -ForegroundColor Green
 foreach ($key in @("City", "Characters", "UAL1", "UAL2")) {
-    Write-Host "$key -> $($packs[$key].FullName)" -ForegroundColor DarkGray
+    $packPath = [string]$packs[$key]
+    Write-Host "  $key -> $packPath" -ForegroundColor DarkGray
+    if ([string]::IsNullOrWhiteSpace($packPath) -or -not (Test-Path -LiteralPath $packPath -PathType Leaf)) {
+        throw "Resolved $key ZIP is invalid: '$packPath'"
+    }
 }
 
-$cityExtract = Expand-Pack $packs.City "city"
-$characterExtract = Expand-Pack $packs.Characters "characters"
-$ual1Extract = Expand-Pack $packs.UAL1 "ual1"
-$ual2Extract = Expand-Pack $packs.UAL2 "ual2"
+$cityExtract = Expand-Pack ([string]$packs["City"]) "city"
+$characterExtract = Expand-Pack ([string]$packs["Characters"]) "characters"
+$ual1Extract = Expand-Pack ([string]$packs["UAL1"]) "ual1"
+$ual2Extract = Expand-Pack ([string]$packs["UAL2"]) "ual2"
 
 $thirdPartyRoot = Join-Path $projectRoot "assets\third_party"
 New-Item -ItemType Directory -Path $thirdPartyRoot -Force | Out-Null
@@ -237,8 +270,8 @@ Official source: https://quaternius.com/
 Downloaded Standard/free editions are intentionally not committed to this repository.
 "@ | Set-Content -Path (Join-Path $noticeRoot "Quaternius-CC0-NOTICE.txt") -Encoding UTF8
 
-if (Test-Path $cacheRoot) {
-    Remove-Item $cacheRoot -Recurse -Force
+if (Test-Path -LiteralPath $cacheRoot) {
+    Remove-Item -LiteralPath $cacheRoot -Recurse -Force
 }
 
 Write-Host ""
