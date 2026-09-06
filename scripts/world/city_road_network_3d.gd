@@ -55,7 +55,17 @@ func _build_network() -> void:
 	_manager.set("auto_refresh", true)
 	if _manager.has_method("rebuild_all_containers"):
 		_manager.call_deferred("rebuild_all_containers", true)
-	print("Urban Brawl: Road Generator production network — ", _junctions.size(), " prefab intersections / ", _segment_serial, " straight containers")
+	print(
+		"Urban Brawl: Road Generator production network — ",
+		_junctions.size(),
+		" prefab intersections / ",
+		_segment_serial,
+		" straight containers @ scale ",
+		_road_scale()
+	)
+
+func _road_scale() -> float:
+	return clampf(float(_plan.get("road_scale", 1.0)), 0.25, 2.0)
 
 func _road_generator_available() -> bool:
 	return (
@@ -71,6 +81,7 @@ func _create_prefab_junctions(intersection_scene: PackedScene) -> void:
 	if not raw is Array:
 		return
 	var records: Array = raw as Array
+	var scale_value: float = _road_scale()
 	for value: Variant in records:
 		if not value is Dictionary:
 			continue
@@ -80,9 +91,12 @@ func _create_prefab_junctions(intersection_scene: PackedScene) -> void:
 			continue
 		var junction_id: String = str(record.get("id", "Junction"))
 		junction.name = junction_id
+		# Scale every RoadContainer uniformly. This turns the stock 4m lanes into
+		# 3m urban lanes at 0.75 without distorting the prefab or breaking the
+		# cross-container basis/orientation contract.
+		junction.scale = Vector3.ONE * scale_value
 		junction.position = (record.get("position", Vector3.ZERO) as Vector3) + Vector3(0.0, 0.035, 0.0)
 		_manager.add_child(junction)
-		# The prefab owns its hand-modeled mesh, collision and RoadLanes.
 		if junction.has_method("update_edges"):
 			junction.call("update_edges")
 		_junctions[junction_id] = junction
@@ -219,6 +233,7 @@ func _new_segment_container(node_name: String) -> Node3D:
 	if container == null:
 		return null
 	container.name = node_name
+	container.scale = Vector3.ONE * _road_scale()
 	container.set("_auto_refresh", false)
 	container.set("generate_ai_lanes", true)
 	container.set("ai_lane_group", "city_traffic_lane")
@@ -244,8 +259,9 @@ func _new_segment_point(container: Node3D, world_position: Vector3, direction: V
 	snapped_position.y = 0.035
 	point.global_position = snapped_position
 	point.rotation.y = atan2(direction.x, direction.z)
-	# Preserve the prefab's copied cross-section; only make the connecting road
-	# handles straight and long enough to leave the modeled junction cleanly.
+	# Magnitudes remain in prefab-local units. Because both the prefab and every
+	# connecting container share the same uniform scale, their world-space curves
+	# and bases stay compatible at the bridge.
 	point.set("prior_mag", 8.0)
 	point.set("next_mag", 8.0)
 	return point
@@ -267,14 +283,15 @@ func _build_fallback_network() -> void:
 	if road_x.is_empty() or road_z.is_empty():
 		return
 	var tail: float = float(_plan.get("road_tail", 34.0))
+	var road_width: float = float(_plan.get("road_half_width", 6.1)) * 2.0
 	var min_x: float = float(road_x[0]) - tail
 	var max_x: float = float(road_x[-1]) + tail
 	var min_z: float = float(road_z[0]) - tail
 	var max_z: float = float(road_z[-1]) + tail
 	for z_value: Variant in road_z:
-		_add_fallback_road(Vector3((min_x + max_x) * 0.5, 0.015, float(z_value)), Vector3(max_x - min_x, 0.03, 12.0))
+		_add_fallback_road(Vector3((min_x + max_x) * 0.5, 0.015, float(z_value)), Vector3(max_x - min_x, 0.03, road_width))
 	for x_value: Variant in road_x:
-		_add_fallback_road(Vector3(float(x_value), 0.017, (min_z + max_z) * 0.5), Vector3(12.0, 0.03, max_z - min_z))
+		_add_fallback_road(Vector3(float(x_value), 0.017, (min_z + max_z) * 0.5), Vector3(road_width, 0.03, max_z - min_z))
 
 func _add_fallback_road(position_value: Vector3, size: Vector3) -> void:
 	var mesh_instance := MeshInstance3D.new()
