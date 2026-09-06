@@ -61,10 +61,16 @@ static func build_layout() -> Dictionary:
 	seed(CITY_SEED)
 	crafter.call("generate_active_blocks")
 
+	var active_blocks: Array = []
 	var raw_blocks: Variant = crafter.get("active_blocks")
+	if raw_blocks is Array:
+		active_blocks = (raw_blocks as Array).duplicate(true)
+
+	var block_sizes: Dictionary = {}
 	var raw_sizes: Variant = crafter.get("block_sizes")
-	var active_blocks: Array = raw_blocks.duplicate(true) if raw_blocks is Array else []
-	var block_sizes: Dictionary = raw_sizes.duplicate(true) if raw_sizes is Dictionary else {}
+	if raw_sizes is Dictionary:
+		block_sizes = (raw_sizes as Dictionary).duplicate(true)
+
 	var districts: Dictionary = {}
 	for value: Variant in active_blocks:
 		if value is Vector2i:
@@ -125,5 +131,10 @@ static func _fallback_layout() -> Dictionary:
 			active_blocks.append(pos)
 			sizes[pos] = Vector2i.ONE
 			var edge_distance: int = mini(mini(x, 4 - x), mini(z, 4 - z))
-			districts[pos] = "industrial" if edge_distance == 0 else ("commercial" if x in [2] and z in [2] else "residential")
+			if edge_distance == 0:
+				districts[pos] = "industrial"
+			elif x == 2 and z == 2:
+				districts[pos] = "commercial"
+			else:
+				districts[pos] = "residential"
 	return _finalize_layout(active_blocks, sizes, districts, 19.0, 9.5)
