@@ -38,6 +38,7 @@ func _apply_refinement() -> void:
 
 	_index_city_buildings()
 	_refine_single_building_blocks()
+	_realign_gameplay_frontages()
 	_add_faction_frontage_identity()
 	_add_sparse_block_details()
 	print("Urban Brawl: authored city refinement active — ", _building_groups.size(), " occupied blocks")
@@ -100,6 +101,42 @@ func _refine_single_building_blocks() -> void:
 		_add_entrance_apron(building, direction, setback)
 		_add_single_lot_character(rect, building, district, direction, style_seed)
 
+func _realign_gameplay_frontages() -> void:
+	_realign_objective_to_building("DrugBuyer", "BeatCopA", -2.8)
+	_realign_objective_to_building("GunrunnerBuyer", "ContrabandGuardA", -2.8)
+	_realign_objective_to_building("InterdictionCache", "ArmsGuardA", -2.8)
+
+func _realign_objective_to_building(objective_name: String, guard_name: String, guard_lateral: float) -> void:
+	var objective: Node3D = _city.get_node_or_null(NodePath(objective_name)) as Node3D
+	if objective == null:
+		return
+	var block: Variant = _block_for_point(objective.position)
+	if not block is Vector2i:
+		return
+	var grid_pos := block as Vector2i
+	var group_variant: Variant = _building_groups.get(grid_pos, [])
+	var group: Array = group_variant as Array if group_variant is Array else []
+	if group.size() != 1:
+		return
+	var building := group[0] as QuaterniusCityBuilding3D
+	if building == null:
+		return
+	var direction: Vector3 = building.transform.basis.z.normalized()
+	direction.y = 0.0
+	if direction.length_squared() <= 0.001:
+		return
+	var lateral := Vector3(-direction.z, 0.0, direction.x)
+	var front: Vector3 = building.position + direction * (building.target_size.z * 0.5 + 1.25)
+	var objective_y: float = objective.position.y
+	objective.position = front
+	objective.position.y = objective_y
+
+	var guard: Node3D = _city.get_node_or_null(NodePath(guard_name)) as Node3D
+	if guard != null:
+		var guard_y: float = guard.position.y
+		guard.position = front + lateral * guard_lateral - direction * 0.25
+		guard.position.y = guard_y
+
 func _add_entrance_apron(building: QuaterniusCityBuilding3D, direction: Vector3, setback: float) -> void:
 	var front_face: Vector3 = building.position + direction * (building.target_size.z * 0.5)
 	var apron_depth: float = clampf(setback + 0.65, 2.1, 3.4)
@@ -154,7 +191,7 @@ func _add_faction_frontage_identity() -> void:
 	_add_faction_identity("arms", "ArmsHeadquarters", ["pallet", "crate", "barrier"])
 
 func _add_faction_identity(faction: String, building_name: String, tokens: Array[String]) -> void:
-	var building: QuaterniusCityBuilding3D = _city.get_node_or_null(building_name) as QuaterniusCityBuilding3D
+	var building: QuaterniusCityBuilding3D = _city.get_node_or_null(NodePath(building_name)) as QuaterniusCityBuilding3D
 	if building == null:
 		return
 	var direction: Vector3 = building.transform.basis.z.normalized()
@@ -246,7 +283,7 @@ func _direction_to_nearest_city_edge(center: Vector3) -> Vector3:
 func _block_seed(grid_pos: Vector2i) -> int:
 	var value: int = grid_pos.x * 73856093
 	value = value ^ (grid_pos.y * 19349663)
-	return abs(value)
+	return absi(value)
 
 func _block_for_point(position_value: Vector3) -> Variant:
 	var active_variant: Variant = _layout.get("active_blocks", [])
