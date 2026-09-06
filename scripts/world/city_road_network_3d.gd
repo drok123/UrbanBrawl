@@ -140,12 +140,12 @@ func _add_generated_road(road_name: String, points: Array[Vector3], lane_count: 
 	if container == null:
 		return
 	container.name = road_name
+	_manager.add_child(container)
 	container.set("generate_ai_lanes", true)
 	container.set("ai_lane_group", "city_traffic_lane")
 	container.set("create_edge_curves", true)
 	container.set("flatten_terrain", false)
 	container.set("underside_thickness", 0.08)
-	_manager.add_child(container)
 
 	var road_points: Array[Node3D] = []
 	for index: int in range(points.size()):
@@ -178,7 +178,7 @@ func _add_generated_road(road_name: String, points: Array[Vector3], lane_count: 
 
 func _traffic_directions(lane_count: int) -> Array[int]:
 	var directions: Array[int] = []
-	var reverse_count: int = maxi(lane_count / 2, 1)
+	var reverse_count: int = maxi(int(floor(float(lane_count) * 0.5)), 1)
 	var forward_count: int = maxi(lane_count - reverse_count, 1)
 	for _index: int in range(reverse_count):
 		directions.append(LANE_REVERSE)
@@ -201,15 +201,16 @@ func _point_yaw(points: Array[Vector3], index: int) -> float:
 	return atan2(direction.x, direction.z)
 
 func _handle_length(points: Array[Vector3], index: int) -> float:
-	var previous_distance: float = INF
-	var next_distance: float = INF
-	if index > 0:
-		previous_distance = points[index].distance_to(points[index - 1])
-	if index < points.size() - 1:
-		next_distance = points[index].distance_to(points[index + 1])
-	var nearest: float = minf(previous_distance, next_distance)
-	if is_inf(nearest):
-		nearest = maxf(previous_distance, next_distance)
+	var nearest: float
+	if index <= 0:
+		nearest = points[0].distance_to(points[1])
+	elif index >= points.size() - 1:
+		nearest = points[index].distance_to(points[index - 1])
+	else:
+		nearest = minf(
+			points[index].distance_to(points[index - 1]),
+			points[index].distance_to(points[index + 1])
+		)
 	return clampf(nearest * 0.30, 3.5, 8.5)
 
 func _build_intersections() -> void:
