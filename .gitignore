@@ -35,6 +35,9 @@ script_templates/beehave/
 # Godot Road Generator
 addons/road-generator/
 
+# CityCrafter topology addon
+addons/citycrafter/
+
 # Legacy KayKit animated prototype character rig
 assets/third_party/kaykit_adventurers/
 
