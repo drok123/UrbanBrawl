@@ -197,8 +197,6 @@ func _build_generic_block(rect: Dictionary, district: String) -> void:
 		_add_prop("ServiceBin_%03d" % _building_serial, center - toward * 3.0 + lateral * 4.0, ["dumpster", "trash", "bin"], _building_serial, 1.25, 1.8)
 
 func _build_superblock(center: Vector3, width: float, depth: float, district: String, tokens: Array[String], fallback: Color, base_height: float) -> void:
-	# Perimeter buildings instead of four disconnected corner boxes. This reads
-	# as one urban block and leaves an intentional service/courtyard interior.
 	var ns_width: float = minf(width * 0.48, 22.0)
 	var ns_depth: float = minf(depth * 0.24, 12.5)
 	var ew_width: float = minf(width * 0.24, 12.5)
@@ -394,7 +392,7 @@ func _place_base_entrance(node_name: String, rect: Dictionary) -> void:
 	var front: Vector3 = _frontage_point(rect)
 	var toward: Vector3 = _toward_city(rect.get("center", Vector3.ZERO) as Vector3)
 	node.global_position = front
-	node.set("city_return_position", front - toward * 2.3 + Vector3(0.0, 0.95, 0.0))
+	node.set("city_return_position", front + toward * 2.3 + Vector3(0.0, 0.95, 0.0))
 
 func _set_node_position(node_name: String, position_value: Vector3) -> void:
 	var node: Node3D = get_node_or_null(node_name) as Node3D
@@ -411,8 +409,6 @@ func _frontage_point(rect: Dictionary) -> Vector3:
 	return Vector3(center.x, 0.0, center.z + toward.z * (depth * 0.5 - 1.2))
 
 func _toward_city(center: Vector3) -> Vector3:
-	# Snap frontage to a real cardinal street face. The previous normalized vector
-	# made buildings rotate diagonally across orthogonal blocks.
 	var dx: float = -center.x
 	var dz: float = -center.z
 	if absf(dx) >= absf(dz) and absf(dx) > 0.001:
@@ -529,9 +525,6 @@ func _update_territory() -> void:
 		GameSession.set_territory(GameSession.Territory.NEUTRAL)
 		return
 
-	# Generated city boundaries are no longer assumed to be clean quadrants.
-	# Territory follows the nearest faction hub, which keeps the gameplay map in
-	# sync with whatever valid CityCrafter topology we actually generated.
 	var police_center: Vector3 = (_block_rect(_anchors.get("police", Vector2i.ZERO) as Vector2i)).get("center", Vector3.ZERO) as Vector3
 	var contra_center: Vector3 = (_block_rect(_anchors.get("contraband", Vector2i.ZERO) as Vector2i)).get("center", Vector3.ZERO) as Vector3
 	var arms_center: Vector3 = (_block_rect(_anchors.get("arms", Vector2i.ZERO) as Vector2i)).get("center", Vector3.ZERO) as Vector3
