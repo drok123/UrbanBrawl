@@ -7,9 +7,14 @@ extends RefCounted
 
 const ROAD_X: Array[float] = [-86.0, -32.0, 24.0, 86.0]
 const ROAD_Z: Array[float] = [-82.0, -26.0, 32.0, 88.0]
-const ROAD_HALF_WIDTH := 6.15
+# Road Generator's stock two-lane prefab cross-section is 16m wide at 1:1
+# (two 4m lanes + shoulders + gutters). Use the prefab uniformly at 75% so the
+# authored city gets realistic ~3m lanes while preserving the resource's shape.
+const ROAD_SCALE := 0.75
+const ROAD_HALF_WIDTH := 6.10
 const ROAD_TAIL := 34.0
 const SIDEWALK_WIDTH := 2.15
+const SIDEWALK_CORNER_CLEARANCE := 2.40
 const CITY_MARGIN := 12.0
 
 static func build_plan() -> Dictionary:
@@ -33,9 +38,8 @@ static func build_plan() -> Dictionary:
 		for row: int in range(ROAD_Z.size() - 1):
 			segments.append({"a": _junction_id(col, row), "b": _junction_id(col, row + 1), "class": _road_class(col, row, false)})
 
-	# Buildable lot boundaries begin at the authored road edge, not at an abstract
-	# generator-cell seam. The Road Generator 1x1 prefab is roughly six meters
-	# from centerline to curb/road edge in its modeled cross section.
+	# Buildable lot boundaries begin just outside the scaled prefab's actual road
+	# envelope. The extra 0.10m avoids coplanar/z-fighting seams at the road edge.
 	for row: int in range(ROAD_Z.size() - 1):
 		for col: int in range(ROAD_X.size() - 1):
 			var x0: float = ROAD_X[col] + ROAD_HALF_WIDTH
@@ -65,9 +69,11 @@ static func build_plan() -> Dictionary:
 		"blocks": blocks,
 		"road_x": ROAD_X.duplicate(),
 		"road_z": ROAD_Z.duplicate(),
+		"road_scale": ROAD_SCALE,
 		"road_half_width": ROAD_HALF_WIDTH,
 		"road_tail": ROAD_TAIL,
 		"sidewalk_width": SIDEWALK_WIDTH,
+		"sidewalk_corner_clearance": SIDEWALK_CORNER_CLEARANCE,
 		"bounds_min": bounds_min,
 		"bounds_max": bounds_max,
 		"bounds_size": bounds_max - bounds_min,
@@ -106,8 +112,6 @@ static func _road_class(col: int, row: int, horizontal: bool) -> String:
 	return "local"
 
 static func _block_identity(grid: Vector2i) -> Dictionary:
-	# Explicit comparisons avoid relying on constructor expressions as match
-	# patterns and make this table boringly portable across Godot 4.x parsers.
 	if grid == Vector2i(0, 0):
 		return _identity("residential", "neighborhood_nw", Vector3(1, 0, 0), Vector3(0, 0, 1))
 	if grid == Vector2i(1, 0):
