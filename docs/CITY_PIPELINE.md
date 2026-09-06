@@ -1,139 +1,149 @@
-# Urban Brawl — City Construction Pipeline
+# Urban Brawl — Production City Pipeline
 
-Urban Brawl's public city should look authored even though generic structure is generated. No single addon owns the whole world.
+The public city uses external resources for the jobs those resources were actually designed to solve. Urban Brawl owns the master plan and gameplay geography.
 
-## Resource roles
+## Audit decision — September 2026
 
-### CityCrafter 3D — topology authority
-Pinned source: `SpartanDavie/CityCrafter3D-Aug2025` commit `04aee37b8d0d8279fbfe0b48d29c5aff7e05992e`
-License: MIT
+The earlier generated-city stack accumulated too many correction layers. The core problem was not polish; it was asking resources to do jobs outside their intended design.
 
-Urban Brawl uses CityCrafter for:
-- active block topology
-- 1x1 / 2x1 / 1x2 / 2x2 block merging
-- compact district distribution
-- street seam topology implied by those blocks
+### CityCrafter 3D — evaluated, retired from production
 
-Urban Brawl deliberately disables CityCrafter edge mutations/random extensions in the current production seed because they were creating dangling road stubs and implausible perimeter shapes.
+CityCrafter is a useful MIT generator for quick **blocky / retro-style** city layouts. Its normal building pass chooses randomized positions inside generated blocks and its own documentation notes that unique building scenes may require cleanup.
 
-Urban Brawl does **not** use CityCrafter's bundled example art, flat road planes, or random building scatter.
+That is useful for prototyping, but it is not the correct authority for Urban Brawl's semi-realistic Boston/NYC-inspired public city.
 
-The generated city is seeded so the production prototype does not rearrange itself every launch.
+Production rules:
+- CityCrafter is not a runtime dependency.
+- `CityCrafterLayoutBridge` is removed.
+- No post-generation script tries to repair a randomized city afterward.
+- The installer removes stale `addons/citycrafter` files when it encounters them.
 
-### Godot Road Generator — street geometry authority
+## Urban Brawl master plan — topology authority
+
+`scripts/world/city_master_plan.gd` defines the production public-city topology.
+
+It owns:
+- stable street centerlines
+- unequal block spacing
+- stable block IDs
+- Police / Contraband / Arms district placement
+- Central Commons placement
+- intended primary and secondary building frontages
+- game-specific sightlines and activity geography
+
+This is level design, not generic infrastructure, so it belongs to Urban Brawl.
+
+The current plan is a compact four-by-four intersection network producing nine usable urban blocks. Spacing is intentionally not perfectly uniform. Block boundaries are derived from the real road envelope rather than an abstract generator cell size.
+
+## Godot Road Generator 0.9.3 — street geometry authority
+
 Pinned release: `TheDuckCow/godot-road-generator 0.9.3`
 License: MIT
 
-Road Generator consumes the seams produced by CityCrafter and owns:
-- one connected road graph
-- native `RoadIntersection` junctions
-- road meshes
-- lane markings
-- collision
-- road edge curves
-- generated AI traffic lanes
+Production uses Road Generator the way its prefab workflow is designed:
+- standard crossings instantiate the supplied `custom_containers/4way_1x1.tscn`
+- the prefab owns its hand-modeled intersection mesh
+- the prefab owns its intersection collision
+- the prefab owns its hand-authored RoadLanes
+- straight road runs live in their own RoadContainers
+- RoadPoints inside one container use `connect_roadpoint()`
+- separate RoadContainers are bridged with `connect_container()`
+- outer roads continue past the last junction as ordinary straight RoadContainers
 
-The road network must follow CityCrafter topology. A merged CityCrafter superblock therefore removes its internal street rather than merely hiding a road under a building.
+Production does **not** generate ordinary grid crossings with procedural `RoadIntersection` NGons.
 
-Urban Brawl gives each junction one shared radius and one consistent two-lane cross-section. T-junctions and four-way intersections receive restrained crosswalk/stop-line dressing; perimeter two-arm corners stay visually quieter.
+Procedural intersections remain available for a future genuinely irregular junction where a prefab is not appropriate, but they are not the default.
 
-### Quaternius Downtown City MegaKit — presentation authority
+The dependency installer validates the actual 3-way/4-way prefab `.tscn` and `.glb` files, not just the Road Generator scripts.
+
+## Quaternius Downtown City MegaKit — architecture authority
+
 License: CC0
 
-Quaternius supplies architecture and street props. Urban Brawl selects different building categories for:
-- commercial / downtown blocks
-- residential / mixed blocks
-- industrial / service blocks
-- Police precinct
-- Contraband safehouse
-- Arms workshop
+The Downtown City MegaKit is a modular meter-scale city environment with hundreds of building/street pieces and authored example buildings.
 
-The runtime catalog weights semantic category matches before generic `building` matches and uses a deterministic shuffled stride rather than walking alphabetically through numbered model families. Adjacent lots should therefore pull a broader visual mix while remaining deterministic.
+Production rules:
+- complete/prebuilt/example buildings are preferred for automatic whole-building placement
+- a facade, wall, roof, window, road or sidewalk module is **never** promoted into a complete building just because its filename partially matches
+- imported architecture stays at native 1:1 scale whenever it fits
+- a building may be uniformly **scaled down** to fit a lot envelope
+- automatic building placement does not scale a building up to fill an arbitrary graybox footprint
+- collision is created from the fitted imported building bounds rather than from an unrelated prototype box
+- the building root is ground-centered so height does not alter lot placement
 
-Quaternius does not decide world topology.
+This reverses the old relationship: the lot provides a maximum envelope; the authored building keeps its own proportions inside that envelope.
 
-## Urban Brawl-owned layers
+Later, genuinely modular custom landmarks can be assembled from Quaternius wall/facade/roof pieces deliberately. That is different from treating one module as an entire building at runtime.
 
-### Gameplay spatial layer
-Game-specific spatial design remains custom:
-- faction territory boundaries
-- Police / Contraband / Arms base selection
-- public Central Commons
+## Current block language
+
+The nine current blocks have explicit purposes instead of generated archetypes:
+- northwest residential neighborhood
+- north market/commercial block
+- Contraband mixed-use block
+- Police civic block
+- Central Commons
+- east market/commercial block
+- southwest residential neighborhood
+- west Foundry/industrial block
+- Arms industrial block
+
+Building rows use explicit street frontages. There is no radial “face the world origin” rule.
+
+Central Commons remains open and is framed by real storefront buildings rather than procedural kiosks scattered through the plaza.
+
+Industrial blocks reserve service-yard space. Police has a civic forecourt/parking relationship. Contraband is intentionally denser and mixed-use.
+
+## Ground / sidewalk rules
+
+For the current clean checkpoint:
+- Road Generator owns asphalt and junction geometry.
+- Urban Brawl derives block edges from the road envelope.
+- each block gets a simple lot surface
+- sidewalk strips follow those stable block edges
+- custom curb/crosswalk overlays are intentionally removed while validating the corrected road resource use
+- decorative street clutter is intentionally disabled during this structural checkpoint
+
+We add detail only after the resource geometry reads correctly without camouflage.
+
+## Gameplay geography
+
+Urban Brawl still owns:
+- faction territory state
+- Police / Contraband / Arms HQ interactions
 - drug buyer
 - gunrunner buyer
 - police interdiction target
 - FFA activity entrance
 - public weapon market
-- cops and faction guards
-- future heist / event / gang hotspots
+- guards/cops
+- future world events and persistent block IDs
 
-These locations are selected from the generated block graph and placed onto valid frontages/plazas rather than maintained as unrelated magic coordinates.
+Gameplay nodes are placed from the same authored block/frontage data as the presentation. There is no second correction layer that can move a building without moving the activity relationship.
 
-### Authored refinement layer
-`CityAuthoredRefinement3D` runs after the generated city exists and performs a deliberately narrow presentation pass.
+## Non-negotiable deslop rules
 
-It may:
-- refine **single-building generic blocks** into stronger street-wall/corner compositions
-- choose district-aware frontage instead of making every building point at world origin
-- offset a single building laterally when the lot has room
-- add a small entrance apron connecting building and sidewalk
-- add restrained residential/commercial/industrial lot character
-- add driveway cuts to selected service lots
-- add sparse courtyard/service props to multi-building blocks
-- add subtle faction-frontage identity props
-- realign public objectives and their nearby guard when a single-building frontage changes
+1. Use a resource according to its documented design before writing correction code around it.
+2. Roads define the buildable block envelope.
+3. Standard Road Generator intersections use its supplied prefab RoadContainers.
+4. Do not distort complete Quaternius buildings to satisfy prototype box dimensions.
+5. Do not use modular facades/walls as giant fake buildings.
+6. One source of truth owns topology: `CityMasterPlan`.
+7. One source of truth owns street geometry: Road Generator.
+8. One source of truth owns city architecture: Quaternius Downtown City MegaKit.
+9. Gameplay geography stays custom and references stable block/frontage IDs.
+10. Never add a second post-generation layer whose purpose is to repair the first layer.
+11. Do not add cars, trees, pedestrians or clutter to conceal structural problems.
+12. Runtime diagnostics must identify which external building file was selected and the scale actually applied.
 
-It must **not**:
-- move faction HQ buildings
-- move Central Commons kiosks
-- rewrite long-block/superblock compositions
-- change the road graph
-- own gameplay territory/state
-- add presentation collision that can snag the player
+## Next work after runtime validation
 
-This separation lets us keep deslopifying presentation without destabilizing topology or gameplay.
-
-## Current block language
-
-CityCrafter starts from a compact deterministic **6x6** on-foot neighborhood grid and may merge cells into larger blocks.
-
-Urban Brawl interprets the resulting footprints as:
-- **normal block** — one primary building with a real setback and authored refinement pass
-- **long block** — two or three aligned frontage buildings plus rear service access
-- **superblock** — four perimeter buildings around an interior courtyard
-- **industrial block** — lower/larger architecture with service or loading space
-- **Central Commons** — mostly open pedestrian plaza with small kiosks, trees and bollards
-- **faction HQ block** — one dominant building, readable forecourt, compact rear parking/service area
-
-Ground treatment is also layered rather than one giant slab:
-- recessed lot interior
-- sidewalk perimeter strips
-- curbs with corner clearance
-- parking/loading pockets where appropriate
-- service lanes on selected long/superblocks
-
-## Deslop rules
-
-1. Roads define blocks before buildings are placed.
-2. No gameplay interaction should sit in a traffic lane.
-3. Buildings align to a block footprint and cardinal street frontage.
-4. Multi-size blocks must remove internal streets physically, not cosmetically.
-5. Faction identity should come from architecture/NPC activity/signage/props, not giant colored ground planes.
-6. Central public space should remain legible and less dense than faction neighborhoods.
-7. Props decorate leftover pedestrian/service space; they do not determine layout.
-8. Keep one primary city art family instead of mixing unrelated packs.
-9. Generated topology is deterministic until we deliberately add multiple city seeds.
-10. A refinement layer may move presentation, but gameplay objectives tied to that presentation must move with it.
-11. Avoid uniform radial frontage; street hierarchy and district logic should determine where buildings address the street.
-12. Networking/streaming must later attach to stable district/block IDs rather than regenerate a different map per client.
-
-## Next refinement layer
-
-After runtime validation of the current authored pass:
-1. inspect Quaternius car/tree/planter scaling and prune bad fuzzy matches
-2. add cleaner driveway/curb-ramp geometry where the current overlay treatment still reads flat
-3. add addressable storefront/door anchors instead of assuming the center of a building facade is the entrance
-4. add ambient pedestrians using the existing character stack
-5. add light traffic using existing `city_traffic_lane` curves
-6. add block-address / district IDs for multiplayer world events and persistence
-7. profile the generated city before deciding whether Static Mesh Merger or streaming is actually needed
+Only after the corrected structural build is visually sound:
+1. introduce 3-way prefab junctions where the authored plan benefits from a terminated street
+2. deliberately assemble a few signature modular Quaternius landmarks
+3. add door/storefront anchors
+4. add restrained parking/loading geometry
+5. restore district-specific street furniture
+6. add ambient pedestrians
+7. add light traffic using Road Generator lane data
+8. profile before introducing mesh merging or streaming
