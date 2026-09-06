@@ -55,6 +55,37 @@ Urban Brawl usage:
 - personality variations
 - hideout NPC behavior later
 
+### Godot Road Generator — authored city roads, intersections and traffic lanes
+Repository: `TheDuckCow/godot-road-generator`
+Pinned release: `0.9.3`
+License: MIT
+Godot: 4.4+; release 0.9.3 is tested on official Godot 4.7 builds.
+
+This **replaces our hand-built BoxMesh road rectangles**.
+
+Why it fits:
+- spline/cross-section based road geometry
+- multi-lane streets with proper lane markings
+- procedural and prefab intersections
+- automated collision generation
+- automatically connected AI lane curves
+- road-edge curves for sidewalks / street furniture
+- supports runtime generation as well as editor-authored streets
+- GDScript-only addon
+
+Urban Brawl usage:
+- one coherent authored semi-open city street network
+- future traffic and getaway AI lanes
+- road-edge decoration hooks for sidewalks, lights and clutter
+- custom road width hierarchy: avenue / collector / neighborhood street
+
+Urban Brawl **still owns the street plan**. The plugin owns road geometry, not city design. Faction base locations, combat sightlines, alleys, public plazas and MMO activity hotspots remain deliberately authored.
+
+Current city rule:
+`street network -> blocks -> lots -> buildings -> props -> gameplay interactions`
+
+Do not return to placing buildings first and drawing roads around whatever space remains.
+
 ### Shomy QuestSystem — activities, jobs, heists, warrants and objectives
 Repository: `ShomyKohai/quest-system`
 License: MIT
@@ -197,6 +228,23 @@ Use instead of inventing body physics:
 
 Urban Brawl still owns the decision layer that says *when* a limb severs or a body gibs based on hit location, damage type, weapon, impulse and gore threshold.
 
+## Reference / transplant
+
+### CityCrafter 3D — block/district configuration reference
+Repository: `SpartanDavie/CityCrafter3D-Aug2025`
+License: MIT
+Godot: 4.4
+
+Useful ideas:
+- explicit CityConfiguration resource
+- district-to-building collections
+- block-size variation
+- residential/internal subdivision concepts
+- building spacing / border-margin controls
+- generated objects remain editable standalone nodes
+
+Do **not** make CityCrafter the Urban Brawl world generator. Its stated goal is a blocky grid city starting point, and it explicitly expects manual cleanup. Urban Brawl needs a more authored, combat-readable street plan. Borrow the configuration/data ideas, not the generated city topology.
+
 ## Evaluate only when needed
 
 ### Open World Database / Chunx — world streaming
@@ -227,6 +275,7 @@ These systems define Urban Brawl and remain under our control unless an external
 - physical hideout interactions / diegetic UI
 - police evidence provenance / case-value rules
 - crime economy balance and item-sink rules
+- authored city topology / faction territory relationships / activity placement
 
 ## Weapon architecture after replacement
 
