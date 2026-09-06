@@ -32,6 +32,9 @@ scenes/quantity_selector.tscn
 addons/beehave/
 script_templates/beehave/
 
+# Godot Road Generator
+addons/road-generator/
+
 # Legacy KayKit animated prototype character rig
 assets/third_party/kaykit_adventurers/
 
