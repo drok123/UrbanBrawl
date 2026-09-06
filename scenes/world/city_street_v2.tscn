@@ -1,0 +1,167 @@
+[gd_scene load_steps=25 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/authored_street_v2.gd" id="1_city"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/camera/top_down_camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/ui/world_status_hud.gd" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/ui/world_accessibility_hud.gd" id="5_access"]
+[ext_resource type="Script" path="res://scripts/world/faction_base_entrance_3d.gd" id="6_base"]
+[ext_resource type="Script" path="res://scripts/world/contraband_buyer_3d.gd" id="7_drugbuyer"]
+[ext_resource type="Script" path="res://scripts/world/arms_gunrunner_buyer_3d.gd" id="8_gunbuyer"]
+[ext_resource type="Script" path="res://scripts/world/police_interdiction_cache_3d.gd" id="9_interdict"]
+[ext_resource type="Script" path="res://scripts/world/ffa_entrance_3d.gd" id="10_ffa"]
+[ext_resource type="Script" path="res://scripts/world/weapon_vendor_stand_3d.gd" id="11_vendor"]
+[ext_resource type="Resource" path="res://items/baseball_bat.tres" id="12_bat_item"]
+[ext_resource type="Resource" path="res://resources/weapons/baseball_bat_profile.tres" id="13_bat_profile"]
+[ext_resource type="Resource" path="res://items/knife.tres" id="14_knife_item"]
+[ext_resource type="Resource" path="res://resources/weapons/knife_profile.tres" id="15_knife_profile"]
+[ext_resource type="Resource" path="res://items/pistol.tres" id="16_pistol_item"]
+[ext_resource type="Resource" path="res://resources/weapons/pistol_profile.tres" id="17_pistol_profile"]
+[ext_resource type="PackedScene" path="res://scenes/actors/beat_cop.tscn" id="18_cop"]
+[ext_resource type="PackedScene" path="res://scenes/actors/contraband_guard.tscn" id="19_contra"]
+[ext_resource type="PackedScene" path="res://scenes/actors/arms_guard.tscn" id="20_arms"]
+
+[node name="CityStreetV2" type="Node3D"]
+script = ExtResource("1_city")
+player_path = NodePath("Player")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -31, 0)
+light_energy = 1.05
+shadow_enabled = true
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector3(-20, 0.95, 2.2)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 17, 14)
+current = true
+script = ExtResource("3_camera")
+target_path = NodePath("../Player")
+height = 17.0
+distance = 14.0
+follow_speed = 7.5
+
+[node name="PrecinctEntrance" type="Node3D" parent="."]
+script = ExtResource("6_base")
+faction_id = 3
+target_scene = "res://scenes/world/police_precinct.tscn"
+title = "PRECINCT 07"
+marker_color = Color(0.25, 0.55, 1, 0.62)
+city_return_position = Vector3(-39, 0.95, -6.6)
+
+[node name="SafehouseEntrance" type="Node3D" parent="."]
+script = ExtResource("6_base")
+faction_id = 2
+target_scene = "res://scenes/world/contraband_safehouse.tscn"
+title = "SAFEHOUSE"
+marker_color = Color(0.24, 0.82, 0.40, 0.62)
+city_return_position = Vector3(27, 0.95, -6.6)
+
+[node name="WorkshopEntrance" type="Node3D" parent="."]
+script = ExtResource("6_base")
+faction_id = 1
+target_scene = "res://scenes/world/arms_workshop.tscn"
+title = "ARMS WORKSHOP"
+marker_color = Color(0.95, 0.42, 0.18, 0.62)
+city_return_position = Vector3(31, 0.95, 6.6)
+
+[node name="DrugBuyer" type="Node3D" parent="."]
+script = ExtResource("7_drugbuyer")
+units_per_sale = 1
+cash_per_unit = 180
+heat_per_sale = 8
+evidence_per_sale = 5
+criminal_flag_seconds = 30.0
+
+[node name="GunrunnerBuyer" type="Node3D" parent="."]
+script = ExtResource("8_gunbuyer")
+criminal_flag_seconds = 30.0
+
+[node name="InterdictionCache" type="Node3D" parent="."]
+script = ExtResource("9_interdict")
+cash_reward = 160
+case_value_reward = 12
+duty_flag_seconds = 30.0
+reset_seconds = 20.0
+
+[node name="FFAEntrance" type="Node3D" parent="."]
+script = ExtResource("10_ffa")
+target_scene = "res://scenes/arena/combat_lab.tscn"
+entry_fee = 100
+prize_cash = 350
+
+[node name="KnifeVendor" type="Node3D" parent="."]
+script = ExtResource("11_vendor")
+base_item = ExtResource("14_knife_item")
+combat_profile = ExtResource("15_knife_profile")
+price = 180
+stand_color = Color(0.19, 0.20, 0.22, 1)
+
+[node name="BatVendor" type="Node3D" parent="."]
+script = ExtResource("11_vendor")
+base_item = ExtResource("12_bat_item")
+combat_profile = ExtResource("13_bat_profile")
+price = 260
+stand_color = Color(0.24, 0.17, 0.12, 1)
+
+[node name="PistolVendor" type="Node3D" parent="."]
+script = ExtResource("11_vendor")
+base_item = ExtResource("16_pistol_item")
+combat_profile = ExtResource("17_pistol_profile")
+price = 520
+stand_color = Color(0.13, 0.14, 0.15, 1)
+
+[node name="BeatCopA" parent="." instance=ExtResource("18_cop")]
+target_path = NodePath("../Player")
+observation_radius = 12.0
+
+[node name="BeatCopB" parent="." instance=ExtResource("18_cop")]
+target_path = NodePath("../Player")
+observation_radius = 10.0
+
+[node name="ContrabandGuardA" parent="." instance=ExtResource("19_contra")]
+target_path = NodePath("../Player")
+observation_radius = 11.0
+
+[node name="ContrabandGuardB" parent="." instance=ExtResource("19_contra")]
+target_path = NodePath("../Player")
+observation_radius = 9.0
+
+[node name="ArmsGuardA" parent="." instance=ExtResource("20_arms")]
+target_path = NodePath("../Player")
+observation_radius = 11.0
+
+[node name="ArmsGuardB" parent="." instance=ExtResource("20_arms")]
+target_path = NodePath("../Player")
+observation_radius = 9.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("5_access")
+player_path = NodePath("../Player")
+prompt_label_path = NodePath("InteractionPrompt")
+
+[node name="Status" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 900.0
+offset_bottom = 58.0
+theme_override_colors/font_color = Color(0.96, 0.97, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+script = ExtResource("4_hud")
+player_path = NodePath("../../Player")
+location_name = "STREET V2"
+
+[node name="InteractionPrompt" type="Label" parent="HUD"]
+offset_left = 220.0
+offset_top = 690.0
+offset_right = 1380.0
+offset_bottom = 850.0
+theme_override_colors/font_color = Color(1, 0.96, 0.78, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 34
+horizontal_alignment = 1
+vertical_alignment = 1
