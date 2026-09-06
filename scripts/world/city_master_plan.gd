@@ -106,26 +106,26 @@ static func _road_class(col: int, row: int, horizontal: bool) -> String:
 	return "local"
 
 static func _block_identity(grid: Vector2i) -> Dictionary:
-	# Directions point from the lot toward its intended street frontage.
-	match grid:
-		Vector2i(0, 0):
-			return _identity("residential", "neighborhood_nw", Vector3(1, 0, 0), Vector3(0, 0, 1))
-		Vector2i(1, 0):
-			return _identity("commercial", "market_north", Vector3(0, 0, 1), Vector3(1, 0, 0))
-		Vector2i(2, 0):
-			return _identity("mixed", "contraband", Vector3(-1, 0, 0), Vector3(0, 0, 1))
-		Vector2i(0, 1):
-			return _identity("civic", "police", Vector3(1, 0, 0), Vector3(0, 0, -1))
-		Vector2i(1, 1):
-			return _identity("commercial", "commons", Vector3(0, 0, -1), Vector3(1, 0, 0))
-		Vector2i(2, 1):
-			return _identity("commercial", "market_east", Vector3(-1, 0, 0), Vector3(0, 0, -1))
-		Vector2i(0, 2):
-			return _identity("residential", "neighborhood_sw", Vector3(1, 0, 0), Vector3(0, 0, -1))
-		Vector2i(1, 2):
-			return _identity("industrial", "foundry_west", Vector3(0, 0, -1), Vector3(1, 0, 0))
-		Vector2i(2, 2):
-			return _identity("industrial", "arms", Vector3(-1, 0, 0), Vector3(0, 0, -1))
+	# Explicit comparisons avoid relying on constructor expressions as match
+	# patterns and make this table boringly portable across Godot 4.x parsers.
+	if grid == Vector2i(0, 0):
+		return _identity("residential", "neighborhood_nw", Vector3(1, 0, 0), Vector3(0, 0, 1))
+	if grid == Vector2i(1, 0):
+		return _identity("commercial", "market_north", Vector3(0, 0, 1), Vector3(1, 0, 0))
+	if grid == Vector2i(2, 0):
+		return _identity("mixed", "contraband", Vector3(-1, 0, 0), Vector3(0, 0, 1))
+	if grid == Vector2i(0, 1):
+		return _identity("civic", "police", Vector3(1, 0, 0), Vector3(0, 0, -1))
+	if grid == Vector2i(1, 1):
+		return _identity("commercial", "commons", Vector3(0, 0, -1), Vector3(1, 0, 0))
+	if grid == Vector2i(2, 1):
+		return _identity("commercial", "market_east", Vector3(-1, 0, 0), Vector3(0, 0, -1))
+	if grid == Vector2i(0, 2):
+		return _identity("residential", "neighborhood_sw", Vector3(1, 0, 0), Vector3(0, 0, -1))
+	if grid == Vector2i(1, 2):
+		return _identity("industrial", "foundry_west", Vector3(0, 0, -1), Vector3(1, 0, 0))
+	if grid == Vector2i(2, 2):
+		return _identity("industrial", "arms", Vector3(-1, 0, 0), Vector3(0, 0, -1))
 	return _identity("mixed", "generic", Vector3(0, 0, -1), Vector3(1, 0, 0))
 
 static func _identity(district: String, role: String, primary: Vector3, secondary: Vector3) -> Dictionary:
