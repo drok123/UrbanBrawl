@@ -52,6 +52,19 @@ Production uses Road Generator the way its prefab workflow is designed:
 
 Production does **not** generate ordinary grid crossings with procedural `RoadIntersection` NGons.
 
+### Road scale / envelope contract
+
+The stock RoadPoint defaults used by the prefab describe a 16 m total cross-section before scaling: two 4 m lanes, two 2 m shoulders, and two 2 m gutter extensions.
+
+Urban Brawl instances **every road container at one uniform `0.75` scale**. This keeps the supplied prefab and all generated connecting containers geometrically compatible while producing approximately 3 m travel lanes and a 12 m total road envelope.
+
+Rules:
+- prefab intersections and straight/tail RoadContainers always share the same scale
+- we do not independently resize an intersection mesh to make it fit a block
+- buildable block edges begin just outside the scaled ~6 m half-width road envelope
+- a small seam margin prevents coplanar road/sidewalk overlap
+- road hierarchy is metadata/gameplay/traffic/signage, not incompatible physical widths through the same prefab
+
 Procedural intersections remain available for a future genuinely irregular junction where a prefab is not appropriate, but they are not the default.
 
 The dependency installer validates the actual 3-way/4-way prefab `.tscn` and `.glb` files, not just the Road Generator scripts.
@@ -98,11 +111,14 @@ Industrial blocks reserve service-yard space. Police has a civic forecourt/parki
 
 For the current clean checkpoint:
 - Road Generator owns asphalt and junction geometry.
-- Urban Brawl derives block edges from the road envelope.
-- each block gets a simple lot surface
-- sidewalk strips follow those stable block edges
+- Urban Brawl derives block edges from the scaled road envelope.
+- the lot interior starts **behind** the sidewalk instead of extending beneath it
+- straight sidewalk strips stop short of each intersection corner
+- the prefab intersection owns its curved/turning corner footprint
 - custom curb/crosswalk overlays are intentionally removed while validating the corrected road resource use
 - decorative street clutter is intentionally disabled during this structural checkpoint
+
+That corner ownership matters: a rectangular block surface must never be drawn through the prefab intersection's modeled turn geometry merely because both happen to occupy the same X/Z area.
 
 We add detail only after the resource geometry reads correctly without camouflage.
 
@@ -135,6 +151,8 @@ Gameplay nodes are placed from the same authored block/frontage data as the pres
 10. Never add a second post-generation layer whose purpose is to repair the first layer.
 11. Do not add cars, trees, pedestrians or clutter to conceal structural problems.
 12. Runtime diagnostics must identify which external building file was selected and the scale actually applied.
+13. A Road Generator scale change must update the block envelope from the same source of truth.
+14. Intersection corner geometry belongs to the intersection prefab, not to rectangular sidewalk/lot meshes.
 
 ## Next work after runtime validation
 
