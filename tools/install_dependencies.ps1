@@ -46,6 +46,9 @@ function Remove-DirectoryRobust([string]$Path) {
     if (Test-Path $Path) {
         cmd /c "rmdir /s /q `"$Path`"" | Out-Null
     }
+    if (Test-Path $Path) {
+        throw "Could not remove directory: $Path"
+    }
 }
 
 function Reset-Directory([string]$Path) {
@@ -71,7 +74,14 @@ function Download-And-Expand($dep) {
         }
         $root = $candidate.FullName
     }
+
     return $root
+}
+
+function Install-License($dep, [string]$destinationName) {
+    $destination = Join-Path $runtimeRoot $destinationName
+    Write-Host "Installing license for $($dep.Name)..." -ForegroundColor DarkGray
+    Invoke-WebRequest -Uri $dep.License -OutFile $destination -UseBasicParsing
 }
 
 function Download-File([string]$Url, [string]$Destination) {
@@ -83,11 +93,6 @@ function Download-File([string]$Url, [string]$Destination) {
     if (-not (Test-Path $Destination)) {
         throw "Download did not create expected file: $Destination"
     }
-}
-
-function Install-License($dep, [string]$DestinationName) {
-    Write-Host "Installing license for $($dep.Name)..." -ForegroundColor DarkGray
-    Download-File $dep.License (Join-Path $runtimeRoot $DestinationName)
 }
 
 function Validate-Files([string[]]$RelativePaths, [string]$Label) {
@@ -141,7 +146,6 @@ foreach ($scene in @(
     }
     Copy-Item $sourceScene (Join-Path $projectRoot ("scenes\" + $scene)) -Force
 }
-
 Validate-Files @(
     "scripts\inventory\InventoryModel.gd",
     "scripts\vendor\VendorInventory.gd",
@@ -178,6 +182,7 @@ Validate-Files @(
     "addons\road-generator\nodes\road_manager.gd",
     "addons\road-generator\nodes\road_container.gd",
     "addons\road-generator\nodes\road_point.gd",
+    "addons\road-generator\nodes\road_intersection.gd",
     "addons\road-generator\resources\road_texture.material"
 ) "Road Generator"
 Install-License $dependencies[2] "Godot-Road-Generator-LICENSE.txt"
