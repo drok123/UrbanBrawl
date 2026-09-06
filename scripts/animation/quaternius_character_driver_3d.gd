@@ -4,6 +4,7 @@ extends Node3D
 @export var fallback_visual_path: NodePath = NodePath("../CharacterVisual")
 @export var target_height: float = 1.88
 @export var animation_blend: float = 0.10
+@export var character_variant_index: int = 0
 
 var _actor: CharacterBody3D = null
 var _fallback_visual: Node3D = null
@@ -31,12 +32,14 @@ func is_external_visual_active() -> bool:
 	return _active
 
 func _try_activate() -> void:
-	var character_path: String = QuaterniusAssetLocator.find_best_character_scene()
+	var character_path: String = QuaterniusAssetLocator.find_character_scene(character_variant_index)
 	if character_path.is_empty():
+		print("Urban Brawl: no Quaternius character scene found; keeping fallback for ", get_parent().name)
 		return
 
 	var packed: PackedScene = load(character_path) as PackedScene
 	if packed == null:
+		print("Urban Brawl: failed to load Quaternius character ", character_path)
 		return
 	var instance: Node = packed.instantiate()
 	_character_root = instance as Node3D
@@ -50,6 +53,7 @@ func _try_activate() -> void:
 	if _skeleton == null:
 		_character_root.queue_free()
 		_character_root = null
+		print("Urban Brawl: candidate character had no Skeleton3D: ", character_path)
 		return
 
 	_fit_character_height()
@@ -69,15 +73,22 @@ func _try_activate() -> void:
 		_character_root = null
 		_animation_player = null
 		_animation_library = null
+		print("Urban Brawl: UAL retarget found no usable clips for ", character_path.get_file(), "; keeping fallback")
 		return
 
 	_create_weapon_attachment()
 	if _fallback_visual != null:
 		_fallback_visual.visible = false
 		_fallback_visual.process_mode = Node.PROCESS_MODE_DISABLED
+	var legacy_mesh: GeometryInstance3D = get_parent().get_node_or_null("Mesh") as GeometryInstance3D
+	if legacy_mesh != null:
+		legacy_mesh.visible = false
+	var facing_marker: GeometryInstance3D = get_parent().get_node_or_null("FacingMarker") as GeometryInstance3D
+	if facing_marker != null:
+		facing_marker.visible = false
 	_active = true
 	set_meta(&"external_character", character_path)
-	print("Urban Brawl: Quaternius player visual active — ", character_path, " / ", imported_count, " animations")
+	print("Urban Brawl: Quaternius actor active — ", get_parent().name, " -> ", character_path.get_file(), " / ", imported_count, " animations")
 	_update_animation(true)
 
 func _import_ual_animations() -> int:
@@ -97,7 +108,7 @@ func _import_ual_animations() -> int:
 		if donor_skeleton == null or donor_players.is_empty():
 			donor.free()
 			continue
-		if _bone_overlap_ratio(target_bones, donor_skeleton) < 0.62:
+		if _bone_overlap_ratio(target_bones, donor_skeleton) < 0.45:
 			donor.free()
 			continue
 
@@ -109,7 +120,7 @@ func _import_ual_animations() -> int:
 				var copied: Animation = source_animation.duplicate(true) as Animation
 				if copied == null:
 					continue
-				_retarget_animation(copied, target_skeleton_path)
+				_retarget_animation(copied, target_skeleton_path, target_bones)
 				if copied.get_track_count() <= 0:
 					continue
 				var unique_name: StringName = _unique_animation_name(source_path, donor_name)
@@ -120,15 +131,20 @@ func _import_ual_animations() -> int:
 		donor.free()
 	return imported
 
-func _retarget_animation(animation: Animation, target_skeleton_path: String) -> void:
+func _retarget_animation(animation: Animation, target_skeleton_path: String, target_bones: Dictionary) -> void:
 	for track_index: int in range(animation.get_track_count() - 1, -1, -1):
 		var source_path: String = str(animation.track_get_path(track_index))
 		var separator: int = source_path.find(":")
 		if separator < 0:
 			animation.remove_track(track_index)
 			continue
-		var bone_suffix: String = source_path.substr(separator)
-		animation.track_set_path(track_index, NodePath(target_skeleton_path + bone_suffix))
+		var bone_suffix: String = source_path.substr(separator + 1)
+		var property_separator: int = bone_suffix.find(":")
+		var bone_name: String = bone_suffix if property_separator < 0 else bone_suffix.substr(0, property_separator)
+		if not target_bones.has(bone_name.to_lower()):
+			animation.remove_track(track_index)
+			continue
+		animation.track_set_path(track_index, NodePath(target_skeleton_path + source_path.substr(separator)))
 
 func _update_animation(force: bool = false) -> void:
 	if _animation_player == null or _animation_library == null or _actor == null:
@@ -149,7 +165,7 @@ func _desired_animation() -> StringName:
 			_last_reaction_variant = reaction_variant
 		match reaction:
 			"FALLBACK":
-				return _find_animation(["knock", "fall", "hit"])
+				return _find_animation(["knock", "fall", "hit", "death"])
 			"STUMBLE":
 				return _find_animation(["hit", "impact", "stumble"])
 			_:
@@ -162,23 +178,23 @@ func _desired_animation() -> StringName:
 	if phase == "DOWN":
 		return _find_animation(["death", "down", "knock"])
 	if phase == "DODGE I-FRAMES":
-		return _find_animation(["dodge", "roll"])
+		return _find_animation(["dodge", "roll", "slide"])
 
 	if phase == "WINDUP" or phase == "ACTIVE" or phase == "RECOVERY":
 		var weapon: String = "UNARMED"
 		if _actor.has_method("get_equipped_weapon_name"):
 			weapon = str(_actor.call("get_equipped_weapon_name")).to_lower()
 		if "pistol" in weapon:
-			return _find_animation(["shoot", "gun", "aim"])
+			return _find_animation(["shoot", "pistol", "gun", "aim"])
 		if "knife" in weapon:
-			return _find_animation(["knife", "melee", "attack", "stab"])
+			return _find_animation(["stab", "melee", "attack", "combo"])
 		if "bat" in weapon:
-			return _find_animation(["melee", "attack", "swing"])
-		return _find_animation(["punch", "attack", "melee"])
+			return _find_animation(["melee", "attack", "swing", "combo"])
+		return _find_animation(["punch", "attack", "melee", "combo"])
 
 	var horizontal_speed: float = Vector2(_actor.velocity.x, _actor.velocity.z).length()
 	if horizontal_speed > 5.2:
-		return _find_animation(["run", "jog", "sprint"])
+		return _find_animation(["run", "sprint", "jog"])
 	if horizontal_speed > 0.35:
 		return _find_animation(["walk", "jog", "run"])
 	return _find_animation(["idle"])
@@ -272,16 +288,7 @@ func _combined_bounds(root: Node3D) -> AABB:
 func _aabb_corners(bounds: AABB) -> Array[Vector3]:
 	var p: Vector3 = bounds.position
 	var s: Vector3 = bounds.size
-	return [
-		p,
-		p + Vector3(s.x, 0.0, 0.0),
-		p + Vector3(0.0, s.y, 0.0),
-		p + Vector3(0.0, 0.0, s.z),
-		p + Vector3(s.x, s.y, 0.0),
-		p + Vector3(s.x, 0.0, s.z),
-		p + Vector3(0.0, s.y, s.z),
-		p + s,
-	]
+	return [p, p + Vector3(s.x, 0, 0), p + Vector3(0, s.y, 0), p + Vector3(0, 0, s.z), p + Vector3(s.x, s.y, 0), p + Vector3(s.x, 0, s.z), p + Vector3(0, s.y, s.z), p + s]
 
 func _find_skeleton(root: Node) -> Skeleton3D:
 	if root is Skeleton3D:
