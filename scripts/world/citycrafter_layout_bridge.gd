@@ -4,6 +4,10 @@ extends RefCounted
 const CITYCRAFTER_SCRIPT := "res://addons/citycrafter/citycrafter.gd"
 const CONFIG_SCRIPT := "res://addons/citycrafter/city_configuration.gd"
 const CITY_SEED := 731942
+const GRID_WIDTH := 6
+const GRID_HEIGHT := 6
+const BLOCK_SIZE := 22.0
+const STREET_WIDTH := 8.2
 
 static func build_layout() -> Dictionary:
 	if not ResourceLoader.exists(CITYCRAFTER_SCRIPT) or not ResourceLoader.exists(CONFIG_SCRIPT):
@@ -20,29 +24,35 @@ static func build_layout() -> Dictionary:
 	if config == null or crafter == null:
 		return _fallback_layout()
 
-	# Compact-city values, scaled for an on-foot top-down game rather than the
-	# 200 m default blocks in CityCrafter's example project.
-	config.set("grid_width", 5)
-	config.set("grid_height", 5)
-	config.set("block_size", 19.0)
-	config.set("street_width", 9.5)
+	# CityCrafter remains the topology authority, but the parameters are now
+	# constrained for a believable walkable neighborhood instead of a procedural
+	# showcase. A coherent outer street wall matters more than novelty here.
+	config.set("grid_width", GRID_WIDTH)
+	config.set("grid_height", GRID_HEIGHT)
+	config.set("block_size", BLOCK_SIZE)
+	config.set("street_width", STREET_WIDTH)
 	config.set("empty_block_chance", 0.0)
 	config.set("enable_multi_size_blocks", true)
-	config.set("large_block_chance", 0.13)
-	config.set("wide_block_chance", 0.22)
-	config.set("tall_block_chance", 0.18)
-	config.set("enable_edge_variations", true)
-	config.set("edge_variation_chance", 0.20)
-	config.set("enable_random_extensions", true)
-	config.set("random_extensions_count", 4)
-	config.set("extension_spawn_chance", 0.55)
-	# Zoned areas gives us a believable downtown/core -> mixed middle -> outer
-	# service/industrial density gradient. Faction territory remains our own layer.
+	config.set("large_block_chance", 0.045)
+	config.set("wide_block_chance", 0.14)
+	config.set("tall_block_chance", 0.14)
+
+	# Edge mutations were producing dangling appendages and awkward road stubs.
+	# We keep variation inside the city through superblocks, district density and
+	# lot composition instead of deforming the city boundary every launch.
+	config.set("enable_edge_variations", false)
+	config.set("edge_variation_chance", 0.0)
+	config.set("enable_random_extensions", false)
+	config.set("random_extensions_count", 0)
+	config.set("extension_spawn_chance", 0.0)
+
+	# Zoned areas gives us a compact commercial core, mixed middle neighborhoods
+	# and lower-density service/industrial edges. Faction territory remains ours.
 	config.set("district_mode", 1)
-	config.set("residential_ratio", 0.42)
+	config.set("residential_ratio", 0.44)
 	config.set("commercial_ratio", 0.38)
-	config.set("industrial_ratio", 0.20)
-	config.set("noise_scale", 0.12)
+	config.set("industrial_ratio", 0.18)
+	config.set("noise_scale", 0.10)
 	config.set("enable_residential_subdivisions", false)
 	config.set("generate_ground", false)
 	config.set("generate_roads", false)
@@ -53,11 +63,11 @@ static func build_layout() -> Dictionary:
 	crafter.set("city_configuration", config)
 	var noise := FastNoiseLite.new()
 	noise.seed = CITY_SEED
-	noise.frequency = 0.12
+	noise.frequency = 0.10
 	crafter.set("noise", noise)
 
 	# CityCrafter's topology generator currently uses global randf/randi. Seed it
-	# only for this calculation, then restore normal nondeterministic game RNG.
+	# only for layout generation, then restore ordinary game randomness.
 	seed(CITY_SEED)
 	crafter.call("generate_active_blocks")
 
@@ -83,7 +93,7 @@ static func build_layout() -> Dictionary:
 	if active_blocks.is_empty():
 		return _fallback_layout()
 
-	return _finalize_layout(active_blocks, block_sizes, districts, 19.0, 9.5)
+	return _finalize_layout(active_blocks, block_sizes, districts, BLOCK_SIZE, STREET_WIDTH)
 
 static func _finalize_layout(active_blocks: Array, block_sizes: Dictionary, districts: Dictionary, block_size: float, street_width: float) -> Dictionary:
 	var stride: float = block_size + street_width
@@ -118,23 +128,23 @@ static func _finalize_layout(active_blocks: Array, block_sizes: Dictionary, dist
 		"bounds_min": Vector2(min_x + offset.x, min_z + offset.z),
 		"bounds_max": Vector2(max_x + offset.x, max_z + offset.z),
 		"bounds_size": Vector2(max_x - min_x, max_z - min_z),
-		"source": "CityCrafter",
+		"source": "CityCrafter constrained plan",
 	}
 
 static func _fallback_layout() -> Dictionary:
 	var active_blocks: Array = []
 	var sizes: Dictionary = {}
 	var districts: Dictionary = {}
-	for x: int in range(5):
-		for z: int in range(5):
+	for x: int in range(GRID_WIDTH):
+		for z: int in range(GRID_HEIGHT):
 			var pos := Vector2i(x, z)
 			active_blocks.append(pos)
 			sizes[pos] = Vector2i.ONE
-			var edge_distance: int = mini(mini(x, 4 - x), mini(z, 4 - z))
+			var edge_distance: int = mini(mini(x, GRID_WIDTH - 1 - x), mini(z, GRID_HEIGHT - 1 - z))
 			if edge_distance == 0:
 				districts[pos] = "industrial"
-			elif x == 2 and z == 2:
+			elif edge_distance >= 2:
 				districts[pos] = "commercial"
 			else:
 				districts[pos] = "residential"
-	return _finalize_layout(active_blocks, sizes, districts, 19.0, 9.5)
+	return _finalize_layout(active_blocks, sizes, districts, BLOCK_SIZE, STREET_WIDTH)
