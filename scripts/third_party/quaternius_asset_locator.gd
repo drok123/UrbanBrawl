@@ -5,8 +5,8 @@ const CITY_ROOT: String = "res://assets/third_party/quaternius_city"
 const CHARACTER_ROOT: String = "res://assets/third_party/quaternius_characters"
 const UAL_ROOT: String = "res://assets/third_party/quaternius_ual"
 
-const BUILDING_TOKENS: Array[String] = ["building", "example", "prebuilt", "assembled", "apartment", "office", "store", "shop"]
-const BUILDING_REJECT: Array[String] = ["wall", "window", "door", "roof", "trim", "column", "floor", "sidewalk", "road", "street", "prop", "sign"]
+const BUILDING_TOKENS: Array[String] = ["example", "prebuilt", "assembled", "building", "apartment", "office", "store", "shop"]
+const BUILDING_REJECT: Array[String] = ["facade", "wall", "window", "door", "roof", "trim", "column", "floor", "sidewalk", "road", "street", "prop", "sign"]
 
 static func city_file_count() -> int:
 	return _scene_files(CITY_ROOT).size()
@@ -17,16 +17,19 @@ static func character_file_count() -> int:
 static func animation_file_count() -> int:
 	return _scene_files(UAL_ROOT).size()
 
+static func city_building_candidate_count() -> int:
+	return _ranked_city_candidates(BUILDING_TOKENS, BUILDING_REJECT, true).size()
+
 static func find_best_city_building() -> String:
 	return find_city_building_variant(0)
 
 static func find_city_building_variant(variant_index: int = 0, preferred_tokens: Array[String] = []) -> String:
 	var tokens: Array[String] = preferred_tokens if not preferred_tokens.is_empty() else BUILDING_TOKENS
 	var candidates: Array[String] = _ranked_city_candidates(tokens, BUILDING_REJECT, true)
-	if candidates.is_empty():
-		# Standard/free releases can be mostly modular. In that case accept a
-		# facade/building module rather than silently leaving the whole city gray.
-		candidates = _ranked_city_candidates(["facade", "building", "wall"], ["window", "door", "trim", "prop"], false)
+	if candidates.is_empty() and tokens != BUILDING_TOKENS:
+		# District naming in the Standard pack can differ, but a complete generic
+		# building is still valid. Never promote a facade/wall into a whole building.
+		candidates = _ranked_city_candidates(BUILDING_TOKENS, BUILDING_REJECT, true)
 	if candidates.is_empty():
 		return ""
 	return candidates[_stable_variant_index(candidates.size(), variant_index, tokens, 13)]
@@ -54,7 +57,6 @@ static func find_character_scene(variant_index: int = 0) -> String:
 	fallback.sort()
 	var candidates: Array[String] = preferred if not preferred.is_empty() else fallback
 	if candidates.is_empty():
-		# Last-resort validation happens in the character driver by requiring a Skeleton3D.
 		candidates = files
 		candidates.sort()
 	if candidates.is_empty():
@@ -102,8 +104,6 @@ static func find_animation_sources(max_files: int = 48) -> Array[String]:
 
 	preferred.sort()
 	fallback.sort()
-	# The Standard download sometimes ships animation collections under generic
-	# filenames, so always allow several fallback files into the donor pool.
 	for path: String in fallback:
 		if preferred.size() >= max_files:
 			break
@@ -118,16 +118,13 @@ static func has_visual_pack() -> bool:
 static func print_install_summary() -> void:
 	print(
 		"Urban Brawl: Quaternius catalog — city ", city_file_count(),
-		", characters ", character_file_count(),
+		" (", city_building_candidate_count(), " complete-building candidates), characters ", character_file_count(),
 		", animation sources ", animation_file_count()
 	)
 
 static func _stable_variant_index(candidate_count: int, variant_index: int, tokens: Array[String], stride: int) -> int:
 	if candidate_count <= 1:
 		return 0
-	# Do not march alphabetically through packs whose filenames are often numbered
-	# families. A stable token-derived offset plus a large stride spreads adjacent
-	# Urban Brawl lots across the catalog while remaining deterministic per seed.
 	var token_seed: int = 17
 	for token: String in tokens:
 		for byte_value: int in token.to_lower().to_utf8_buffer():
@@ -152,14 +149,13 @@ static func _ranked_city_candidates(tokens: Array[String], reject_tokens: Array[
 		for token_index: int in range(tokens.size()):
 			var token: String = tokens[token_index].to_lower()
 			if token in text:
-				# Token order is meaningful. District callers put their strongest
-				# semantic match first (store before generic building, warehouse before
-				# generic building), so preserve that intent in the ranking.
-				score += maxi(18 - token_index * 3, 5)
+				score += maxi(22 - token_index * 3, 5)
 		if "example" in text or "prebuilt" in text or "assembled" in text:
-			score += 20
+			score += 45
 		if "building" in text:
-			score += 4
+			score += 10
+		# Whole-building selection must have strong evidence. Generic unrelated GLBs
+		# are never acceptable just because they survived the reject list.
 		if require_strong_match and score < 10:
 			continue
 		if not require_strong_match and score <= 0:
