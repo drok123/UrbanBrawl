@@ -29,14 +29,14 @@ static func find_city_building_variant(variant_index: int = 0, preferred_tokens:
 		candidates = _ranked_city_candidates(["facade", "building", "wall"], ["window", "door", "trim", "prop"], false)
 	if candidates.is_empty():
 		return ""
-	return candidates[posmod(variant_index, candidates.size())]
+	return candidates[_stable_variant_index(candidates.size(), variant_index, tokens, 13)]
 
 static func find_city_prop(tokens: Array[String], variant_index: int = 0) -> String:
 	var reject: Array[String] = ["building", "example", "prebuilt", "assembled", "wall", "floor", "roof"]
 	var candidates: Array[String] = _ranked_city_candidates(tokens, reject, false)
 	if candidates.is_empty():
 		return ""
-	return candidates[posmod(variant_index, candidates.size())]
+	return candidates[_stable_variant_index(candidates.size(), variant_index, tokens, 11)]
 
 static func find_character_scene(variant_index: int = 0) -> String:
 	var files: Array[String] = _scene_files(CHARACTER_ROOT)
@@ -122,6 +122,18 @@ static func print_install_summary() -> void:
 		", animation sources ", animation_file_count()
 	)
 
+static func _stable_variant_index(candidate_count: int, variant_index: int, tokens: Array[String], stride: int) -> int:
+	if candidate_count <= 1:
+		return 0
+	# Do not march alphabetically through packs whose filenames are often numbered
+	# families. A stable token-derived offset plus a large stride spreads adjacent
+	# Urban Brawl lots across the catalog while remaining deterministic per seed.
+	var token_seed: int = 17
+	for token: String in tokens:
+		for byte_value: int in token.to_lower().to_utf8_buffer():
+			token_seed = posmod(token_seed * 31 + byte_value, 2147483629)
+	return posmod(token_seed + variant_index * stride, candidate_count)
+
 static func _ranked_city_candidates(tokens: Array[String], reject_tokens: Array[String], require_strong_match: bool) -> Array[String]:
 	var files: Array[String] = _scene_files(CITY_ROOT)
 	var buckets: Dictionary = {}
@@ -137,13 +149,17 @@ static func _ranked_city_candidates(tokens: Array[String], reject_tokens: Array[
 			continue
 
 		var score: int = 0
-		for token: String in tokens:
-			if token.to_lower() in text:
-				score += 10
+		for token_index: int in range(tokens.size()):
+			var token: String = tokens[token_index].to_lower()
+			if token in text:
+				# Token order is meaningful. District callers put their strongest
+				# semantic match first (store before generic building, warehouse before
+				# generic building), so preserve that intent in the ranking.
+				score += maxi(18 - token_index * 3, 5)
 		if "example" in text or "prebuilt" in text or "assembled" in text:
-			score += 25
+			score += 20
 		if "building" in text:
-			score += 12
+			score += 4
 		if require_strong_match and score < 10:
 			continue
 		if not require_strong_match and score <= 0:
