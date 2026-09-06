@@ -146,11 +146,12 @@ if (Test-Path $cacheRoot) {
 }
 
 Write-Host ""
-Write-Host "Dependencies installed successfully." -ForegroundColor Green
+Write-Host "Code dependencies installed successfully." -ForegroundColor Green
 Write-Host "  Oen44/Godot-Inventory @ v4.0.1a (equipment/inventory/itemization/tooltip/vendor)"
 Write-Host "  bitbrain/beehave @ v2.9.3"
 Write-Host ""
-Write-Host "Character visuals are now native procedural Urban Brawl code; no character asset download is required."
+Write-Host "Procedural characters and graybox city art remain guaranteed fallbacks." -ForegroundColor DarkGray
+Write-Host "Run INSTALL-VISUAL-PACKS.bat separately to install the optional CC0 Quaternius city/character/animation replacement layer." -ForegroundColor Yellow
 Write-Host "Restart Godot after dependency changes." -ForegroundColor Yellow
 Write-Host ""
 Read-Host "Press Enter to close"
