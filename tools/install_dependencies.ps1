@@ -20,6 +20,14 @@ $dependencies = @(
         Zip = "https://codeload.github.com/bitbrain/beehave/zip/refs/tags/v2.9.3"
         Folder = "beehave-2.9.3"
         License = "https://raw.githubusercontent.com/bitbrain/beehave/v2.9.3/LICENSE"
+    },
+    @{
+        Name = "Godot Road Generator"
+        Repo = "TheDuckCow/godot-road-generator"
+        Tag = "0.9.3"
+        Zip = "https://codeload.github.com/TheDuckCow/godot-road-generator/zip/refs/tags/0.9.3"
+        Folder = "godot-road-generator-0.9.3"
+        License = "https://raw.githubusercontent.com/TheDuckCow/godot-road-generator/0.9.3/LICENSE"
     }
 )
 
@@ -141,17 +149,48 @@ if (Test-Path $beehaveDestination) {
 Copy-Item $beehaveSource $beehaveDestination -Recurse -Force
 Install-License $dependencies[1] "Beehave-LICENSE.txt"
 
+# --- Godot Road Generator ---
+$roadRoot = Download-And-Expand $dependencies[2]
+
+Write-Host "Installing Godot Road Generator addon..." -ForegroundColor Green
+$roadSource = Join-Path $roadRoot "addons\road-generator"
+$roadDestination = Join-Path $projectRoot "addons\road-generator"
+
+if (-not (Test-Path $roadSource)) {
+    throw "Missing expected Road Generator addon folder: $roadSource"
+}
+
+if (Test-Path $roadDestination) {
+    Remove-Item $roadDestination -Recurse -Force
+}
+Copy-Item $roadSource $roadDestination -Recurse -Force
+
+$requiredRoadFiles = @(
+    "addons\road-generator\plugin.cfg",
+    "addons\road-generator\nodes\road_manager.gd",
+    "addons\road-generator\nodes\road_container.gd",
+    "addons\road-generator\nodes\road_point.gd",
+    "addons\road-generator\resources\road_texture.material"
+)
+foreach ($relativePath in $requiredRoadFiles) {
+    $absolutePath = Join-Path $projectRoot $relativePath
+    if (-not (Test-Path $absolutePath)) {
+        throw "Road Generator install is incomplete; required file is missing: $absolutePath"
+    }
+}
+Install-License $dependencies[2] "Godot-Road-Generator-LICENSE.txt"
+
 if (Test-Path $cacheRoot) {
     Remove-Item $cacheRoot -Recurse -Force
 }
 
 Write-Host ""
 Write-Host "Code dependencies installed successfully." -ForegroundColor Green
-Write-Host "  Oen44/Godot-Inventory @ v4.0.1a (equipment/inventory/itemization/tooltip/vendor)"
+Write-Host "  Oen44/Godot-Inventory @ v4.0.1a"
 Write-Host "  bitbrain/beehave @ v2.9.3"
+Write-Host "  TheDuckCow/godot-road-generator @ 0.9.3"
 Write-Host ""
-Write-Host "Procedural characters and graybox city art remain guaranteed fallbacks." -ForegroundColor DarkGray
-Write-Host "Run INSTALL-VISUAL-PACKS.bat separately to install the optional CC0 Quaternius city/character/animation replacement layer." -ForegroundColor Yellow
+Write-Host "Quaternius city/character assets remain installed separately with INSTALL-VISUAL-PACKS.bat." -ForegroundColor DarkGray
 Write-Host "Restart Godot after dependency changes." -ForegroundColor Yellow
 Write-Host ""
 Read-Host "Press Enter to close"
