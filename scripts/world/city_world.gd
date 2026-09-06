@@ -21,11 +21,11 @@ func _process(_delta: float) -> void:
 	_update_territory()
 
 func _build_city() -> void:
-	var bounds_size: Vector2 = _layout.get("bounds_size", Vector2(140.0, 140.0)) as Vector2
+	var bounds_size: Vector2 = _layout.get("bounds_size", Vector2(160.0, 160.0)) as Vector2
 	_add_static_box(
 		self,
 		"CityFoundation",
-		Vector3(bounds_size.x + 28.0, 0.30, bounds_size.y + 28.0),
+		Vector3(bounds_size.x + 22.0, 0.30, bounds_size.y + 22.0),
 		Vector3(0.0, -0.18, 0.0),
 		Color(0.095, 0.098, 0.102, 1.0)
 	)
@@ -42,18 +42,18 @@ func _build_city() -> void:
 	print("Urban Brawl: public city layout source = ", _layout.get("source", "fallback"), " | blocks = ", (_layout.get("active_blocks", []) as Array).size())
 
 func _select_anchor_blocks() -> void:
-	var bounds_min: Vector2 = _layout.get("bounds_min", Vector2(-60, -60)) as Vector2
-	var bounds_max: Vector2 = _layout.get("bounds_max", Vector2(60, 60)) as Vector2
+	var bounds_min: Vector2 = _layout.get("bounds_min", Vector2(-75, -75)) as Vector2
+	var bounds_max: Vector2 = _layout.get("bounds_max", Vector2(75, 75)) as Vector2
 	var span := bounds_max - bounds_min
 	var excluded: Dictionary = {}
 
 	var commons := _choose_block(Vector2.ZERO, excluded, true)
 	excluded[commons] = true
-	var police := _choose_block(Vector2(bounds_min.x + span.x * 0.16, 0.0), excluded, true)
+	var police := _choose_block(Vector2(bounds_min.x + span.x * 0.17, 0.0), excluded, true)
 	excluded[police] = true
-	var contraband := _choose_block(Vector2(bounds_min.x + span.x * 0.82, bounds_min.y + span.y * 0.20), excluded, true)
+	var contraband := _choose_block(Vector2(bounds_min.x + span.x * 0.82, bounds_min.y + span.y * 0.22), excluded, true)
 	excluded[contraband] = true
-	var arms := _choose_block(Vector2(bounds_min.x + span.x * 0.82, bounds_min.y + span.y * 0.80), excluded, true)
+	var arms := _choose_block(Vector2(bounds_min.x + span.x * 0.82, bounds_min.y + span.y * 0.78), excluded, true)
 
 	_anchors = {
 		"commons": commons,
@@ -76,9 +76,9 @@ func _choose_block(target: Vector2, excluded: Dictionary, prefer_large: bool = f
 			continue
 		var rect: Dictionary = _block_rect(grid_pos)
 		var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
-		var width: float = float(rect.get("width", 19.0))
-		var depth: float = float(rect.get("depth", 19.0))
-		var area_bonus: float = minf(width * depth / 180.0, 6.0) if prefer_large else 0.0
+		var width: float = float(rect.get("width", 22.0))
+		var depth: float = float(rect.get("depth", 22.0))
+		var area_bonus: float = minf(width * depth / 240.0, 5.0) if prefer_large else 0.0
 		var score: float = Vector2(center.x, center.z).distance_to(target) - area_bonus
 		if score < best_score:
 			best_score = score
@@ -89,8 +89,8 @@ func _block_rect(grid_pos: Vector2i) -> Dictionary:
 	var sizes_variant: Variant = _layout.get("block_sizes", {})
 	var sizes: Dictionary = sizes_variant as Dictionary if sizes_variant is Dictionary else {}
 	var grid_size: Vector2i = sizes.get(grid_pos, Vector2i.ONE)
-	var block_size: float = float(_layout.get("block_size", 19.0))
-	var street_width: float = float(_layout.get("street_width", 9.5))
+	var block_size: float = float(_layout.get("block_size", 22.0))
+	var street_width: float = float(_layout.get("street_width", 8.2))
 	var stride: float = float(_layout.get("stride", block_size + street_width))
 	var offset: Vector3 = _layout.get("origin_offset", Vector3.ZERO) as Vector3
 	var width: float = float(grid_size.x) * block_size + float(grid_size.x - 1) * street_width
@@ -117,7 +117,7 @@ func _build_generated_blocks() -> void:
 		var grid_pos := value as Vector2i
 		var rect: Dictionary = _block_rect(grid_pos)
 		var district: String = str(districts.get(grid_pos, "residential"))
-		_add_block_sidewalk(grid_pos, rect, district)
+		_add_block_surface(grid_pos, rect, district)
 
 		if grid_pos == (_anchors.get("commons", Vector2i.ZERO) as Vector2i):
 			_build_commons(rect)
@@ -130,99 +130,134 @@ func _build_generated_blocks() -> void:
 		else:
 			_build_generic_block(rect, district)
 
-func _add_block_sidewalk(grid_pos: Vector2i, rect: Dictionary, district: String) -> void:
+func _add_block_surface(grid_pos: Vector2i, rect: Dictionary, district: String) -> void:
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
-	var width: float = float(rect.get("width", 19.0))
-	var depth: float = float(rect.get("depth", 19.0))
+	var width: float = float(rect.get("width", 22.0))
+	var depth: float = float(rect.get("depth", 22.0))
 	var pad := MeshInstance3D.new()
 	pad.name = "Block_%d_%d" % [grid_pos.x, grid_pos.y]
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(maxf(width - 0.35, 1.0), 0.14, maxf(depth - 0.35, 1.0))
+	mesh.size = Vector3(maxf(width - 0.70, 1.0), 0.11, maxf(depth - 0.70, 1.0))
 	pad.mesh = mesh
-	pad.position = center + Vector3(0.0, 0.035, 0.0)
+	pad.position = center + Vector3(0.0, 0.025, 0.0)
 	var material := StandardMaterial3D.new()
 	match district:
 		"commercial":
-			material.albedo_color = Color(0.255, 0.252, 0.245, 1.0)
+			material.albedo_color = Color(0.245, 0.242, 0.235, 1.0)
 		"industrial":
-			material.albedo_color = Color(0.185, 0.188, 0.185, 1.0)
+			material.albedo_color = Color(0.175, 0.178, 0.176, 1.0)
 		_:
-			material.albedo_color = Color(0.225, 0.225, 0.215, 1.0)
+			material.albedo_color = Color(0.205, 0.207, 0.198, 1.0)
 	material.roughness = 0.98
 	pad.material_override = material
 	add_child(pad)
 
 func _build_generic_block(rect: Dictionary, district: String) -> void:
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
-	var width: float = float(rect.get("width", 19.0))
-	var depth: float = float(rect.get("depth", 19.0))
-	var large_x: bool = width > 29.0
-	var large_z: bool = depth > 29.0
+	var width: float = float(rect.get("width", 22.0))
+	var depth: float = float(rect.get("depth", 22.0))
+	var large_x: bool = width > 31.0
+	var large_z: bool = depth > 31.0
 	var tokens: Array[String] = _district_tokens(district)
 	var fallback: Color = _district_fallback(district)
-	var base_height: float = 5.0 if district == "industrial" else (7.2 if district == "commercial" else 5.8)
+	var base_height: float = 5.0 if district == "industrial" else (7.0 if district == "commercial" else 5.6)
 
 	if large_x and large_z:
-		# True superblock: four perimeter buildings with a usable interior court.
-		var bw: float = minf(width * 0.36, 15.0)
-		var bd: float = minf(depth * 0.36, 14.0)
-		var x_offset: float = width * 0.5 - bw * 0.5 - 1.8
-		var z_offset: float = depth * 0.5 - bd * 0.5 - 1.8
-		for corner: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(-1, 1), Vector2(1, 1)]:
-			_add_external_building(
-				"CityBuilding_%03d" % _building_serial,
-				Vector3(bw, base_height + float(_building_serial % 3) * 0.8, bd),
-				center + Vector3(corner.x * x_offset, (base_height + float(_building_serial % 3) * 0.8) * 0.5, corner.y * z_offset),
-				fallback,
-				_building_serial,
-				tokens,
-				0.0 if corner.y < 0.0 else 180.0
-			)
-			_building_serial += 1
-		_add_courtyard(center, Vector2(maxf(width * 0.26, 5.0), maxf(depth * 0.26, 5.0)), district)
+		_build_superblock(center, width, depth, district, tokens, fallback, base_height)
 		return
 
 	if large_x:
-		var count: int = 3 if width > 48.0 else 2
-		var slot: float = (width - 5.0) / float(count)
-		for index: int in range(count):
-			var x: float = center.x - width * 0.5 + 2.5 + slot * (float(index) + 0.5)
-			var h: float = base_height + float((_building_serial + index) % 3) * 0.7
-			_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(slot * 0.80, h, minf(depth - 5.0, 13.0)), Vector3(x, h * 0.5, center.z), fallback, _building_serial, tokens, _street_yaw(center))
-			_building_serial += 1
+		_build_long_x_block(center, width, depth, tokens, fallback, base_height)
 		return
 
 	if large_z:
-		var count: int = 3 if depth > 48.0 else 2
-		var slot: float = (depth - 5.0) / float(count)
-		for index: int in range(count):
-			var z: float = center.z - depth * 0.5 + 2.5 + slot * (float(index) + 0.5)
-			var h: float = base_height + float((_building_serial + index) % 3) * 0.7
-			_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(minf(width - 5.0, 13.0), h, slot * 0.80), Vector3(center.x, h * 0.5, z), fallback, _building_serial, tokens, _street_yaw(center))
-			_building_serial += 1
+		_build_long_z_block(center, width, depth, tokens, fallback, base_height)
 		return
 
-	# Normal city block. Industrial blocks leave more yard; commercial blocks
-	# build tighter to the sidewalk; residential sits between those extremes.
-	var inset: float = 5.8 if district == "industrial" else (3.8 if district == "commercial" else 4.8)
-	var target_width: float = maxf(minf(width - inset, 15.0), 7.0)
-	var target_depth: float = maxf(minf(depth - inset, 14.0), 7.0)
-	var height: float = base_height + float(_building_serial % 4) * 0.65
+	var inset: float = 6.2 if district == "industrial" else (4.0 if district == "commercial" else 5.0)
+	var target_width: float = maxf(minf(width - inset, 15.5), 8.0)
+	var target_depth: float = maxf(minf(depth - inset, 14.5), 8.0)
+	var height: float = base_height + float(_building_serial % 4) * 0.60
 	var toward: Vector3 = _toward_city(center)
-	var setback: float = 1.8 if district == "commercial" else 2.8
-	var building_center: Vector3 = center - toward * setback
-	_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(target_width, height, target_depth), Vector3(building_center.x, height * 0.5, building_center.z), fallback, _building_serial, tokens, _street_yaw(center))
+	var setback: float = 1.5 if district == "commercial" else (2.8 if district == "industrial" else 2.2)
+	var building_center: Vector3 = _frontage_aligned_center(center, width, depth, target_width, target_depth, toward, setback)
+	_add_external_building(
+		"CityBuilding_%03d" % _building_serial,
+		Vector3(target_width, height, target_depth),
+		Vector3(building_center.x, height * 0.5, building_center.z),
+		fallback,
+		_building_serial,
+		tokens,
+		_yaw_for_direction(toward)
+	)
 	_building_serial += 1
 
 	if district == "industrial":
-		_add_prop("ServiceBin_%03d" % _building_serial, center + Vector3(width * 0.32, 0.0, depth * 0.30), ["dumpster", "trash", "bin"], _building_serial, 1.25, 1.8)
+		var lateral := _lateral(toward)
+		_add_prop("ServiceBin_%03d" % _building_serial, center - toward * 3.0 + lateral * 4.0, ["dumpster", "trash", "bin"], _building_serial, 1.25, 1.8)
+
+func _build_superblock(center: Vector3, width: float, depth: float, district: String, tokens: Array[String], fallback: Color, base_height: float) -> void:
+	# Perimeter buildings instead of four disconnected corner boxes. This reads
+	# as one urban block and leaves an intentional service/courtyard interior.
+	var ns_width: float = minf(width * 0.48, 22.0)
+	var ns_depth: float = minf(depth * 0.24, 12.5)
+	var ew_width: float = minf(width * 0.24, 12.5)
+	var ew_depth: float = minf(depth * 0.48, 22.0)
+	var z_offset: float = depth * 0.5 - ns_depth * 0.5 - 2.0
+	var x_offset: float = width * 0.5 - ew_width * 0.5 - 2.0
+
+	var placements: Array[Dictionary] = [
+		{"size": Vector3(ns_width, base_height + 1.2, ns_depth), "pos": center + Vector3(0, 0, -z_offset), "dir": Vector3(0, 0, -1)},
+		{"size": Vector3(ns_width, base_height + 0.5, ns_depth), "pos": center + Vector3(0, 0, z_offset), "dir": Vector3(0, 0, 1)},
+		{"size": Vector3(ew_width, base_height + 0.8, ew_depth), "pos": center + Vector3(-x_offset, 0, 0), "dir": Vector3(-1, 0, 0)},
+		{"size": Vector3(ew_width, base_height + 1.6, ew_depth), "pos": center + Vector3(x_offset, 0, 0), "dir": Vector3(1, 0, 0)},
+	]
+	for placement: Dictionary in placements:
+		var size: Vector3 = placement["size"] as Vector3
+		var pos: Vector3 = placement["pos"] as Vector3
+		var direction: Vector3 = placement["dir"] as Vector3
+		_add_external_building(
+			"CityBuilding_%03d" % _building_serial,
+			size,
+			Vector3(pos.x, size.y * 0.5, pos.z),
+			fallback,
+			_building_serial,
+			tokens,
+			_yaw_for_direction(direction)
+		)
+		_building_serial += 1
+	_add_courtyard(center, Vector2(maxf(width * 0.30, 8.0), maxf(depth * 0.30, 8.0)), district)
+
+func _build_long_x_block(center: Vector3, width: float, depth: float, tokens: Array[String], fallback: Color, base_height: float) -> void:
+	var direction := Vector3(0.0, 0.0, -1.0 if center.z >= 0.0 else 1.0)
+	var count: int = 3 if width > 50.0 else 2
+	var slot: float = (width - 6.0) / float(count)
+	var building_depth: float = minf(depth - 5.0, 13.5)
+	var row_z: float = center.z + direction.z * maxf(depth * 0.5 - building_depth * 0.5 - 1.8, 0.0)
+	for index: int in range(count):
+		var x: float = center.x - width * 0.5 + 3.0 + slot * (float(index) + 0.5)
+		var h: float = base_height + float((_building_serial + index) % 3) * 0.75
+		_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(slot * 0.82, h, building_depth), Vector3(x, h * 0.5, row_z), fallback, _building_serial, tokens, _yaw_for_direction(direction))
+		_building_serial += 1
+
+func _build_long_z_block(center: Vector3, width: float, depth: float, tokens: Array[String], fallback: Color, base_height: float) -> void:
+	var direction := Vector3(-1.0 if center.x >= 0.0 else 1.0, 0.0, 0.0)
+	var count: int = 3 if depth > 50.0 else 2
+	var slot: float = (depth - 6.0) / float(count)
+	var building_width: float = minf(width - 5.0, 13.5)
+	var row_x: float = center.x + direction.x * maxf(width * 0.5 - building_width * 0.5 - 1.8, 0.0)
+	for index: int in range(count):
+		var z: float = center.z - depth * 0.5 + 3.0 + slot * (float(index) + 0.5)
+		var h: float = base_height + float((_building_serial + index) % 3) * 0.75
+		_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(building_width, h, slot * 0.82), Vector3(row_x, h * 0.5, z), fallback, _building_serial, tokens, _yaw_for_direction(direction))
+		_building_serial += 1
 
 func _build_faction_base(rect: Dictionary, faction: String) -> void:
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
-	var width: float = float(rect.get("width", 19.0))
-	var depth: float = float(rect.get("depth", 19.0))
+	var width: float = float(rect.get("width", 22.0))
+	var depth: float = float(rect.get("depth", 22.0))
 	var toward: Vector3 = _toward_city(center)
-	var height: float = 7.4 if faction == "police" else (5.8 if faction == "contraband" else 6.4)
+	var height: float = 8.0 if faction == "police" else (6.2 if faction == "contraband" else 6.8)
 	var tokens: Array[String]
 	var fallback: Color
 	match faction:
@@ -236,28 +271,35 @@ func _build_faction_base(rect: Dictionary, faction: String) -> void:
 			tokens = ["industrial", "warehouse", "store", "building"]
 			fallback = Color(0.20, 0.17, 0.15, 1.0)
 
-	var building_width: float = maxf(minf(width * 0.68, 20.0), 10.0)
-	var building_depth: float = maxf(minf(depth * 0.62, 17.0), 9.0)
-	var backshift: float = minf(minf(width, depth) * 0.10, 3.5)
-	var building_center: Vector3 = center - toward * backshift
-	_add_external_building("%sHeadquarters" % faction.capitalize(), Vector3(building_width, height, building_depth), Vector3(building_center.x, height * 0.5, building_center.z), fallback, 30 + _building_serial, tokens, _street_yaw(center))
+	var building_width: float = maxf(minf(width * 0.66, 21.0), 11.0)
+	var building_depth: float = maxf(minf(depth * 0.60, 18.0), 10.0)
+	var building_center: Vector3 = _frontage_aligned_center(center, width, depth, building_width, building_depth, toward, 2.6)
+	_add_external_building(
+		"%sHeadquarters" % faction.capitalize(),
+		Vector3(building_width, height, building_depth),
+		Vector3(building_center.x, height * 0.5, building_center.z),
+		fallback,
+		30 + _building_serial,
+		tokens,
+		_yaw_for_direction(toward)
+	)
 	_building_serial += 1
 
-	# Small forecourt keeps the entrance readable without giant faction paint.
 	var front: Vector3 = _frontage_point(rect)
-	_add_plaza("%sForecourt" % faction.capitalize(), (front + center) * 0.5, Vector2(5.0, 5.0), Color(0.30, 0.30, 0.29, 1.0))
+	var plaza_center: Vector3 = (front + building_center) * 0.5
+	_add_plaza("%sForecourt" % faction.capitalize(), plaza_center, Vector2(5.5, 5.5), Color(0.29, 0.29, 0.285, 1.0))
 
 func _build_commons(rect: Dictionary) -> void:
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
-	var width: float = float(rect.get("width", 19.0))
-	var depth: float = float(rect.get("depth", 19.0))
-	_add_plaza("CentralCommons", center, Vector2(maxf(width - 1.0, 8.0), maxf(depth - 1.0, 8.0)), Color(0.325, 0.315, 0.295, 1.0))
+	var width: float = float(rect.get("width", 22.0))
+	var depth: float = float(rect.get("depth", 22.0))
+	_add_plaza("CentralCommons", center, Vector2(maxf(width - 1.4, 9.0), maxf(depth - 1.4, 9.0)), Color(0.315, 0.305, 0.29, 1.0))
 
-	var kiosk_height: float = 3.4
-	var kiosk_width: float = minf(maxf(width * 0.20, 4.5), 7.0)
-	var kiosk_depth: float = minf(maxf(depth * 0.22, 4.5), 7.0)
-	_add_external_building("CommonsKioskA", Vector3(kiosk_width, kiosk_height, kiosk_depth), center + Vector3(-width * 0.30, kiosk_height * 0.5, depth * 0.28), Color(0.23, 0.23, 0.22, 1.0), 70, ["store", "shop", "building"], 90.0)
-	_add_external_building("CommonsKioskB", Vector3(kiosk_width, kiosk_height, kiosk_depth), center + Vector3(width * 0.30, kiosk_height * 0.5, -depth * 0.28), Color(0.23, 0.23, 0.22, 1.0), 71, ["store", "shop", "building"], -90.0)
+	var kiosk_height: float = 3.6
+	var kiosk_width: float = minf(maxf(width * 0.18, 4.5), 7.0)
+	var kiosk_depth: float = minf(maxf(depth * 0.20, 4.5), 7.0)
+	_add_external_building("CommonsKioskA", Vector3(kiosk_width, kiosk_height, kiosk_depth), center + Vector3(-width * 0.31, kiosk_height * 0.5, depth * 0.27), Color(0.23, 0.23, 0.22, 1.0), 70, ["store", "shop", "building"], 90.0)
+	_add_external_building("CommonsKioskB", Vector3(kiosk_width, kiosk_height, kiosk_depth), center + Vector3(width * 0.31, kiosk_height * 0.5, -depth * 0.27), Color(0.23, 0.23, 0.22, 1.0), 71, ["store", "shop", "building"], -90.0)
 
 func _build_street_dressing() -> void:
 	var active_variant: Variant = _layout.get("active_blocks", [])
@@ -271,17 +313,21 @@ func _build_street_dressing() -> void:
 		var grid_pos := value as Vector2i
 		var rect: Dictionary = _block_rect(grid_pos)
 		var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
-		var width: float = float(rect.get("width", 19.0))
-		var depth: float = float(rect.get("depth", 19.0))
+		var direction := _toward_city(center)
+		var lateral := _lateral(direction)
+		var frontage := _frontage_point(rect)
+		var width: float = float(rect.get("width", 22.0))
+		var depth: float = float(rect.get("depth", 22.0))
+		var lateral_span: float = (depth if absf(direction.x) > 0.5 else width) * 0.28
 		if index % 2 == 0:
-			_add_prop("StreetLamp_%03d" % index, center + Vector3(-width * 0.5 + 1.0, 0.0, -depth * 0.5 + 1.0), ["streetlight", "street_light", "lamp"], index, 3.2, 1.0)
+			_add_prop("StreetLamp_%03d" % index, frontage + lateral * lateral_span - direction * 0.5, ["streetlight", "street_light", "lamp"], index, 3.2, 1.0)
 		if str(districts.get(grid_pos, "")) == "commercial" and index % 3 == 0:
-			_add_prop("StreetTrash_%03d" % index, center + Vector3(width * 0.5 - 1.2, 0.0, depth * 0.5 - 1.2), ["trash", "garbage", "bin"], index, 1.0, 1.3)
+			_add_prop("StreetTrash_%03d" % index, frontage - lateral * lateral_span - direction * 0.7, ["trash", "garbage", "bin"], index, 1.0, 1.3)
 		index += 1
 
 	if not _commons_rect.is_empty():
 		var commons_center: Vector3 = _commons_rect.get("center", Vector3.ZERO) as Vector3
-		for offset: Vector3 in [Vector3(-3.8, 0, -2.5), Vector3(3.8, 0, 2.5)]:
+		for offset: Vector3 in [Vector3(-4.2, 0, -2.8), Vector3(4.2, 0, 2.8)]:
 			_add_prop("CommonsBench_%s" % str(offset), commons_center + offset, ["bench", "seat"], int(absf(offset.x) * 10.0), 0.95, 2.1, 90.0)
 
 func _place_gameplay_nodes() -> void:
@@ -300,36 +346,46 @@ func _place_gameplay_nodes() -> void:
 		_anchors.get("contraband", Vector2i.ZERO): true,
 		_anchors.get("arms", Vector2i.ZERO): true,
 	}
-	var bounds_min: Vector2 = _layout.get("bounds_min", Vector2(-60, -60)) as Vector2
-	var bounds_max: Vector2 = _layout.get("bounds_max", Vector2(60, 60)) as Vector2
+	var bounds_min: Vector2 = _layout.get("bounds_min", Vector2(-75, -75)) as Vector2
+	var bounds_max: Vector2 = _layout.get("bounds_max", Vector2(75, 75)) as Vector2
 	var span := bounds_max - bounds_min
-	var drug_block := _choose_block(Vector2(bounds_min.x + span.x * 0.28, bounds_min.y + span.y * 0.34), excluded)
+	var drug_block := _choose_block(Vector2(bounds_min.x + span.x * 0.28, bounds_min.y + span.y * 0.36), excluded)
 	excluded[drug_block] = true
-	var gun_block := _choose_block(Vector2(bounds_min.x + span.x * 0.70, bounds_min.y + span.y * 0.30), excluded)
+	var gun_block := _choose_block(Vector2(bounds_min.x + span.x * 0.70, bounds_min.y + span.y * 0.31), excluded)
 	excluded[gun_block] = true
-	var interdict_block := _choose_block(Vector2(bounds_min.x + span.x * 0.70, bounds_min.y + span.y * 0.70), excluded)
+	var interdict_block := _choose_block(Vector2(bounds_min.x + span.x * 0.70, bounds_min.y + span.y * 0.69), excluded)
 
-	var drug_pos: Vector3 = _frontage_point(_block_rect(drug_block))
-	var gun_pos: Vector3 = _frontage_point(_block_rect(gun_block))
-	var interdict_pos: Vector3 = _frontage_point(_block_rect(interdict_block))
+	var drug_rect := _block_rect(drug_block)
+	var gun_rect := _block_rect(gun_block)
+	var interdict_rect := _block_rect(interdict_block)
+	var drug_pos: Vector3 = _frontage_point(drug_rect)
+	var gun_pos: Vector3 = _frontage_point(gun_rect)
+	var interdict_pos: Vector3 = _frontage_point(interdict_rect)
 	_set_node_position("DrugBuyer", drug_pos)
 	_set_node_position("GunrunnerBuyer", gun_pos)
 	_set_node_position("InterdictionCache", interdict_pos)
 
-	_set_node_position("FFAEntrance", commons_center + Vector3(0.0, 0.0, -2.8))
-	_set_node_position("KnifeVendor", commons_center + Vector3(-2.7, 0.0, 3.0))
-	_set_node_position("BatVendor", commons_center + Vector3(0.0, 0.0, 3.0))
-	_set_node_position("PistolVendor", commons_center + Vector3(2.7, 0.0, 3.0))
+	_set_node_position("FFAEntrance", commons_center + Vector3(0.0, 0.0, -3.2))
+	_set_node_position("KnifeVendor", commons_center + Vector3(-3.0, 0.0, 3.4))
+	_set_node_position("BatVendor", commons_center + Vector3(0.0, 0.0, 3.4))
+	_set_node_position("PistolVendor", commons_center + Vector3(3.0, 0.0, 3.4))
 
-	_set_node_position("BeatCopA", drug_pos + Vector3(-3.0, 0.95, 3.0))
-	_set_node_position("BeatCopB", _frontage_point(police_rect) + Vector3(3.0, 0.95, -3.0))
-	_set_node_position("ContrabandGuardA", gun_pos + Vector3(-3.0, 0.95, 2.5))
-	_set_node_position("ContrabandGuardB", _frontage_point(contra_rect) + Vector3(3.0, 0.95, 2.5))
-	_set_node_position("ArmsGuardA", interdict_pos + Vector3(-3.0, 0.95, -2.5))
-	_set_node_position("ArmsGuardB", _frontage_point(arms_rect) + Vector3(3.0, 0.95, -2.5))
+	_place_guard_near_frontage("BeatCopA", drug_rect, -3.0)
+	_place_guard_near_frontage("BeatCopB", police_rect, 3.0)
+	_place_guard_near_frontage("ContrabandGuardA", gun_rect, -3.0)
+	_place_guard_near_frontage("ContrabandGuardB", contra_rect, 3.0)
+	_place_guard_near_frontage("ArmsGuardA", interdict_rect, -3.0)
+	_place_guard_near_frontage("ArmsGuardB", arms_rect, 3.0)
 
 	if _player != null:
 		_player.global_position = commons_center + Vector3(0.0, 0.95, 0.0)
+
+func _place_guard_near_frontage(node_name: String, rect: Dictionary, lateral_amount: float) -> void:
+	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
+	var direction := _toward_city(center)
+	var position_value := _frontage_point(rect) + _lateral(direction) * lateral_amount - direction * 1.2
+	position_value.y = 0.95
+	_set_node_position(node_name, position_value)
 
 func _place_base_entrance(node_name: String, rect: Dictionary) -> void:
 	var node: Node3D = get_node_or_null(node_name) as Node3D
@@ -338,7 +394,7 @@ func _place_base_entrance(node_name: String, rect: Dictionary) -> void:
 	var front: Vector3 = _frontage_point(rect)
 	var toward: Vector3 = _toward_city(rect.get("center", Vector3.ZERO) as Vector3)
 	node.global_position = front
-	node.set("city_return_position", front + toward * 2.3 + Vector3(0.0, 0.95, 0.0))
+	node.set("city_return_position", front - toward * 2.3 + Vector3(0.0, 0.95, 0.0))
 
 func _set_node_position(node_name: String, position_value: Vector3) -> void:
 	var node: Node3D = get_node_or_null(node_name) as Node3D
@@ -347,24 +403,36 @@ func _set_node_position(node_name: String, position_value: Vector3) -> void:
 
 func _frontage_point(rect: Dictionary) -> Vector3:
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
-	var width: float = float(rect.get("width", 19.0))
-	var depth: float = float(rect.get("depth", 19.0))
+	var width: float = float(rect.get("width", 22.0))
+	var depth: float = float(rect.get("depth", 22.0))
 	var toward: Vector3 = _toward_city(center)
-	if absf(toward.x) >= absf(toward.z):
-		var side_x: float = 1.0 if toward.x >= 0.0 else -1.0
-		return Vector3(center.x + side_x * (width * 0.5 - 1.1), 0.0, center.z)
-	var side_z: float = 1.0 if toward.z >= 0.0 else -1.0
-	return Vector3(center.x, 0.0, center.z + side_z * (depth * 0.5 - 1.1))
+	if absf(toward.x) > 0.5:
+		return Vector3(center.x + toward.x * (width * 0.5 - 1.2), 0.0, center.z)
+	return Vector3(center.x, 0.0, center.z + toward.z * (depth * 0.5 - 1.2))
 
 func _toward_city(center: Vector3) -> Vector3:
-	var direction := Vector3(-center.x, 0.0, -center.z)
-	if direction.length_squared() < 0.001:
-		return Vector3(0.0, 0.0, -1.0)
-	return direction.normalized()
+	# Snap frontage to a real cardinal street face. The previous normalized vector
+	# made buildings rotate diagonally across orthogonal blocks.
+	var dx: float = -center.x
+	var dz: float = -center.z
+	if absf(dx) >= absf(dz) and absf(dx) > 0.001:
+		return Vector3(1.0 if dx > 0.0 else -1.0, 0.0, 0.0)
+	if absf(dz) > 0.001:
+		return Vector3(0.0, 0.0, 1.0 if dz > 0.0 else -1.0)
+	return Vector3(0.0, 0.0, -1.0)
 
-func _street_yaw(center: Vector3) -> float:
-	var toward: Vector3 = _toward_city(center)
-	return rad_to_deg(atan2(toward.x, toward.z))
+func _frontage_aligned_center(center: Vector3, block_width: float, block_depth: float, building_width: float, building_depth: float, direction: Vector3, setback: float) -> Vector3:
+	if absf(direction.x) > 0.5:
+		var offset_x: float = maxf(block_width * 0.5 - building_width * 0.5 - setback, 0.0)
+		return center + direction * offset_x
+	var offset_z: float = maxf(block_depth * 0.5 - building_depth * 0.5 - setback, 0.0)
+	return center + direction * offset_z
+
+func _lateral(direction: Vector3) -> Vector3:
+	return Vector3(-direction.z, 0.0, direction.x)
+
+func _yaw_for_direction(direction: Vector3) -> float:
+	return rad_to_deg(atan2(direction.x, direction.z))
 
 func _district_tokens(district: String) -> Array[String]:
 	match district:
@@ -457,11 +525,23 @@ func _update_territory() -> void:
 	if _player == null:
 		return
 	var position_value: Vector3 = _player.global_position
-	if _point_in_rect(position_value, _commons_rect, 2.0):
+	if _point_in_rect(position_value, _commons_rect, 2.5):
 		GameSession.set_territory(GameSession.Territory.NEUTRAL)
-	elif position_value.x < 0.0:
+		return
+
+	# Generated city boundaries are no longer assumed to be clean quadrants.
+	# Territory follows the nearest faction hub, which keeps the gameplay map in
+	# sync with whatever valid CityCrafter topology we actually generated.
+	var police_center: Vector3 = (_block_rect(_anchors.get("police", Vector2i.ZERO) as Vector2i)).get("center", Vector3.ZERO) as Vector3
+	var contra_center: Vector3 = (_block_rect(_anchors.get("contraband", Vector2i.ZERO) as Vector2i)).get("center", Vector3.ZERO) as Vector3
+	var arms_center: Vector3 = (_block_rect(_anchors.get("arms", Vector2i.ZERO) as Vector2i)).get("center", Vector3.ZERO) as Vector3
+	var p := Vector2(position_value.x, position_value.z)
+	var police_distance: float = p.distance_squared_to(Vector2(police_center.x, police_center.z))
+	var contra_distance: float = p.distance_squared_to(Vector2(contra_center.x, contra_center.z))
+	var arms_distance: float = p.distance_squared_to(Vector2(arms_center.x, arms_center.z))
+	if police_distance <= contra_distance and police_distance <= arms_distance:
 		GameSession.set_territory(GameSession.Territory.POLICE)
-	elif position_value.z < 0.0:
+	elif contra_distance <= arms_distance:
 		GameSession.set_territory(GameSession.Territory.CONTRABAND)
 	else:
 		GameSession.set_territory(GameSession.Territory.ARMS)
