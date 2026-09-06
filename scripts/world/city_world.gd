@@ -3,6 +3,11 @@ extends Node3D
 
 @export var player_path: NodePath = NodePath("Player")
 
+const SIDEWALK_DEPTH := 1.65
+const CURB_WIDTH := 0.16
+const SIDEWALK_HEIGHT := 0.12
+const LOT_HEIGHT := 0.055
+
 var _player: Node3D = null
 var _layout: Dictionary = {}
 var _anchors: Dictionary = {}
@@ -134,23 +139,49 @@ func _add_block_surface(grid_pos: Vector2i, rect: Dictionary, district: String) 
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
 	var width: float = float(rect.get("width", 22.0))
 	var depth: float = float(rect.get("depth", 22.0))
-	var pad := MeshInstance3D.new()
-	pad.name = "Block_%d_%d" % [grid_pos.x, grid_pos.y]
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(maxf(width - 0.70, 1.0), 0.11, maxf(depth - 0.70, 1.0))
-	pad.mesh = mesh
-	pad.position = center + Vector3(0.0, 0.025, 0.0)
-	var material := StandardMaterial3D.new()
+	var lot_width: float = maxf(width - SIDEWALK_DEPTH * 2.0, 2.0)
+	var lot_depth: float = maxf(depth - SIDEWALK_DEPTH * 2.0, 2.0)
+
+	_add_surface_box(
+		"Lot_%d_%d" % [grid_pos.x, grid_pos.y],
+		center + Vector3(0.0, LOT_HEIGHT * 0.5, 0.0),
+		Vector3(lot_width, LOT_HEIGHT, lot_depth),
+		_lot_color(district)
+	)
+
+	var sidewalk_color := _sidewalk_color(district)
+	var north_z: float = center.z - depth * 0.5 + SIDEWALK_DEPTH * 0.5
+	var south_z: float = center.z + depth * 0.5 - SIDEWALK_DEPTH * 0.5
+	var west_x: float = center.x - width * 0.5 + SIDEWALK_DEPTH * 0.5
+	var east_x: float = center.x + width * 0.5 - SIDEWALK_DEPTH * 0.5
+	_add_surface_box("SidewalkN_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x, SIDEWALK_HEIGHT * 0.5, north_z), Vector3(width, SIDEWALK_HEIGHT, SIDEWALK_DEPTH), sidewalk_color)
+	_add_surface_box("SidewalkS_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x, SIDEWALK_HEIGHT * 0.5, south_z), Vector3(width, SIDEWALK_HEIGHT, SIDEWALK_DEPTH), sidewalk_color)
+	_add_surface_box("SidewalkW_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(west_x, SIDEWALK_HEIGHT * 0.5, center.z), Vector3(SIDEWALK_DEPTH, SIDEWALK_HEIGHT, maxf(depth - SIDEWALK_DEPTH * 2.0, 1.0)), sidewalk_color)
+	_add_surface_box("SidewalkE_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(east_x, SIDEWALK_HEIGHT * 0.5, center.z), Vector3(SIDEWALK_DEPTH, SIDEWALK_HEIGHT, maxf(depth - SIDEWALK_DEPTH * 2.0, 1.0)), sidewalk_color)
+
+	var curb_color := Color(0.36, 0.36, 0.345, 1.0)
+	_add_surface_box("CurbN_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x, 0.075, center.z - depth * 0.5 + CURB_WIDTH * 0.5), Vector3(width, 0.15, CURB_WIDTH), curb_color)
+	_add_surface_box("CurbS_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x, 0.075, center.z + depth * 0.5 - CURB_WIDTH * 0.5), Vector3(width, 0.15, CURB_WIDTH), curb_color)
+	_add_surface_box("CurbW_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x - width * 0.5 + CURB_WIDTH * 0.5, 0.075, center.z), Vector3(CURB_WIDTH, 0.15, depth), curb_color)
+	_add_surface_box("CurbE_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x + width * 0.5 - CURB_WIDTH * 0.5, 0.075, center.z), Vector3(CURB_WIDTH, 0.15, depth), curb_color)
+
+func _lot_color(district: String) -> Color:
 	match district:
 		"commercial":
-			material.albedo_color = Color(0.245, 0.242, 0.235, 1.0)
+			return Color(0.185, 0.185, 0.178, 1.0)
 		"industrial":
-			material.albedo_color = Color(0.175, 0.178, 0.176, 1.0)
+			return Color(0.125, 0.128, 0.127, 1.0)
 		_:
-			material.albedo_color = Color(0.205, 0.207, 0.198, 1.0)
-	material.roughness = 0.98
-	pad.material_override = material
-	add_child(pad)
+			return Color(0.155, 0.162, 0.15, 1.0)
+
+func _sidewalk_color(district: String) -> Color:
+	match district:
+		"commercial":
+			return Color(0.31, 0.305, 0.292, 1.0)
+		"industrial":
+			return Color(0.245, 0.245, 0.235, 1.0)
+		_:
+			return Color(0.285, 0.285, 0.272, 1.0)
 
 func _build_generic_block(rect: Dictionary, district: String) -> void:
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
@@ -167,19 +198,19 @@ func _build_generic_block(rect: Dictionary, district: String) -> void:
 		return
 
 	if large_x:
-		_build_long_x_block(center, width, depth, tokens, fallback, base_height)
+		_build_long_x_block(center, width, depth, district, tokens, fallback, base_height)
 		return
 
 	if large_z:
-		_build_long_z_block(center, width, depth, tokens, fallback, base_height)
+		_build_long_z_block(center, width, depth, district, tokens, fallback, base_height)
 		return
 
-	var inset: float = 6.2 if district == "industrial" else (4.0 if district == "commercial" else 5.0)
-	var target_width: float = maxf(minf(width - inset, 15.5), 8.0)
-	var target_depth: float = maxf(minf(depth - inset, 14.5), 8.0)
+	var inset: float = 8.2 if district == "industrial" else (4.8 if district == "commercial" else 5.5)
+	var target_width: float = maxf(minf(width - inset, 15.0), 8.0)
+	var target_depth: float = maxf(minf(depth - inset, 13.5), 8.0)
 	var height: float = base_height + float(_building_serial % 4) * 0.60
 	var toward: Vector3 = _toward_city(center)
-	var setback: float = 1.5 if district == "commercial" else (2.8 if district == "industrial" else 2.2)
+	var setback: float = 2.0 if district == "commercial" else (2.6 if district == "industrial" else 2.3)
 	var building_center: Vector3 = _frontage_aligned_center(center, width, depth, target_width, target_depth, toward, setback)
 	_add_external_building(
 		"CityBuilding_%03d" % _building_serial,
@@ -190,19 +221,27 @@ func _build_generic_block(rect: Dictionary, district: String) -> void:
 		tokens,
 		_yaw_for_direction(toward)
 	)
+	var detail_serial: int = _building_serial
 	_building_serial += 1
 
 	if district == "industrial":
 		var lateral := _lateral(toward)
-		_add_prop("ServiceBin_%03d" % _building_serial, center - toward * 3.0 + lateral * 4.0, ["dumpster", "trash", "bin"], _building_serial, 1.25, 1.8)
+		var yard_center: Vector3 = center - toward * 4.2
+		var yard_size := Vector2(5.8, 10.0) if absf(toward.x) > 0.5 else Vector2(10.0, 5.8)
+		_add_parking_lot("IndustrialYard_%03d" % detail_serial, yard_center, yard_size, toward, detail_serial, 2)
+		_add_prop("ServiceBin_%03d" % detail_serial, yard_center + lateral * 3.2, ["dumpster", "trash", "bin"], detail_serial, 1.25, 1.8)
+	elif district == "commercial" and detail_serial % 3 == 0:
+		var pocket_center: Vector3 = center - toward * 4.0
+		var pocket_size := Vector2(4.8, 8.5) if absf(toward.x) > 0.5 else Vector2(8.5, 4.8)
+		_add_parking_lot("ShopParking_%03d" % detail_serial, pocket_center, pocket_size, toward, detail_serial, 1)
 
 func _build_superblock(center: Vector3, width: float, depth: float, district: String, tokens: Array[String], fallback: Color, base_height: float) -> void:
 	var ns_width: float = minf(width * 0.48, 22.0)
 	var ns_depth: float = minf(depth * 0.24, 12.5)
 	var ew_width: float = minf(width * 0.24, 12.5)
 	var ew_depth: float = minf(depth * 0.48, 22.0)
-	var z_offset: float = depth * 0.5 - ns_depth * 0.5 - 2.0
-	var x_offset: float = width * 0.5 - ew_width * 0.5 - 2.0
+	var z_offset: float = depth * 0.5 - ns_depth * 0.5 - 2.4
+	var x_offset: float = width * 0.5 - ew_width * 0.5 - 2.4
 
 	var placements: Array[Dictionary] = [
 		{"size": Vector3(ns_width, base_height + 1.2, ns_depth), "pos": center + Vector3(0, 0, -z_offset), "dir": Vector3(0, 0, -1)},
@@ -225,30 +264,40 @@ func _build_superblock(center: Vector3, width: float, depth: float, district: St
 		)
 		_building_serial += 1
 	_add_courtyard(center, Vector2(maxf(width * 0.30, 8.0), maxf(depth * 0.30, 8.0)), district)
+	if district != "residential":
+		_add_service_lane("SuperblockService_%03d" % _building_serial, center + Vector3(0.0, 0.0, depth * 0.18), Vector2(maxf(width * 0.28, 9.0), 3.2))
 
-func _build_long_x_block(center: Vector3, width: float, depth: float, tokens: Array[String], fallback: Color, base_height: float) -> void:
+func _build_long_x_block(center: Vector3, width: float, depth: float, district: String, tokens: Array[String], fallback: Color, base_height: float) -> void:
 	var direction := Vector3(0.0, 0.0, -1.0 if center.z >= 0.0 else 1.0)
 	var count: int = 3 if width > 50.0 else 2
 	var slot: float = (width - 6.0) / float(count)
-	var building_depth: float = minf(depth - 5.0, 13.5)
-	var row_z: float = center.z + direction.z * maxf(depth * 0.5 - building_depth * 0.5 - 1.8, 0.0)
+	var building_depth: float = minf(depth - 7.0, 12.5)
+	var row_z: float = center.z + direction.z * maxf(depth * 0.5 - building_depth * 0.5 - 2.2, 0.0)
 	for index: int in range(count):
 		var x: float = center.x - width * 0.5 + 3.0 + slot * (float(index) + 0.5)
 		var h: float = base_height + float((_building_serial + index) % 3) * 0.75
-		_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(slot * 0.82, h, building_depth), Vector3(x, h * 0.5, row_z), fallback, _building_serial, tokens, _yaw_for_direction(direction))
+		_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(slot * 0.80, h, building_depth), Vector3(x, h * 0.5, row_z), fallback, _building_serial, tokens, _yaw_for_direction(direction))
 		_building_serial += 1
+	var service_z: float = center.z - direction.z * maxf(depth * 0.5 - 3.4, 0.0)
+	_add_service_lane("RearLaneX_%03d" % _building_serial, Vector3(center.x, 0.0, service_z), Vector2(maxf(width - 5.0, 9.0), 3.1))
+	if district == "industrial" or (_building_serial % 2 == 0 and district == "commercial"):
+		_add_prop("RearDumpsterX_%03d" % _building_serial, Vector3(center.x + width * 0.28, 0.0, service_z), ["dumpster", "trash", "bin"], _building_serial, 1.25, 1.9)
 
-func _build_long_z_block(center: Vector3, width: float, depth: float, tokens: Array[String], fallback: Color, base_height: float) -> void:
+func _build_long_z_block(center: Vector3, width: float, depth: float, district: String, tokens: Array[String], fallback: Color, base_height: float) -> void:
 	var direction := Vector3(-1.0 if center.x >= 0.0 else 1.0, 0.0, 0.0)
 	var count: int = 3 if depth > 50.0 else 2
 	var slot: float = (depth - 6.0) / float(count)
-	var building_width: float = minf(width - 5.0, 13.5)
-	var row_x: float = center.x + direction.x * maxf(width * 0.5 - building_width * 0.5 - 1.8, 0.0)
+	var building_width: float = minf(width - 7.0, 12.5)
+	var row_x: float = center.x + direction.x * maxf(width * 0.5 - building_width * 0.5 - 2.2, 0.0)
 	for index: int in range(count):
 		var z: float = center.z - depth * 0.5 + 3.0 + slot * (float(index) + 0.5)
 		var h: float = base_height + float((_building_serial + index) % 3) * 0.75
-		_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(building_width, h, slot * 0.82), Vector3(row_x, h * 0.5, z), fallback, _building_serial, tokens, _yaw_for_direction(direction))
+		_add_external_building("CityBuilding_%03d" % _building_serial, Vector3(building_width, h, slot * 0.80), Vector3(row_x, h * 0.5, z), fallback, _building_serial, tokens, _yaw_for_direction(direction))
 		_building_serial += 1
+	var service_x: float = center.x - direction.x * maxf(width * 0.5 - 3.4, 0.0)
+	_add_service_lane("RearLaneZ_%03d" % _building_serial, Vector3(service_x, 0.0, center.z), Vector2(3.1, maxf(depth - 5.0, 9.0)))
+	if district == "industrial" or (_building_serial % 2 == 0 and district == "commercial"):
+		_add_prop("RearDumpsterZ_%03d" % _building_serial, Vector3(service_x, 0.0, center.z + depth * 0.28), ["dumpster", "trash", "bin"], _building_serial, 1.25, 1.9)
 
 func _build_faction_base(rect: Dictionary, faction: String) -> void:
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
@@ -269,9 +318,9 @@ func _build_faction_base(rect: Dictionary, faction: String) -> void:
 			tokens = ["industrial", "warehouse", "store", "building"]
 			fallback = Color(0.20, 0.17, 0.15, 1.0)
 
-	var building_width: float = maxf(minf(width * 0.66, 21.0), 11.0)
-	var building_depth: float = maxf(minf(depth * 0.60, 18.0), 10.0)
-	var building_center: Vector3 = _frontage_aligned_center(center, width, depth, building_width, building_depth, toward, 2.6)
+	var building_width: float = maxf(minf(width * 0.62, 20.0), 11.0)
+	var building_depth: float = maxf(minf(depth * 0.56, 17.0), 10.0)
+	var building_center: Vector3 = _frontage_aligned_center(center, width, depth, building_width, building_depth, toward, 2.7)
 	_add_external_building(
 		"%sHeadquarters" % faction.capitalize(),
 		Vector3(building_width, height, building_depth),
@@ -281,23 +330,36 @@ func _build_faction_base(rect: Dictionary, faction: String) -> void:
 		tokens,
 		_yaw_for_direction(toward)
 	)
+	var base_serial: int = _building_serial
 	_building_serial += 1
 
 	var front: Vector3 = _frontage_point(rect)
 	var plaza_center: Vector3 = (front + building_center) * 0.5
 	_add_plaza("%sForecourt" % faction.capitalize(), plaza_center, Vector2(5.5, 5.5), Color(0.29, 0.29, 0.285, 1.0))
 
+	var rear_center: Vector3 = center - toward * 4.5
+	var parking_size := Vector2(5.6, 10.0) if absf(toward.x) > 0.5 else Vector2(10.0, 5.6)
+	_add_parking_lot("%sParking" % faction.capitalize(), rear_center, parking_size, toward, 90 + base_serial, 2 if faction == "police" else 1)
+	if faction == "arms":
+		_add_prop("ArmsLoadingPallet", rear_center + _lateral(toward) * 3.0, ["pallet", "crate", "box"], base_serial, 1.0, 1.6)
+
 func _build_commons(rect: Dictionary) -> void:
 	var center: Vector3 = rect.get("center", Vector3.ZERO) as Vector3
 	var width: float = float(rect.get("width", 22.0))
 	var depth: float = float(rect.get("depth", 22.0))
-	_add_plaza("CentralCommons", center, Vector2(maxf(width - 1.4, 9.0), maxf(depth - 1.4, 9.0)), Color(0.315, 0.305, 0.29, 1.0))
+	_add_plaza("CentralCommons", center, Vector2(maxf(width - 3.0, 9.0), maxf(depth - 3.0, 9.0)), Color(0.315, 0.305, 0.29, 1.0))
 
 	var kiosk_height: float = 3.6
 	var kiosk_width: float = minf(maxf(width * 0.18, 4.5), 7.0)
 	var kiosk_depth: float = minf(maxf(depth * 0.20, 4.5), 7.0)
 	_add_external_building("CommonsKioskA", Vector3(kiosk_width, kiosk_height, kiosk_depth), center + Vector3(-width * 0.31, kiosk_height * 0.5, depth * 0.27), Color(0.23, 0.23, 0.22, 1.0), 70, ["store", "shop", "building"], 90.0)
 	_add_external_building("CommonsKioskB", Vector3(kiosk_width, kiosk_height, kiosk_depth), center + Vector3(width * 0.31, kiosk_height * 0.5, -depth * 0.27), Color(0.23, 0.23, 0.22, 1.0), 71, ["store", "shop", "building"], -90.0)
+	for index: int in range(4):
+		var angle: float = float(index) * TAU / 4.0 + PI * 0.25
+		var offset := Vector3(cos(angle), 0.0, sin(angle)) * minf(width, depth) * 0.28
+		_add_prop("CommonsTree_%02d" % index, center + offset, ["tree", "planter", "plant"], 200 + index, 3.2, 2.4)
+	for x: float in [-5.2, 5.2]:
+		_add_prop("CommonsBollard_%s" % str(x), center + Vector3(x, 0.0, -depth * 0.38), ["bollard", "post", "barrier"], int(absf(x) * 10.0), 0.85, 0.65)
 
 func _build_street_dressing() -> void:
 	var active_variant: Variant = _layout.get("active_blocks", [])
@@ -316,11 +378,22 @@ func _build_street_dressing() -> void:
 		var frontage := _frontage_point(rect)
 		var width: float = float(rect.get("width", 22.0))
 		var depth: float = float(rect.get("depth", 22.0))
-		var lateral_span: float = (depth if absf(direction.x) > 0.5 else width) * 0.28
+		var district: String = str(districts.get(grid_pos, "residential"))
+		var lateral_span: float = (depth if absf(direction.x) > 0.5 else width) * 0.30
+
 		if index % 2 == 0:
-			_add_prop("StreetLamp_%03d" % index, frontage + lateral * lateral_span - direction * 0.5, ["streetlight", "street_light", "lamp"], index, 3.2, 1.0)
-		if str(districts.get(grid_pos, "")) == "commercial" and index % 3 == 0:
-			_add_prop("StreetTrash_%03d" % index, frontage - lateral * lateral_span - direction * 0.7, ["trash", "garbage", "bin"], index, 1.0, 1.3)
+			_add_prop("StreetLamp_%03d" % index, frontage + lateral * lateral_span - direction * 0.35, ["streetlight", "street_light", "lamp"], index, 3.4, 1.0)
+		if index % 3 == 0:
+			_add_prop("Hydrant_%03d" % index, frontage - lateral * lateral_span * 0.72 - direction * 0.30, ["hydrant", "fire_hydrant"], index, 0.82, 0.65)
+		if district == "commercial" and index % 3 == 1:
+			_add_prop("StreetBench_%03d" % index, frontage + lateral * lateral_span * 0.45 - direction * 0.45, ["bench", "seat"], index, 0.95, 2.0, _yaw_for_direction(lateral))
+		if district != "industrial" and index % 4 == 1:
+			_add_prop("StreetTree_%03d" % index, frontage - lateral * lateral_span * 0.50 - direction * 0.55, ["tree", "planter", "plant"], index, 3.0, 2.2)
+		if index % 5 == 2:
+			var parked_pos: Vector3 = frontage + direction * 2.15 + lateral * lateral_span * 0.25
+			_add_prop("ParkedVehicle_%03d" % index, parked_pos, ["car", "vehicle", "sedan", "van"], index, 1.45, 4.4, _yaw_for_direction(lateral))
+		if district == "commercial" and index % 4 == 2:
+			_add_prop("StreetTrash_%03d" % index, frontage - lateral * lateral_span - direction * 0.45, ["trash", "garbage", "bin"], index, 1.0, 1.3)
 		index += 1
 
 	if not _commons_rect.is_empty():
@@ -452,13 +525,34 @@ func _add_courtyard(center: Vector3, size: Vector2, district: String) -> void:
 	var color := Color(0.22, 0.30, 0.21, 1.0) if district == "residential" else (Color(0.23, 0.23, 0.22, 1.0) if district == "commercial" else Color(0.15, 0.15, 0.15, 1.0))
 	_add_plaza("Courtyard_%03d" % _building_serial, center, size, color)
 
+func _add_parking_lot(node_name: String, center: Vector3, size: Vector2, frontage_direction: Vector3, serial: int, parked_vehicle_count: int = 0) -> void:
+	_add_surface_box(node_name, center + Vector3(0.0, 0.085, 0.0), Vector3(size.x, 0.055, size.y), Color(0.09, 0.092, 0.092, 1.0))
+	var lateral := _lateral(frontage_direction)
+	var bay_count: int = maxi(int(floor((size.y if absf(frontage_direction.x) > 0.5 else size.x) / 2.4)), 2)
+	var span: float = size.y if absf(frontage_direction.x) > 0.5 else size.x
+	for index: int in range(1, bay_count):
+		var offset: float = -span * 0.5 + span * float(index) / float(bay_count)
+		var line_center: Vector3 = center + lateral * offset
+		var line_size := Vector3(size.x * 0.72, 0.012, 0.08) if absf(frontage_direction.x) > 0.5 else Vector3(0.08, 0.012, size.y * 0.72)
+		_add_surface_box("%s_Line_%02d" % [node_name, index], line_center + Vector3(0.0, 0.116, 0.0), line_size, Color(0.67, 0.66, 0.59, 1.0))
+	for vehicle_index: int in range(parked_vehicle_count):
+		var offset_factor: float = (float(vehicle_index) - float(parked_vehicle_count - 1) * 0.5) * 2.7
+		var car_pos: Vector3 = center + lateral * offset_factor
+		_add_prop("%s_Car_%02d" % [node_name, vehicle_index], car_pos, ["car", "vehicle", "sedan", "van"], serial + vehicle_index, 1.45, 4.3, _yaw_for_direction(lateral))
+
+func _add_service_lane(node_name: String, center: Vector3, size: Vector2) -> void:
+	_add_surface_box(node_name, center + Vector3(0.0, 0.075, 0.0), Vector3(size.x, 0.045, size.y), Color(0.078, 0.079, 0.08, 1.0))
+
 func _add_plaza(node_name: String, center: Vector3, size: Vector2, color: Color) -> void:
+	_add_surface_box(node_name, center + Vector3(0.0, 0.12, 0.0), Vector3(size.x, 0.08, size.y), color)
+
+func _add_surface_box(node_name: String, center: Vector3, size: Vector3, color: Color) -> void:
 	var pad := MeshInstance3D.new()
 	pad.name = node_name
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(size.x, 0.08, size.y)
+	mesh.size = size
 	pad.mesh = mesh
-	pad.position = center + Vector3(0.0, 0.12, 0.0)
+	pad.position = center
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = 0.98
