@@ -67,12 +67,17 @@ func _build_network() -> void:
 					points.append(point_value as Vector3)
 		if points.size() < 2:
 			continue
+
+		# Compact real-world-ish urban proportions. The old four-lane avenue used
+		# tiny lanes just to fit the procedural block width and looked immediately
+		# fake. Major roads are now two travel lanes with generous curb/parking
+		# shoulders; local streets are two lanes with tighter shoulders.
 		_add_generated_road(
 			str(record.get("name", "Street")),
 			points,
-			4 if is_major else 2,
-			2.15 if is_major else 3.15,
-			0.28 if is_major else 1.20
+			2,
+			3.20 if is_major else 3.05,
+			0.78 if is_major else 0.58
 		)
 
 	_build_intersection_surfaces(major_horizontal, major_vertical)
@@ -86,8 +91,8 @@ func _collect_road_records() -> Array[Dictionary]:
 	var active: Array = active_variant as Array if active_variant is Array else []
 	var sizes_variant: Variant = _layout.get("block_sizes", {})
 	var sizes: Dictionary = sizes_variant as Dictionary if sizes_variant is Dictionary else {}
-	var block_size: float = float(_layout.get("block_size", 19.0))
-	var street_width: float = float(_layout.get("street_width", 9.5))
+	var block_size: float = float(_layout.get("block_size", 22.0))
+	var street_width: float = float(_layout.get("street_width", 8.2))
 	var stride: float = float(_layout.get("stride", block_size + street_width))
 	var offset: Vector3 = _layout.get("origin_offset", Vector3.ZERO) as Vector3
 	var horizontal: Dictionary = {}
@@ -252,7 +257,7 @@ func _handle_length(points: Array[Vector3], index: int) -> float:
 	return clampf(nearest * 0.22, 3.5, 8.0)
 
 func _build_intersection_surfaces(major_horizontal: float, major_vertical: float) -> void:
-	var street_width: float = float(_layout.get("street_width", 9.5))
+	var street_width: float = float(_layout.get("street_width", 8.2))
 	var horizontals: Array[Dictionary] = []
 	var verticals: Array[Dictionary] = []
 	for record: Dictionary in _road_records:
@@ -306,7 +311,7 @@ func _add_crosswalk(position_value: Vector3) -> void:
 		add_child(stripe)
 
 func _build_fallback_network() -> void:
-	var street_width: float = float(_layout.get("street_width", 9.5))
+	var street_width: float = float(_layout.get("street_width", 8.2))
 	for record: Dictionary in _road_records:
 		var points_variant: Variant = record.get("points", [])
 		if not points_variant is Array:
