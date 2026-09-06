@@ -86,20 +86,31 @@ func _add_block_surfaces(block: Dictionary) -> void:
 	var width: float = float(block.get("width", 40.0))
 	var depth: float = float(block.get("depth", 40.0))
 	var sidewalk: float = float(_plan.get("sidewalk_width", 2.15))
+	var corner_clearance: float = float(_plan.get("sidewalk_corner_clearance", 2.4))
 	var district: String = str(block.get("district", "mixed"))
 
+	# The lot begins behind the sidewalk instead of extending underneath it. This
+	# keeps the block surface out of the curved corner footprint of the prefab
+	# intersection and gives road/sidewalk/lot one unambiguous ownership boundary.
+	var lot_width: float = maxf(width - sidewalk * 2.0, 2.0)
+	var lot_depth: float = maxf(depth - sidewalk * 2.0, 2.0)
 	_add_surface_box(
 		"Lot_%s" % str(block.get("id", "block")),
 		center + Vector3(0.0, LOT_HEIGHT * 0.5, 0.0),
-		Vector3(width, LOT_HEIGHT, depth),
+		Vector3(lot_width, LOT_HEIGHT, lot_depth),
 		_lot_color(district)
 	)
 
+	# Straight sidewalk bands deliberately stop short of each intersection. The
+	# Road Generator prefab owns the rounded/junction corner footprint; we do not
+	# draw rectangular concrete over its modeled turn geometry.
+	var walk_ns_length: float = maxf(width - corner_clearance * 2.0, 2.0)
+	var walk_ew_length: float = maxf(depth - corner_clearance * 2.0, 2.0)
 	var sidewalk_color := Color(0.30, 0.30, 0.292, 1.0)
-	_add_surface_box("WalkN_%s" % str(block.get("id", "")), center + Vector3(0.0, SIDEWALK_HEIGHT * 0.5, -depth * 0.5 + sidewalk * 0.5), Vector3(width, SIDEWALK_HEIGHT, sidewalk), sidewalk_color)
-	_add_surface_box("WalkS_%s" % str(block.get("id", "")), center + Vector3(0.0, SIDEWALK_HEIGHT * 0.5, depth * 0.5 - sidewalk * 0.5), Vector3(width, SIDEWALK_HEIGHT, sidewalk), sidewalk_color)
-	_add_surface_box("WalkW_%s" % str(block.get("id", "")), center + Vector3(-width * 0.5 + sidewalk * 0.5, SIDEWALK_HEIGHT * 0.5, 0.0), Vector3(sidewalk, SIDEWALK_HEIGHT, maxf(depth - sidewalk * 2.0, 1.0)), sidewalk_color)
-	_add_surface_box("WalkE_%s" % str(block.get("id", "")), center + Vector3(width * 0.5 - sidewalk * 0.5, SIDEWALK_HEIGHT * 0.5, 0.0), Vector3(sidewalk, SIDEWALK_HEIGHT, maxf(depth - sidewalk * 2.0, 1.0)), sidewalk_color)
+	_add_surface_box("WalkN_%s" % str(block.get("id", "")), center + Vector3(0.0, SIDEWALK_HEIGHT * 0.5, -depth * 0.5 + sidewalk * 0.5), Vector3(walk_ns_length, SIDEWALK_HEIGHT, sidewalk), sidewalk_color)
+	_add_surface_box("WalkS_%s" % str(block.get("id", "")), center + Vector3(0.0, SIDEWALK_HEIGHT * 0.5, depth * 0.5 - sidewalk * 0.5), Vector3(walk_ns_length, SIDEWALK_HEIGHT, sidewalk), sidewalk_color)
+	_add_surface_box("WalkW_%s" % str(block.get("id", "")), center + Vector3(-width * 0.5 + sidewalk * 0.5, SIDEWALK_HEIGHT * 0.5, 0.0), Vector3(sidewalk, SIDEWALK_HEIGHT, walk_ew_length), sidewalk_color)
+	_add_surface_box("WalkE_%s" % str(block.get("id", "")), center + Vector3(width * 0.5 - sidewalk * 0.5, SIDEWALK_HEIGHT * 0.5, 0.0), Vector3(sidewalk, SIDEWALK_HEIGHT, walk_ew_length), sidewalk_color)
 
 func _lot_color(district: String) -> Color:
 	match district:
@@ -192,8 +203,6 @@ func _spawn_secondary_corner(block: Dictionary, direction: Vector3, avoid_direct
 	var depth: float = minf(max_depth, _depth_span(block, direction) * 0.42)
 	var width: float = minf(_lateral_span(block, direction) * 0.34, 15.0)
 	var base := _frontage_center(block, direction, depth, 1.7)
-	# Shift toward the corner opposite the primary frontage. Compare relative lot
-	# offsets, never absolute world coordinates, so this behaves the same anywhere.
 	var center: Vector3 = block.get("center", Vector3.ZERO) as Vector3
 	var lateral := _lateral(direction)
 	var test_a: Vector3 = base + lateral * (_lateral_span(block, direction) * 0.23)
@@ -314,7 +323,6 @@ func _place_base_entrance(node_name: String, block: Dictionary) -> void:
 	var direction: Vector3 = block.get("primary_frontage", Vector3(0, 0, -1)) as Vector3
 	var front: Vector3 = _frontage_point(block, direction)
 	node.global_position = front
-	# Return just inside the sidewalk/forecourt, never into the traffic lane.
 	node.set("city_return_position", front - direction * 1.35 + Vector3(0.0, 0.95, 0.0))
 
 func _place_guard(node_name: String, block: Dictionary, direction: Vector3, lateral_offset: float) -> void:
