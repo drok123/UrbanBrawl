@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat/beat_cop.gd" id="1_cop"]
 [ext_resource type="Script" path="res://scripts/animation/combat_animation_driver_3d.gd" id="2_animation"]
+[ext_resource type="Script" path="res://scripts/animation/quaternius_character_driver_3d.gd" id="3_quaternius"]
 
 [sub_resource type="StandardMaterial3D" id="CopLegacyMaterial"]
 albedo_color = Color(0.12, 0.22, 0.46, 1)
@@ -27,6 +28,11 @@ script = ExtResource("2_animation")
 body_color = Color(0.18, 0.30, 0.58, 1)
 accent_color = Color(0.05, 0.08, 0.14, 1)
 visual_offset = Vector3(0, -0.95, 0)
+
+[node name="ImportedCharacterVisual" type="Node3D" parent="."]
+script = ExtResource("3_quaternius")
+fallback_visual_path = NodePath("../CharacterVisual")
+character_variant_index = 1
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 shape = SubResource("CopShape")
