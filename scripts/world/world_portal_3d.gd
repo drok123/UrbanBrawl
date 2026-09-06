@@ -1,6 +1,8 @@
 class_name WorldPortal3D
 extends Node3D
 
+const PUBLIC_STREET_SCENE := "res://scenes/world/city_street_v2.tscn"
+
 @export_file("*.tscn") var target_scene: String
 @export var title: String = "EXIT"
 @export var subtitle: String = "F  ENTER"
@@ -20,7 +22,7 @@ func interact(actor: Node) -> void:
 	var resolved_target: String = target_scene
 	if GameSession.ffa_active:
 		GameSession.finish_ffa(false)
-		resolved_target = "res://scenes/world/city_world.tscn"
+		resolved_target = PUBLIC_STREET_SCENE
 	var error: Error = get_tree().change_scene_to_file(resolved_target)
 	if error != OK:
 		push_error("Failed to change scene to %s (error %d)" % [resolved_target, error])
