@@ -67,9 +67,9 @@ stand_color = Color(0.13, 0.14, 0.15, 1)
 [node name="CityExit" type="Node3D" parent="."]
 position = Vector3(0, 0, -5.4)
 script = ExtResource("4_exit")
-target_scene = "res://scenes/world/city_world.tscn"
+target_scene = "res://scenes/world/city_street_v2.tscn"
 title = "WORKSHOP EXIT"
-subtitle = "F  RETURN TO CITY"
+subtitle = "F  RETURN TO STREET"
 marker_color = Color(0.92, 0.42, 0.20, 0.58)
 
 [node name="HUD" type="CanvasLayer" parent="."]
