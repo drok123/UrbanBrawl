@@ -23,8 +23,8 @@ Current systems include:
 - police interdiction loop
 - staked FFA weapon-scramble activity
 - Quaternius city/character/animation presentation with procedural fallbacks
-- CityCrafter-driven block topology
-- Godot Road Generator street geometry and traffic-lane foundation
+- authored public-city master plan
+- Godot Road Generator prefab intersections, road geometry and traffic-lane foundation
 
 ## First-time setup
 
@@ -36,8 +36,7 @@ Urban Brawl deliberately uses mature external systems for solved infrastructure 
 4. That installer fetches:
    - `Oen44/Godot-Inventory @ v4.0.1a` for inventory/itemization/equipment/affixes.
    - `bitbrain/beehave @ v2.9.3` for behavior-tree AI.
-   - `TheDuckCow/godot-road-generator @ 0.9.3` for road meshes, collision and AI road lanes.
-   - `SpartanDavie/CityCrafter3D-Aug2025 @ 04aee37` for city block topology/district generation. Only its core generator code is installed; its bundled example city art is intentionally excluded.
+   - `TheDuckCow/godot-road-generator @ 0.9.3` for authored road/intersection meshes, collision and AI road lanes.
 5. For the polished visual prototype, double-click **`INSTALL-VISUAL-PACKS.bat`**.
 6. The visual installer opens the official Quaternius pages if the Standard/free ZIPs are not already in your Windows Downloads folder. Download the free versions of:
    - Downtown City MegaKit
@@ -48,29 +47,25 @@ Urban Brawl deliberately uses mature external systems for solved infrastructure 
 8. Restart/reopen Godot and allow the new 3D assets/addons to import.
 9. Open `project.godot` and press Play.
 
-The Quaternius packs are CC0 and are intentionally installed locally rather than committed as large binary dependencies. If they are missing or fail validation, Urban Brawl automatically keeps the procedural humanoid and graybox building fallbacks.
+The Quaternius packs are CC0 and are intentionally installed locally rather than committed as large binary dependencies. If they are missing or fail validation, Urban Brawl keeps its procedural humanoid and graybox building fallbacks.
 
 ## City construction rule
 
-The public city is now built in layers:
+The production public city is built in this order:
 
-`CityCrafter topology -> Road Generator streets -> Urban Brawl block interpretation -> Quaternius buildings/props -> faction/gameplay placement`
+`Urban Brawl master plan -> Road Generator prefab RoadContainers -> stable block/sidewalk envelopes -> Quaternius complete buildings -> faction/gameplay placement`
 
-CityCrafter determines active blocks, multi-size superblocks, edge variation and broad district density. It does **not** spray its bundled demo buildings into the game.
+The master plan is deliberately authored because street topology, combat sightlines, faction relationships and public activity space are game design—not generic infrastructure.
 
-Road Generator consumes CityCrafter's actual seams, so merging a 2x2 block removes its internal streets rather than leaving a fake road hidden under geometry.
+Road Generator owns actual street geometry. Ordinary intersections use its supplied hand-modeled `4way_1x1` prefab rather than our old procedural NGon junctions. Straight road sections are separate RoadContainers bridged through the addon's documented container-connection system.
 
-Urban Brawl interprets generated footprints deliberately:
-- normal block = one primary building with setback
-- long block = two or three aligned frontage buildings
-- superblock = perimeter buildings around an interior courtyard
-- industrial block = larger low structure with service space
-- Central Commons = open pedestrian/public activity block
-- faction HQ block = dominant structure with a readable forecourt
+Quaternius Downtown City MegaKit supplies the primary architectural language. Complete/prebuilt buildings stay at native meter scale whenever possible and are only uniformly reduced when they exceed a lot envelope. We no longer stretch authored buildings up to arbitrary prototype dimensions, and modular facades/walls are never auto-promoted into giant fake buildings.
 
-Quaternius Downtown City MegaKit supplies the primary architecture/street-prop visual language. Faction bases, buyers, interdiction targets, FFA, public vendors, cops and guards are placed onto valid generated frontages/plazas rather than unrelated fixed coordinates.
+CityCrafter was evaluated during prototyping and retired from the production runtime path. Its blocky/random city generator is useful for quick prototypes, but it is not the right topology authority for the semi-realistic streetscape Urban Brawl is targeting.
 
-See `docs/CITY_PIPELINE.md` for the detailed rules.
+For the current structural checkpoint, random street clutter is intentionally disabled. We want roads, sidewalks, lots and architecture to read correctly before cars/trees/benches/pedestrians can hide mistakes.
+
+See `docs/CITY_PIPELINE.md` for the detailed rules and audit decisions.
 
 ## Controls
 
@@ -96,9 +91,9 @@ Keep custom:
 - faction economy loops
 - FFA risk/reward semantics
 - balance/stumble/fallback probability rules
-- faction/gameplay relationships layered onto the generated city
+- faction/gameplay relationships layered onto the authored city
 
-Use external systems for better art, animation, cameras, UI, sound, physics helpers, generic AI plumbing, persistence, roads, city topology and networking foundations when they are demonstrably stronger.
+Use external systems for better art, animation, cameras, UI, sound, physics helpers, generic AI plumbing, persistence, roads and networking foundations when they are demonstrably stronger.
 
 See:
 - `docs/CITY_PIPELINE.md`
