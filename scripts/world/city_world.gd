@@ -5,6 +5,7 @@ extends Node3D
 
 const SIDEWALK_DEPTH := 1.65
 const CURB_WIDTH := 0.16
+const CURB_CORNER_CLEARANCE := 1.35
 const SIDEWALK_HEIGHT := 0.12
 const LOT_HEIGHT := 0.055
 
@@ -159,11 +160,15 @@ func _add_block_surface(grid_pos: Vector2i, rect: Dictionary, district: String) 
 	_add_surface_box("SidewalkW_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(west_x, SIDEWALK_HEIGHT * 0.5, center.z), Vector3(SIDEWALK_DEPTH, SIDEWALK_HEIGHT, maxf(depth - SIDEWALK_DEPTH * 2.0, 1.0)), sidewalk_color)
 	_add_surface_box("SidewalkE_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(east_x, SIDEWALK_HEIGHT * 0.5, center.z), Vector3(SIDEWALK_DEPTH, SIDEWALK_HEIGHT, maxf(depth - SIDEWALK_DEPTH * 2.0, 1.0)), sidewalk_color)
 
+	# Leave clean openings at every block corner for pedestrian curb ramps and
+	# crosswalk approaches instead of wrapping a hard curb through the junction.
+	var horizontal_curb_length: float = maxf(width - CURB_CORNER_CLEARANCE * 2.0, 1.0)
+	var vertical_curb_length: float = maxf(depth - CURB_CORNER_CLEARANCE * 2.0, 1.0)
 	var curb_color := Color(0.36, 0.36, 0.345, 1.0)
-	_add_surface_box("CurbN_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x, 0.075, center.z - depth * 0.5 + CURB_WIDTH * 0.5), Vector3(width, 0.15, CURB_WIDTH), curb_color)
-	_add_surface_box("CurbS_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x, 0.075, center.z + depth * 0.5 - CURB_WIDTH * 0.5), Vector3(width, 0.15, CURB_WIDTH), curb_color)
-	_add_surface_box("CurbW_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x - width * 0.5 + CURB_WIDTH * 0.5, 0.075, center.z), Vector3(CURB_WIDTH, 0.15, depth), curb_color)
-	_add_surface_box("CurbE_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x + width * 0.5 - CURB_WIDTH * 0.5, 0.075, center.z), Vector3(CURB_WIDTH, 0.15, depth), curb_color)
+	_add_surface_box("CurbN_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x, 0.075, center.z - depth * 0.5 + CURB_WIDTH * 0.5), Vector3(horizontal_curb_length, 0.15, CURB_WIDTH), curb_color)
+	_add_surface_box("CurbS_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x, 0.075, center.z + depth * 0.5 - CURB_WIDTH * 0.5), Vector3(horizontal_curb_length, 0.15, CURB_WIDTH), curb_color)
+	_add_surface_box("CurbW_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x - width * 0.5 + CURB_WIDTH * 0.5, 0.075, center.z), Vector3(CURB_WIDTH, 0.15, vertical_curb_length), curb_color)
+	_add_surface_box("CurbE_%d_%d" % [grid_pos.x, grid_pos.y], Vector3(center.x + width * 0.5 - CURB_WIDTH * 0.5, 0.075, center.z), Vector3(CURB_WIDTH, 0.15, vertical_curb_length), curb_color)
 
 func _lot_color(district: String) -> Color:
 	match district:
@@ -224,15 +229,16 @@ func _build_generic_block(rect: Dictionary, district: String) -> void:
 	var detail_serial: int = _building_serial
 	_building_serial += 1
 
+	var rear_offset: float = maxf((width if absf(toward.x) > 0.5 else depth) * 0.5 - SIDEWALK_DEPTH - 1.55, 2.0)
 	if district == "industrial":
 		var lateral := _lateral(toward)
-		var yard_center: Vector3 = center - toward * 4.2
-		var yard_size := Vector2(5.8, 10.0) if absf(toward.x) > 0.5 else Vector2(10.0, 5.8)
+		var yard_center: Vector3 = center - toward * rear_offset
+		var yard_size := Vector2(3.0, 10.0) if absf(toward.x) > 0.5 else Vector2(10.0, 3.0)
 		_add_parking_lot("IndustrialYard_%03d" % detail_serial, yard_center, yard_size, toward, detail_serial, 2)
 		_add_prop("ServiceBin_%03d" % detail_serial, yard_center + lateral * 3.2, ["dumpster", "trash", "bin"], detail_serial, 1.25, 1.8)
 	elif district == "commercial" and detail_serial % 3 == 0:
-		var pocket_center: Vector3 = center - toward * 4.0
-		var pocket_size := Vector2(4.8, 8.5) if absf(toward.x) > 0.5 else Vector2(8.5, 4.8)
+		var pocket_center: Vector3 = center - toward * rear_offset
+		var pocket_size := Vector2(2.8, 8.5) if absf(toward.x) > 0.5 else Vector2(8.5, 2.8)
 		_add_parking_lot("ShopParking_%03d" % detail_serial, pocket_center, pocket_size, toward, detail_serial, 1)
 
 func _build_superblock(center: Vector3, width: float, depth: float, district: String, tokens: Array[String], fallback: Color, base_height: float) -> void:
@@ -337,8 +343,9 @@ func _build_faction_base(rect: Dictionary, faction: String) -> void:
 	var plaza_center: Vector3 = (front + building_center) * 0.5
 	_add_plaza("%sForecourt" % faction.capitalize(), plaza_center, Vector2(5.5, 5.5), Color(0.29, 0.29, 0.285, 1.0))
 
-	var rear_center: Vector3 = center - toward * 4.5
-	var parking_size := Vector2(5.6, 10.0) if absf(toward.x) > 0.5 else Vector2(10.0, 5.6)
+	var rear_offset: float = maxf((width if absf(toward.x) > 0.5 else depth) * 0.5 - SIDEWALK_DEPTH - 1.7, 2.0)
+	var rear_center: Vector3 = center - toward * rear_offset
+	var parking_size := Vector2(3.2, 10.0) if absf(toward.x) > 0.5 else Vector2(10.0, 3.2)
 	_add_parking_lot("%sParking" % faction.capitalize(), rear_center, parking_size, toward, 90 + base_serial, 2 if faction == "police" else 1)
 	if faction == "arms":
 		_add_prop("ArmsLoadingPallet", rear_center + _lateral(toward) * 3.0, ["pallet", "crate", "box"], base_serial, 1.0, 1.6)
