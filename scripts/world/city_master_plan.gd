@@ -26,8 +26,6 @@ static func build_plan() -> Dictionary:
 				"kind": "4way",
 			})
 
-	# Connect every neighboring authored junction. Standard grid crossings use
-	# Road Generator's authored 4way_1x1 prefab rather than procedural NGons.
 	for row: int in range(ROAD_Z.size()):
 		for col: int in range(ROAD_X.size() - 1):
 			segments.append({"a": _junction_id(col, row), "b": _junction_id(col + 1, row), "class": _road_class(col, row, true)})
@@ -35,9 +33,9 @@ static func build_plan() -> Dictionary:
 		for row: int in range(ROAD_Z.size() - 1):
 			segments.append({"a": _junction_id(col, row), "b": _junction_id(col, row + 1), "class": _road_class(col, row, false)})
 
-	# Blocks are the actual buildable rectangles between road edges, not abstract
-	# generator cells. This makes the street wall and sidewalk envelope derive
-	# from the road resource's real dimensions.
+	# Buildable lot boundaries begin at the authored road edge, not at an abstract
+	# generator-cell seam. The Road Generator 1x1 prefab is roughly six meters
+	# from centerline to curb/road edge in its modeled cross section.
 	for row: int in range(ROAD_Z.size() - 1):
 		for col: int in range(ROAD_X.size() - 1):
 			var x0: float = ROAD_X[col] + ROAD_HALF_WIDTH
@@ -79,7 +77,8 @@ static func block_by_role(plan: Dictionary, role: String) -> Dictionary:
 	var raw: Variant = plan.get("blocks", [])
 	if not raw is Array:
 		return {}
-	for value: Variant in raw as Array:
+	var blocks: Array = raw as Array
+	for value: Variant in blocks:
 		if value is Dictionary and str((value as Dictionary).get("role", "")) == role:
 			return (value as Dictionary).duplicate(true)
 	return {}
@@ -88,7 +87,8 @@ static func block_by_grid(plan: Dictionary, grid: Vector2i) -> Dictionary:
 	var raw: Variant = plan.get("blocks", [])
 	if not raw is Array:
 		return {}
-	for value: Variant in raw as Array:
+	var blocks: Array = raw as Array
+	for value: Variant in blocks:
 		if value is Dictionary and (value as Dictionary).get("grid", Vector2i(-99, -99)) == grid:
 			return (value as Dictionary).duplicate(true)
 	return {}
@@ -97,8 +97,8 @@ static func _junction_id(col: int, row: int) -> String:
 	return "J_%d_%d" % [col, row]
 
 static func _road_class(col: int, row: int, horizontal: bool) -> String:
-	# Geometry stays compatible through every junction. These classes are metadata
-	# for later traffic/signage/parking rules rather than different mesh widths.
+	# Keep compatible geometry through every prefab. Class is metadata for future
+	# traffic/parking/signage, not a reason to distort intersection cross-sections.
 	if horizontal and row == 1:
 		return "main"
 	if not horizontal and col == 1:
@@ -106,7 +106,7 @@ static func _road_class(col: int, row: int, horizontal: bool) -> String:
 	return "local"
 
 static func _block_identity(grid: Vector2i) -> Dictionary:
-	# Directions point from the lot toward its intended primary street frontage.
+	# Directions point from the lot toward its intended street frontage.
 	match grid:
 		Vector2i(0, 0):
 			return _identity("residential", "neighborhood_nw", Vector3(1, 0, 0), Vector3(0, 0, 1))
