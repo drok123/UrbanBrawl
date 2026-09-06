@@ -46,9 +46,9 @@ script = ExtResource("7_raid")
 [node name="CityExit" type="Node3D" parent="."]
 position = Vector3(0, 0, -5.4)
 script = ExtResource("4_exit")
-target_scene = "res://scenes/world/city_world.tscn"
+target_scene = "res://scenes/world/city_street_v2.tscn"
 title = "PRECINCT EXIT"
-subtitle = "F  RETURN TO CITY"
+subtitle = "F  RETURN TO STREET"
 marker_color = Color(0.25, 0.55, 1, 0.58)
 
 [node name="HUD" type="CanvasLayer" parent="."]
