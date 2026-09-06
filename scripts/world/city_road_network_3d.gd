@@ -5,23 +5,32 @@ const ROAD_MANAGER_SCRIPT := "res://addons/road-generator/nodes/road_manager.gd"
 const ROAD_CONTAINER_SCRIPT := "res://addons/road-generator/nodes/road_container.gd"
 const ROAD_POINT_SCRIPT := "res://addons/road-generator/nodes/road_point.gd"
 
-# RoadPoint enum values. Kept local so this bridge still parses before the
-# managed Road Generator addon has been installed on a fresh clone.
 const POINT_NEXT := 0
 const POINT_PRIOR := 1
 const LANE_FORWARD := 1
 const LANE_REVERSE := 2
 
+var _layout: Dictionary = {}
 var _manager: Node3D = null
 var _road_container_script: Script = null
 var _road_point_script: Script = null
+var _road_records: Array[Dictionary] = []
+
+func configure_from_layout(layout: Dictionary) -> void:
+	_layout = layout.duplicate(true)
 
 func _ready() -> void:
 	call_deferred("_build_network")
 
 func _build_network() -> void:
+	if _layout.is_empty():
+		_layout = CityCrafterLayoutBridge.build_layout()
+	_road_records = _collect_road_records()
+	if _road_records.is_empty():
+		return
+
 	if not _road_generator_available():
-		push_warning("Urban Brawl: Road Generator is not installed; using emergency road fallback. Run INSTALL-DEPENDENCIES.bat.")
+		push_warning("Urban Brawl: Road Generator is not installed; using topology-matched emergency roads. Run INSTALL-DEPENDENCIES.bat.")
 		_build_fallback_network()
 		return
 
@@ -29,7 +38,6 @@ func _build_network() -> void:
 	_road_container_script = load(ROAD_CONTAINER_SCRIPT) as Script
 	_road_point_script = load(ROAD_POINT_SCRIPT) as Script
 	if manager_script == null or _road_container_script == null or _road_point_script == null:
-		push_warning("Urban Brawl: Road Generator scripts failed to load; using emergency road fallback.")
 		_build_fallback_network()
 		return
 
@@ -41,98 +49,144 @@ func _build_network() -> void:
 	_manager.set("auto_refresh", false)
 	add_child(_manager)
 
-	# Street hierarchy first. 24.5 m between the central cross street and the
-	# neighborhood collectors leaves genuinely usable city blocks after the road
-	# widths and sidewalks/setbacks are accounted for.
-	_add_generated_road(
-		"CentralAvenue",
-		[
-			Vector3(-1.2, 0.04, -42.0),
-			Vector3(-0.8, 0.04, -24.5),
-			Vector3(0.0, 0.04, 0.0),
-			Vector3(0.7, 0.04, 24.5),
-			Vector3(0.0, 0.04, 42.0),
-		],
-		4,
-		3.25
-	)
-	_add_generated_road(
-		"DivisionStreet",
-		[
-			Vector3(-53.0, 0.045, -0.8),
-			Vector3(-28.0, 0.045, -0.3),
-			Vector3(0.0, 0.045, 0.0),
-			Vector3(27.0, 0.045, 0.4),
-			Vector3(53.0, 0.045, 1.2),
-		],
-		4,
-		3.15
-	)
-	_add_generated_road(
-		"WestAvenue",
-		[
-			Vector3(-27.0, 0.05, -42.0),
-			Vector3(-27.8, 0.05, -24.5),
-			Vector3(-27.0, 0.05, 0.0),
-			Vector3(-26.2, 0.05, 24.5),
-			Vector3(-27.0, 0.05, 42.0),
-		],
-		2,
-		3.05
-	)
-	_add_generated_road(
-		"EastAvenue",
-		[
-			Vector3(27.0, 0.05, -42.0),
-			Vector3(26.2, 0.05, -24.5),
-			Vector3(27.0, 0.05, 0.0),
-			Vector3(27.8, 0.05, 24.5),
-			Vector3(27.0, 0.05, 42.0),
-		],
-		2,
-		3.05
-	)
-	_add_generated_road(
-		"NorthStreet",
-		[
-			Vector3(-53.0, 0.055, -25.0),
-			Vector3(-27.8, 0.055, -24.5),
-			Vector3(-0.8, 0.055, -24.5),
-			Vector3(26.2, 0.055, -24.5),
-			Vector3(53.0, 0.055, -23.7),
-		],
-		2,
-		3.0
-	)
-	_add_generated_road(
-		"SouthStreet",
-		[
-			Vector3(-53.0, 0.055, 25.3),
-			Vector3(-26.2, 0.055, 24.5),
-			Vector3(0.7, 0.055, 24.5),
-			Vector3(27.8, 0.055, 24.5),
-			Vector3(53.0, 0.055, 25.3),
-		],
-		2,
-		3.0
-	)
+	var major_horizontal: float = _nearest_axis_coordinate("horizontal")
+	var major_vertical: float = _nearest_axis_coordinate("vertical")
+	for record: Dictionary in _road_records:
+		var orientation: String = str(record.get("orientation", "horizontal"))
+		var coordinate: float = float(record.get("coordinate", 0.0))
+		var is_major: bool = (
+			orientation == "horizontal" and is_equal_approx(coordinate, major_horizontal)
+		) or (
+			orientation == "vertical" and is_equal_approx(coordinate, major_vertical)
+		)
+		var points_variant: Variant = record.get("points", [])
+		var points: Array[Vector3] = []
+		if points_variant is Array:
+			for point_value: Variant in points_variant:
+				if point_value is Vector3:
+					points.append(point_value as Vector3)
+		if points.size() < 2:
+			continue
+		_add_generated_road(
+			str(record.get("name", "Street")),
+			points,
+			4 if is_major else 2,
+			2.15 if is_major else 3.15,
+			0.28 if is_major else 1.20
+		)
 
-	_build_intersections()
-	_build_civic_plazas()
-
+	_build_intersection_surfaces(major_horizontal, major_vertical)
 	_manager.set("auto_refresh", true)
 	if _manager.has_method("rebuild_all_containers"):
 		_manager.call_deferred("rebuild_all_containers", true)
-	print("Urban Brawl: Road Generator street network active")
+	print("Urban Brawl: Road Generator consuming CityCrafter topology — ", _road_records.size(), " road runs")
+
+func _collect_road_records() -> Array[Dictionary]:
+	var active_variant: Variant = _layout.get("active_blocks", [])
+	var active: Array = active_variant as Array if active_variant is Array else []
+	var sizes_variant: Variant = _layout.get("block_sizes", {})
+	var sizes: Dictionary = sizes_variant as Dictionary if sizes_variant is Dictionary else {}
+	var block_size: float = float(_layout.get("block_size", 19.0))
+	var street_width: float = float(_layout.get("street_width", 9.5))
+	var stride: float = float(_layout.get("stride", block_size + street_width))
+	var offset: Vector3 = _layout.get("origin_offset", Vector3.ZERO) as Vector3
+	var horizontal: Dictionary = {}
+	var vertical: Dictionary = {}
+
+	for value: Variant in active:
+		if not value is Vector2i:
+			continue
+		var pos := value as Vector2i
+		var size: Vector2i = sizes.get(pos, Vector2i.ONE)
+		_append_interval(horizontal, pos.y, pos.x, pos.x + size.x - 1)
+		_append_interval(horizontal, pos.y + size.y, pos.x, pos.x + size.x - 1)
+		_append_interval(vertical, pos.x, pos.y, pos.y + size.y - 1)
+		_append_interval(vertical, pos.x + size.x, pos.y, pos.y + size.y - 1)
+
+	var records: Array[Dictionary] = []
+	var serial: int = 0
+	for seam_value: Variant in horizontal.keys():
+		var seam: int = int(seam_value)
+		var raw_intervals: Variant = horizontal[seam]
+		var merged: Array[Dictionary] = _merge_intervals(raw_intervals as Array if raw_intervals is Array else [])
+		for segment: Dictionary in merged:
+			var start_cell: int = int(segment["start"])
+			var end_cell: int = int(segment["end"])
+			var frontage: float = float(end_cell - start_cell + 1) * block_size + float(end_cell - start_cell) * street_width
+			var x0: float = float(start_cell) * stride - street_width * 0.5 + offset.x
+			var x1: float = float(start_cell) * stride + frontage + street_width * 0.5 + offset.x
+			var z: float = float(seam) * stride - street_width * 0.5 + offset.z
+			records.append({
+				"name": "StreetH_%02d" % serial,
+				"orientation": "horizontal",
+				"coordinate": z,
+				"min": x0,
+				"max": x1,
+				"points": [Vector3(x0, 0.045, z), Vector3(x1, 0.045, z)],
+			})
+			serial += 1
+
+	for seam_value: Variant in vertical.keys():
+		var seam: int = int(seam_value)
+		var raw_intervals: Variant = vertical[seam]
+		var merged: Array[Dictionary] = _merge_intervals(raw_intervals as Array if raw_intervals is Array else [])
+		for segment: Dictionary in merged:
+			var start_cell: int = int(segment["start"])
+			var end_cell: int = int(segment["end"])
+			var frontage: float = float(end_cell - start_cell + 1) * block_size + float(end_cell - start_cell) * street_width
+			var z0: float = float(start_cell) * stride - street_width * 0.5 + offset.z
+			var z1: float = float(start_cell) * stride + frontage + street_width * 0.5 + offset.z
+			var x: float = float(seam) * stride - street_width * 0.5 + offset.x
+			records.append({
+				"name": "StreetV_%02d" % serial,
+				"orientation": "vertical",
+				"coordinate": x,
+				"min": z0,
+				"max": z1,
+				"points": [Vector3(x, 0.045, z0), Vector3(x, 0.045, z1)],
+			})
+			serial += 1
+	return records
+
+func _append_interval(target: Dictionary, seam: int, start_value: int, end_value: int) -> void:
+	if not target.has(seam):
+		target[seam] = []
+	var intervals: Array = target[seam] as Array
+	intervals.append({"start": start_value, "end": end_value})
+
+func _merge_intervals(values: Array) -> Array[Dictionary]:
+	if values.is_empty():
+		return []
+	var sorted_values: Array = values.duplicate(true)
+	sorted_values.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["start"]) < int(b["start"]))
+	var merged: Array[Dictionary] = []
+	var current: Dictionary = (sorted_values[0] as Dictionary).duplicate(true)
+	for index: int in range(1, sorted_values.size()):
+		var candidate: Dictionary = sorted_values[index] as Dictionary
+		if int(candidate["start"]) <= int(current["end"]) + 1:
+			current["end"] = maxi(int(current["end"]), int(candidate["end"]))
+		else:
+			merged.append(current)
+			current = candidate.duplicate(true)
+	merged.append(current)
+	return merged
+
+func _nearest_axis_coordinate(orientation: String) -> float:
+	var best: float = 1000000.0
+	var best_abs: float = 1000000.0
+	for record: Dictionary in _road_records:
+		if str(record.get("orientation", "")) != orientation:
+			continue
+		var value: float = float(record.get("coordinate", 0.0))
+		if absf(value) < best_abs:
+			best_abs = absf(value)
+			best = value
+	return best
 
 func _road_generator_available() -> bool:
-	return (
-		ResourceLoader.exists(ROAD_MANAGER_SCRIPT)
-		and ResourceLoader.exists(ROAD_CONTAINER_SCRIPT)
-		and ResourceLoader.exists(ROAD_POINT_SCRIPT)
-	)
+	return ResourceLoader.exists(ROAD_MANAGER_SCRIPT) and ResourceLoader.exists(ROAD_CONTAINER_SCRIPT) and ResourceLoader.exists(ROAD_POINT_SCRIPT)
 
-func _add_generated_road(road_name: String, points: Array[Vector3], lane_count: int, lane_width: float) -> void:
+func _add_generated_road(road_name: String, points: Array[Vector3], lane_count: int, lane_width: float, shoulder_width: float) -> void:
 	if _manager == null or _road_container_script == null or _road_point_script == null or points.size() < 2:
 		return
 	var container: Node3D = _road_container_script.new() as Node3D
@@ -144,7 +198,7 @@ func _add_generated_road(road_name: String, points: Array[Vector3], lane_count: 
 	container.set("ai_lane_group", "city_traffic_lane")
 	container.set("create_edge_curves", true)
 	container.set("flatten_terrain", false)
-	container.set("underside_thickness", 0.08)
+	container.set("underside_thickness", 0.06)
 
 	var road_points: Array[Node3D] = []
 	for index: int in range(points.size()):
@@ -155,9 +209,9 @@ func _add_generated_road(road_name: String, points: Array[Vector3], lane_count: 
 		road_point.position = points[index]
 		road_point.rotation.y = _point_yaw(points, index)
 		road_point.set("lane_width", lane_width)
-		road_point.set("shoulder_width_l", 0.28)
-		road_point.set("shoulder_width_r", 0.28)
-		road_point.set("gutter_profile", Vector2(0.45, -0.06))
+		road_point.set("shoulder_width_l", shoulder_width)
+		road_point.set("shoulder_width_r", shoulder_width)
+		road_point.set("gutter_profile", Vector2(0.32, -0.05))
 		road_point.set("prior_mag", _handle_length(points, index))
 		road_point.set("next_mag", _handle_length(points, index))
 		road_point.set("auto_lanes", true)
@@ -171,7 +225,7 @@ func _add_generated_road(road_name: String, points: Array[Vector3], lane_count: 
 		if from.has_method("connect_roadpoint"):
 			var connected: Variant = from.call("connect_roadpoint", POINT_NEXT, target, POINT_PRIOR)
 			if connected != true:
-				push_warning("Urban Brawl: Road Generator could not connect %s segment %d" % [road_name, index])
+				push_warning("Urban Brawl: could not connect CityCrafter road run %s" % road_name)
 	if container.has_method("rebuild_segments"):
 		container.call_deferred("rebuild_segments", true)
 
@@ -186,13 +240,7 @@ func _traffic_directions(lane_count: int) -> Array[int]:
 	return directions
 
 func _point_yaw(points: Array[Vector3], index: int) -> float:
-	var direction: Vector3
-	if index <= 0:
-		direction = points[1] - points[0]
-	elif index >= points.size() - 1:
-		direction = points[index] - points[index - 1]
-	else:
-		direction = points[index + 1] - points[index - 1]
+	var direction: Vector3 = points[1] - points[0] if index <= 0 else points[index] - points[index - 1]
 	direction.y = 0.0
 	if direction.length_squared() <= 0.0001:
 		return 0.0
@@ -200,100 +248,84 @@ func _point_yaw(points: Array[Vector3], index: int) -> float:
 	return atan2(direction.x, direction.z)
 
 func _handle_length(points: Array[Vector3], index: int) -> float:
-	var nearest: float
-	if index <= 0:
-		nearest = points[0].distance_to(points[1])
-	elif index >= points.size() - 1:
-		nearest = points[index].distance_to(points[index - 1])
-	else:
-		nearest = minf(
-			points[index].distance_to(points[index - 1]),
-			points[index].distance_to(points[index + 1])
-		)
-	return clampf(nearest * 0.30, 3.5, 8.5)
+	var nearest: float = points[0].distance_to(points[1]) if index <= 0 else points[index].distance_to(points[index - 1])
+	return clampf(nearest * 0.22, 3.5, 8.0)
 
-func _build_intersections() -> void:
-	# Temporary cover pads suppress overlapping lane markings while we validate
-	# the new network. Once the plugin pass is stable, these are replaced by the
-	# addon's native RoadIntersection graph nodes.
-	var major: Array[Vector3] = [Vector3(0, 0, 0), Vector3(-0.8, 0, -24.5), Vector3(0.7, 0, 24.5)]
-	for position_value: Vector3 in major:
-		_add_intersection_pad(position_value, Vector2(15.5, 12.0), true)
+func _build_intersection_surfaces(major_horizontal: float, major_vertical: float) -> void:
+	var street_width: float = float(_layout.get("street_width", 9.5))
+	var horizontals: Array[Dictionary] = []
+	var verticals: Array[Dictionary] = []
+	for record: Dictionary in _road_records:
+		if str(record.get("orientation", "")) == "horizontal":
+			horizontals.append(record)
+		else:
+			verticals.append(record)
 
-	var local: Array[Vector3] = [
-		Vector3(-27, 0, 0), Vector3(27, 0, 0),
-		Vector3(-27.8, 0, -24.5), Vector3(26.2, 0, -24.5),
-		Vector3(-26.2, 0, 24.5), Vector3(27.8, 0, 24.5),
-	]
-	for position_value: Vector3 in local:
-		_add_intersection_pad(position_value, Vector2(9.0, 9.0), false)
+	var made: Dictionary = {}
+	for horizontal: Dictionary in horizontals:
+		var z: float = float(horizontal["coordinate"])
+		for vertical: Dictionary in verticals:
+			var x: float = float(vertical["coordinate"])
+			if x < float(horizontal["min"]) - 0.1 or x > float(horizontal["max"]) + 0.1:
+				continue
+			if z < float(vertical["min"]) - 0.1 or z > float(vertical["max"]) + 0.1:
+				continue
+			var key := Vector2i(int(round(x * 10.0)), int(round(z * 10.0)))
+			if made.has(key):
+				continue
+			made[key] = true
+			var major: bool = is_equal_approx(z, major_horizontal) or is_equal_approx(x, major_vertical)
+			_add_intersection_pad(Vector3(x, 0.0, z), street_width, major)
 
-func _add_intersection_pad(position_value: Vector3, size: Vector2, crosswalks: bool) -> void:
-	var pad: MeshInstance3D = MeshInstance3D.new()
-	var mesh: BoxMesh = BoxMesh.new()
-	mesh.size = Vector3(size.x, 0.035, size.y)
+func _add_intersection_pad(position_value: Vector3, street_width: float, major: bool) -> void:
+	var pad := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(street_width + 0.25, 0.028, street_width + 0.25)
 	pad.mesh = mesh
-	pad.position = position_value + Vector3(0.0, 0.085, 0.0)
-	var material: StandardMaterial3D = StandardMaterial3D.new()
-	material.albedo_color = Color(0.075, 0.077, 0.08, 1.0)
-	material.roughness = 0.94
+	pad.position = position_value + Vector3(0.0, 0.082, 0.0)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.072, 0.074, 0.077, 1.0)
+	material.roughness = 0.95
 	pad.material_override = material
 	add_child(pad)
-	if crosswalks:
-		_add_crosswalk(position_value + Vector3(0.0, 0.11, -4.4), true)
-		_add_crosswalk(position_value + Vector3(0.0, 0.11, 4.4), true)
+	if major:
+		_add_crosswalk(position_value + Vector3(0.0, 0.105, -street_width * 0.34))
+		_add_crosswalk(position_value + Vector3(0.0, 0.105, street_width * 0.34))
 
-func _add_crosswalk(position_value: Vector3, horizontal_stripes: bool) -> void:
+func _add_crosswalk(position_value: Vector3) -> void:
 	for index: int in range(-3, 4):
-		var stripe: MeshInstance3D = MeshInstance3D.new()
-		var mesh: BoxMesh = BoxMesh.new()
-		mesh.size = Vector3(0.55, 0.018, 3.4) if horizontal_stripes else Vector3(3.4, 0.018, 0.55)
+		var stripe := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(0.48, 0.016, 2.6)
 		stripe.mesh = mesh
-		stripe.position = position_value + (Vector3(float(index) * 0.95, 0.0, 0.0) if horizontal_stripes else Vector3(0.0, 0.0, float(index) * 0.95))
-		var material: StandardMaterial3D = StandardMaterial3D.new()
-		material.albedo_color = Color(0.78, 0.79, 0.78, 1.0)
-		material.roughness = 0.88
+		stripe.position = position_value + Vector3(float(index) * 0.78, 0.0, 0.0)
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.76, 0.77, 0.75, 1.0)
+		material.roughness = 0.90
 		stripe.material_override = material
 		add_child(stripe)
 
-func _build_civic_plazas() -> void:
-	# Two small neutral pedestrian pockets stop Central Commons from being a road
-	# median with vendors standing in traffic.
-	_add_plaza(Vector3(-9.5, 0.0, -12.0), Vector2(8.0, 10.0))
-	_add_plaza(Vector3(-9.5, 0.0, 12.5), Vector2(8.0, 10.0))
-
-func _add_plaza(position_value: Vector3, size: Vector2) -> void:
-	var plaza: MeshInstance3D = MeshInstance3D.new()
-	var mesh: BoxMesh = BoxMesh.new()
-	mesh.size = Vector3(size.x, 0.12, size.y)
-	plaza.mesh = mesh
-	plaza.position = position_value + Vector3(0.0, 0.045, 0.0)
-	var material: StandardMaterial3D = StandardMaterial3D.new()
-	material.albedo_color = Color(0.31, 0.305, 0.295, 1.0)
-	material.roughness = 0.96
-	plaza.material_override = material
-	add_child(plaza)
-
 func _build_fallback_network() -> void:
-	# Only used when the managed addon is missing. It deliberately mirrors the
-	# authored network rather than returning to the old three giant rectangles.
-	_add_fallback_road(Vector3(0, 0.01, 0), Vector3(14.0, 0.04, 84.0))
-	_add_fallback_road(Vector3(0, 0.015, 0), Vector3(106.0, 0.04, 13.0))
-	_add_fallback_road(Vector3(-27, 0.02, 0), Vector3(7.0, 0.04, 84.0))
-	_add_fallback_road(Vector3(27, 0.02, 0), Vector3(7.0, 0.04, 84.0))
-	_add_fallback_road(Vector3(0, 0.025, -24.5), Vector3(106.0, 0.04, 7.0))
-	_add_fallback_road(Vector3(0, 0.025, 24.5), Vector3(106.0, 0.04, 7.0))
-	_build_intersections()
-	_build_civic_plazas()
-
-func _add_fallback_road(position_value: Vector3, size: Vector3) -> void:
-	var road: MeshInstance3D = MeshInstance3D.new()
-	var mesh: BoxMesh = BoxMesh.new()
-	mesh.size = size
-	road.mesh = mesh
-	road.position = position_value
-	var material: StandardMaterial3D = StandardMaterial3D.new()
-	material.albedo_color = Color(0.065, 0.067, 0.07, 1.0)
-	material.roughness = 0.96
-	road.material_override = material
-	add_child(road)
+	var street_width: float = float(_layout.get("street_width", 9.5))
+	for record: Dictionary in _road_records:
+		var points_variant: Variant = record.get("points", [])
+		if not points_variant is Array:
+			continue
+		var points: Array = points_variant as Array
+		if points.size() < 2 or not points[0] is Vector3 or not points[1] is Vector3:
+			continue
+		var a: Vector3 = points[0] as Vector3
+		var b: Vector3 = points[1] as Vector3
+		var center: Vector3 = (a + b) * 0.5
+		var length: float = a.distance_to(b)
+		var road := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(length, 0.035, street_width) if str(record.get("orientation", "")) == "horizontal" else Vector3(street_width, 0.035, length)
+		road.mesh = mesh
+		road.position = Vector3(center.x, 0.025, center.z)
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.066, 0.068, 0.071, 1.0)
+		material.roughness = 0.96
+		road.material_override = material
+		add_child(road)
+	_build_intersection_surfaces(_nearest_axis_coordinate("horizontal"), _nearest_axis_coordinate("vertical"))
