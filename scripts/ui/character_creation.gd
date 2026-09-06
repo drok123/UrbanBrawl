@@ -62,7 +62,7 @@ func _cycle_accent() -> void:
 
 func _enter_city() -> void:
 	GameSession.create_character(_name_edit.text, _faction, BODY_COLORS[_body_index], ACCENT_COLORS[_accent_index])
-	get_tree().change_scene_to_file("res://scenes/world/city_world.tscn")
+	get_tree().change_scene_to_file("res://scenes/world/city_street_v2.tscn")
 
 func _refresh() -> void:
 	var faction_name: String = "CONTRABAND"
