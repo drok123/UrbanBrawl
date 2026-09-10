@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+const Presenter = preload("res://scripts/brawler/brawler_character_presenter.gd")
+
 signal impact(strength: float, point: Vector3)
 signal knocked_out(victim, attacker)
 
@@ -41,14 +43,7 @@ var ai_think_timer := 0.0
 var ai_move := Vector3.ZERO
 var ai_strafe_sign := 1.0
 
-var visual_root: Node3D
-var body_material: StandardMaterial3D
-var accent_material: StandardMaterial3D
-var right_arm: MeshInstance3D
-var left_arm: MeshInstance3D
-var torso: MeshInstance3D
-var head: MeshInstance3D
-var name_label: Label3D
+var presenter
 
 func _ready() -> void:
 	floor_snap_length = 0.25
@@ -513,93 +508,31 @@ func _build_collision() -> void:
 	add_child(collision)
 
 func _build_visual() -> void:
-	visual_root = Node3D.new()
-	visual_root.name = "Visual"
-	add_child(visual_root)
-	body_material = StandardMaterial3D.new()
-	body_material.roughness = 0.78
-	accent_material = StandardMaterial3D.new()
-	accent_material.roughness = 0.72
-
-	torso = _make_box(Vector3(0.0, 0.28, 0.0), Vector3(0.74, 0.82, 0.42), body_material)
-	_make_box(Vector3(0.0, -0.18, 0.0), Vector3(0.62, 0.26, 0.36), accent_material)
-	head = _make_sphere(Vector3(0.0, 0.93, -0.02), Vector3(0.42, 0.46, 0.42), body_material)
-	left_arm = _make_box(Vector3(-0.56, 0.28, 0.0), Vector3(0.22, 0.72, 0.22), body_material)
-	right_arm = _make_box(Vector3(0.56, 0.28, 0.0), Vector3(0.22, 0.72, 0.22), body_material)
-	_make_box(Vector3(-0.22, -0.67, 0.0), Vector3(0.27, 0.74, 0.29), body_material)
-	_make_box(Vector3(0.22, -0.67, 0.0), Vector3(0.27, 0.74, 0.29), body_material)
-	_make_box(Vector3(0.0, 0.35, -0.24), Vector3(0.28, 0.16, 0.08), accent_material)
-
-	name_label = Label3D.new()
-	name_label.position = Vector3(0.0, 1.55, 0.0)
-	name_label.font_size = 42
-	name_label.outline_size = 10
-	name_label.pixel_size = 0.0075
-	name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	add_child(name_label)
-
-func _make_box(at: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	mesh.material = material
-	var instance := MeshInstance3D.new()
-	instance.position = at
-	instance.mesh = mesh
-	visual_root.add_child(instance)
-	return instance
-
-func _make_sphere(at: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.5
-	mesh.height = 1.0
-	mesh.material = material
-	var instance := MeshInstance3D.new()
-	instance.position = at
-	instance.scale = size
-	instance.mesh = mesh
-	visual_root.add_child(instance)
-	return instance
+	presenter = Presenter.new()
+	presenter.name = "CharacterPresenter"
+	add_child(presenter)
+	presenter.initialize()
 
 func _set_palette(body: Color, accent: Color) -> void:
-	if body_material:
-		body_material.albedo_color = body
-	if accent_material:
-		accent_material.albedo_color = accent
+	if presenter != null:
+		presenter.set_palette(body, accent)
 
 func _update_visual(delta: float) -> void:
-	if visual_root == null:
+	if presenter == null:
 		return
-	var target_yaw := atan2(-facing.x, -facing.z)
-	visual_root.rotation.y = lerp_angle(visual_root.rotation.y, target_yaw, min(1.0, delta * 20.0))
-	var speed_ratio: float = clampf(Vector2(velocity.x, velocity.z).length() / maxf(0.01, move_speed), 0.0, 1.5)
-	var t := Time.get_ticks_msec() * 0.001
-	visual_root.position.y = sin(t * 9.0) * 0.025 * speed_ratio
-	right_arm.position.z = lerp(right_arm.position.z, 0.0, min(1.0, delta * 22.0))
-	left_arm.position.z = lerp(left_arm.position.z, 0.0, min(1.0, delta * 22.0))
-	torso.rotation.z = lerp(torso.rotation.z, 0.0, min(1.0, delta * 16.0))
-	if attack_kind == "quick":
-		right_arm.position.z = -0.38
-		torso.rotation.z = -0.08
-	elif attack_kind == "heavy":
-		right_arm.position.z = -0.28
-		left_arm.position.z = -0.22
-		torso.rotation.z = -0.15
-	elif attack_kind == "grab":
-		right_arm.position.z = -0.28
-		left_arm.position.z = -0.28
-	if dash_timer > 0.0:
-		visual_root.rotation.x = lerp(visual_root.rotation.x, -0.20, min(1.0, delta * 24.0))
-	else:
-		visual_root.rotation.x = lerp(visual_root.rotation.x, 0.0, min(1.0, delta * 18.0))
-	if flash_timer > 0.0:
-		body_material.emission_enabled = true
-		body_material.emission = Color(1.0, 0.92, 0.78)
-		body_material.emission_energy_multiplier = 1.5
-	else:
-		body_material.emission_enabled = false
+	var planar_velocity := Vector3(velocity.x, 0.0, velocity.z)
+	presenter.update_presentation(
+		delta,
+		facing,
+		planar_velocity,
+		move_speed,
+		attack_kind,
+		dash_timer > 0.0,
+		flash_timer > 0.0
+	)
 
 func _update_nameplate() -> void:
-	if name_label == null:
+	if presenter == null:
 		return
 	var prefix := "YOU · " if controlled_by_player else ""
-	name_label.text = "%s%s\n%d / %d" % [prefix, hero_type, int(ceil(max(0.0, health))), int(max_health)]
+	presenter.set_nameplate("%s%s\n%d / %d" % [prefix, hero_type, int(ceil(max(0.0, health))), int(max_health)])
