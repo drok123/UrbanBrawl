@@ -67,7 +67,7 @@ func get_nearest_enemy(source):
 	var nearest_distance := INF
 	for fighter in fighters:
 		if fighter == source or fighter.eliminated: continue
-		var distance := source.global_position.distance_squared_to(fighter.global_position)
+		var distance: float = source.global_position.distance_squared_to(fighter.global_position)
 		if distance < nearest_distance:
 			nearest_distance = distance
 			nearest = fighter
@@ -89,7 +89,7 @@ func _on_knocked_out(victim, attacker) -> void:
 
 func _switch_player_hero(hero: String) -> void:
 	if player == null: return
-	var ratio := player.health / max(1.0, player.max_health)
+	var ratio: float = player.health / max(1.0, player.max_health)
 	player.set_hero_type(hero)
 	player.health = player.max_health * ratio
 	player._update_nameplate()
