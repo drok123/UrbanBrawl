@@ -571,7 +571,7 @@ func _update_visual(delta: float) -> void:
 		return
 	var target_yaw := atan2(-facing.x, -facing.z)
 	visual_root.rotation.y = lerp_angle(visual_root.rotation.y, target_yaw, min(1.0, delta * 20.0))
-	var speed_ratio := clamp(Vector2(velocity.x, velocity.z).length() / max(0.01, move_speed), 0.0, 1.5)
+	var speed_ratio: float = clampf(Vector2(velocity.x, velocity.z).length() / maxf(0.01, move_speed), 0.0, 1.5)
 	var t := Time.get_ticks_msec() * 0.001
 	visual_root.position.y = sin(t * 9.0) * 0.025 * speed_ratio
 	right_arm.position.z = lerp(right_arm.position.z, 0.0, min(1.0, delta * 22.0))
