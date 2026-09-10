@@ -7,7 +7,7 @@ config_version=5
 [application]
 
 config/name="Urban Brawl"
-run/main_scene="res://scenes/brawler/rooftop_brawl.tscn"
+run/main_scene="res://scenes/brawler/combat_lab_v2.tscn"
 
 [display]
 
