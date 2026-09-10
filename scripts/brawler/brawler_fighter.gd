@@ -117,6 +117,11 @@ func reset_fighter(at: Vector3) -> void:
 	vice_boost_ready = false
 	_update_nameplate()
 
+func get_character_presentation_status() -> String:
+	if presenter == null:
+		return "BOOTING"
+	return str(presenter.get_production_rig_status())
+
 func _physics_process(delta: float) -> void:
 	_tick_timers(delta)
 	if eliminated:

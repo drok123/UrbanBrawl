@@ -7,6 +7,7 @@ const SPAWN_POINT := Vector3(0.0, 1.05, 5.5)
 var player
 var camera: Camera3D
 var camera_center := Vector3.ZERO
+var rig_status_label: Label
 
 
 func _ready() -> void:
@@ -19,6 +20,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_update_camera(delta)
+	_update_rig_status()
 
 
 func _spawn_brick() -> void:
@@ -39,6 +41,22 @@ func get_nearest_enemy(_source):
 func respawn_fighter(fighter) -> void:
 	if fighter == player:
 		fighter.reset_fighter(SPAWN_POINT)
+
+
+func _update_rig_status() -> void:
+	if rig_status_label == null or player == null:
+		return
+	var rig_status: String = str(player.get_character_presentation_status())
+	match rig_status:
+		"READY":
+			rig_status_label.text = "REFERENCE RIG: READY\nQuaternius character + UAL clips active"
+			rig_status_label.add_theme_color_override("font_color", Color(0.36, 0.92, 0.58))
+		"MISSING_CHARACTER_PACK", "MISSING_ANIMATION_PACK":
+			rig_status_label.text = "REFERENCE RIG: PACKS REQUIRED\nRun INSTALL-VISUAL-PACKS.bat"
+			rig_status_label.add_theme_color_override("font_color", Color(1.0, 0.68, 0.25))
+		_:
+			rig_status_label.text = "REFERENCE RIG: %s\nSee Godot output for the failed gate" % rig_status
+			rig_status_label.add_theme_color_override("font_color", Color(1.0, 0.42, 0.35))
 
 
 func _build_environment() -> void:
@@ -126,7 +144,7 @@ func _build_hud() -> void:
 
 	var title := Label.new()
 	title.position = Vector2(40.0, 34.0)
-	title.text = "COMBAT LAB V2 · CHECKPOINT 1"
+	title.text = "COMBAT LAB V2 · CHECKPOINT 2"
 	title.add_theme_font_size_override("font_size", 26)
 	layer.add_child(title)
 
@@ -150,6 +168,13 @@ func _build_hud() -> void:
 	status.add_theme_color_override("font_color", Color(0.35, 0.78, 0.88))
 	status.add_theme_font_size_override("font_size", 17)
 	layer.add_child(status)
+
+	rig_status_label = Label.new()
+	rig_status_label.position = Vector2(40.0, 184.0)
+	rig_status_label.size = Vector2(620.0, 70.0)
+	rig_status_label.text = "REFERENCE RIG: BOOTING"
+	rig_status_label.add_theme_font_size_override("font_size", 17)
+	layer.add_child(rig_status_label)
 
 
 func _add_static_box(node_name: String, at: Vector3, size: Vector3, color: Color) -> StaticBody3D:

@@ -18,7 +18,7 @@ var _current_animation: StringName = &""
 var _last_reaction_variant: int = -1
 
 func _ready() -> void:
-	_actor = get_parent() as CharacterBody3D
+	_actor = _find_actor_ancestor()
 	_fallback_visual = get_node_or_null(fallback_visual_path) as Node3D
 	call_deferred("_try_activate")
 
@@ -31,7 +31,19 @@ func _physics_process(_delta: float) -> void:
 func is_external_visual_active() -> bool:
 	return _active
 
+func get_validation_status() -> String:
+	if _active:
+		return "READY"
+	if QuaterniusAssetLocator.character_file_count() <= 0:
+		return "MISSING_CHARACTER_PACK"
+	if QuaterniusAssetLocator.animation_file_count() <= 0:
+		return "MISSING_ANIMATION_PACK"
+	return "RIG_OR_RETARGET_FAILED"
+
 func _try_activate() -> void:
+	if _actor == null:
+		print("Urban Brawl: production rig has no CharacterBody3D ancestor; keeping fallback")
+		return
 	var character_path: String = QuaterniusAssetLocator.find_character_scene(character_variant_index)
 	if character_path.is_empty():
 		print("Urban Brawl: no Quaternius character scene found; keeping fallback for ", get_parent().name)
@@ -90,6 +102,14 @@ func _try_activate() -> void:
 	set_meta(&"external_character", character_path)
 	print("Urban Brawl: Quaternius actor active — ", get_parent().name, " -> ", character_path.get_file(), " / ", imported_count, " animations")
 	_update_animation(true)
+
+func _find_actor_ancestor() -> CharacterBody3D:
+	var candidate: Node = get_parent()
+	while candidate != null:
+		if candidate is CharacterBody3D:
+			return candidate as CharacterBody3D
+		candidate = candidate.get_parent()
+	return null
 
 func _import_ual_animations() -> int:
 	if _animation_library == null or _skeleton == null:

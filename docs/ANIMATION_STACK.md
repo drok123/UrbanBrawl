@@ -128,3 +128,15 @@ Weapon ownership remains in the gameplay/inventory layer. The visual attachment 
 8. expand animation coverage only after the shared pipeline is stable
 
 The goal is **one production character/animation pipeline**, not bespoke animation code per actor type.
+
+## Combat Lab V2 validation gate
+
+The active brawler presenter now attempts to load one Quaternius base character and a compatible UAL subset automatically. The primitive mannequin remains visible unless all of these checks pass:
+
+1. a character scene is present under `assets/third_party/quaternius_characters`
+2. the scene contains a `Skeleton3D`
+3. animation scenes are present under `assets/third_party/quaternius_ual`
+4. at least one donor skeleton has 45% or greater bone-name overlap
+5. at least one animation survives track retargeting
+
+Run `INSTALL-VISUAL-PACKS.bat` on Windows to install the official CC0 packs. A successful runtime activation prints `Quaternius actor active` with the selected character and imported animation count. Any failed gate keeps the fallback visible and prints a specific failure reason.

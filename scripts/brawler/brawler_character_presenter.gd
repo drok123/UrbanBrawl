@@ -1,11 +1,15 @@
 extends Node3D
 
+const QuaterniusDriver = preload("res://scripts/animation/quaternius_character_driver_3d.gd")
+
 ## Replaceable presentation layer for a brawler fighter.
 ##
 ## The fighter owns simulation state, collision, damage, and movement. This node
 ## owns meshes, materials, labels, pose offsets, and eventually AnimationTree.
 
 var visual_root: Node3D
+var debug_visual: Node3D
+var production_driver: Node3D
 var body_material: StandardMaterial3D
 var accent_material: StandardMaterial3D
 var right_arm: MeshInstance3D
@@ -20,7 +24,18 @@ func _ready() -> void:
 
 func initialize() -> void:
 	if visual_root == null:
-		_build_debug_visual()
+		_build_visual_hierarchy()
+		_install_production_rig_candidate()
+
+
+func is_production_rig_active() -> bool:
+	return production_driver != null and bool(production_driver.call("is_external_visual_active"))
+
+
+func get_production_rig_status() -> String:
+	if production_driver == null:
+		return "BOOTING"
+	return str(production_driver.call("get_validation_status"))
 
 
 func set_palette(body: Color, accent: Color) -> void:
@@ -80,10 +95,14 @@ func update_presentation(
 		body_material.emission_energy_multiplier = 1.5
 
 
-func _build_debug_visual() -> void:
+func _build_visual_hierarchy() -> void:
 	visual_root = Node3D.new()
-	visual_root.name = "DebugHumanoid"
+	visual_root.name = "VisualRoot"
 	add_child(visual_root)
+
+	debug_visual = Node3D.new()
+	debug_visual.name = "DebugHumanoid"
+	visual_root.add_child(debug_visual)
 
 	body_material = StandardMaterial3D.new()
 	body_material.roughness = 0.78
@@ -115,7 +134,7 @@ func _make_box(at: Vector3, size: Vector3, material: Material) -> MeshInstance3D
 	var instance := MeshInstance3D.new()
 	instance.position = at
 	instance.mesh = mesh
-	visual_root.add_child(instance)
+	debug_visual.add_child(instance)
 	return instance
 
 
@@ -128,5 +147,12 @@ func _make_sphere(at: Vector3, size: Vector3, material: Material) -> MeshInstanc
 	instance.position = at
 	instance.scale = size
 	instance.mesh = mesh
-	visual_root.add_child(instance)
+	debug_visual.add_child(instance)
 	return instance
+
+
+func _install_production_rig_candidate() -> void:
+	production_driver = QuaterniusDriver.new()
+	production_driver.name = "ProductionRig"
+	production_driver.set("fallback_visual_path", NodePath("../DebugHumanoid"))
+	visual_root.add_child(production_driver)
