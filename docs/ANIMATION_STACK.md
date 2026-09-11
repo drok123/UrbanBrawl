@@ -139,4 +139,4 @@ The active brawler presenter now attempts to load one Quaternius base character 
 4. at least one donor skeleton has 45% or greater bone-name overlap
 5. at least one animation survives track retargeting
 
-Run `INSTALL-VISUAL-PACKS.bat` on Windows to install the official CC0 packs. A successful runtime activation prints `Quaternius actor active` with the selected character and imported animation count. Any failed gate keeps the fallback visible and prints a specific failure reason.
+Run `INSTALL-COMBAT-RIG.bat` on Windows to install only the two official CC0 packs required by this checkpoint. `INSTALL-VISUAL-PACKS.bat` remains the later full environment installer. A successful runtime activation prints `Quaternius actor active` with the selected character and imported animation count. Any failed gate keeps the fallback visible and prints a specific failure reason.

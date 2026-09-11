@@ -1,3 +1,7 @@
+param(
+    [switch]$CombatRigOnly
+)
+
 $ErrorActionPreference = "Stop"
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -12,6 +16,13 @@ $packPages = @{
     Characters = "https://quaternius.com/packs/universalbasecharacters.html"
     UAL1 = "https://quaternius.com/packs/universalanimationlibrary.html"
     UAL2 = "https://quaternius.com/packs/universalanimationlibrary2.html"
+}
+
+$requiredKinds = if ($CombatRigOnly) {
+    @("Characters", "UAL1")
+}
+else {
+    @("City", "Characters", "UAL1", "UAL2")
 }
 
 function Reset-Directory([string]$Path) {
@@ -96,16 +107,16 @@ function Find-Pack([string]$Kind) {
     return $bestPath
 }
 
-function Resolve-Packs {
+function Resolve-Packs($Kinds) {
     $resolved = @{}
-    foreach ($kind in @("City", "Characters", "UAL1", "UAL2")) {
+    foreach ($kind in $Kinds) {
         $resolved[$kind] = Find-Pack $kind
     }
     return $resolved
 }
 
-function Missing-Packs($packs) {
-    return @("City", "Characters", "UAL1", "UAL2") | Where-Object {
+function Missing-Packs($packs, $Kinds) {
+    return $Kinds | Where-Object {
         $path = [string]$packs[$_]
         [string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)
     }
@@ -209,13 +220,16 @@ function Install-UalSubset([string]$ExtractRoot, [string]$Destination) {
 Write-Host ""
 Write-Host "URBAN BRAWL - VISUAL PACK INSTALLER" -ForegroundColor Yellow
 Write-Host "Official assets: Quaternius Standard/free downloads (CC0)"
+if ($CombatRigOnly) {
+    Write-Host "Mode: Combat reference rig only (Characters + UAL1)" -ForegroundColor Cyan
+}
 Write-Host ""
 
 New-Item -ItemType Directory -Path $projectDownloads -Force | Out-Null
 Reset-Directory $cacheRoot
 
-$packs = Resolve-Packs
-$missing = @(Missing-Packs $packs)
+$packs = Resolve-Packs $requiredKinds
+$missing = @(Missing-Packs $packs $requiredKinds)
 if ($missing.Count -gt 0) {
     Write-Host "Missing official Standard ZIPs: $($missing -join ', ')" -ForegroundColor Yellow
     Write-Host "The official pages will open. Click the free/Standard Download on each page." -ForegroundColor Yellow
@@ -223,8 +237,8 @@ if ($missing.Count -gt 0) {
     Open-MissingPackPages $missing
     Write-Host ""
     Read-Host "Finish the downloads, then press Enter to scan again"
-    $packs = Resolve-Packs
-    $missing = @(Missing-Packs $packs)
+    $packs = Resolve-Packs $requiredKinds
+    $missing = @(Missing-Packs $packs $requiredKinds)
 }
 
 if ($missing.Count -gt 0) {
@@ -234,7 +248,7 @@ if ($missing.Count -gt 0) {
 }
 
 Write-Host "Resolved visual pack ZIPs:" -ForegroundColor Green
-foreach ($key in @("City", "Characters", "UAL1", "UAL2")) {
+foreach ($key in $requiredKinds) {
     $packPath = [string]$packs[$key]
     Write-Host "  $key -> $packPath" -ForegroundColor DarkGray
     if ([string]::IsNullOrWhiteSpace($packPath) -or -not (Test-Path -LiteralPath $packPath -PathType Leaf)) {
@@ -242,23 +256,37 @@ foreach ($key in @("City", "Characters", "UAL1", "UAL2")) {
     }
 }
 
-$cityExtract = Expand-Pack ([string]$packs["City"]) "city"
 $characterExtract = Expand-Pack ([string]$packs["Characters"]) "characters"
 $ual1Extract = Expand-Pack ([string]$packs["UAL1"]) "ual1"
-$ual2Extract = Expand-Pack ([string]$packs["UAL2"]) "ual2"
 
 $thirdPartyRoot = Join-Path $projectRoot "assets\third_party"
 New-Item -ItemType Directory -Path $thirdPartyRoot -Force | Out-Null
-Install-SceneTree $cityExtract (Join-Path $thirdPartyRoot "quaternius_city")
 Install-SceneTree $characterExtract (Join-Path $thirdPartyRoot "quaternius_characters")
 
 $ualRoot = Join-Path $thirdPartyRoot "quaternius_ual"
 New-Item -ItemType Directory -Path $ualRoot -Force | Out-Null
 Install-UalSubset $ual1Extract (Join-Path $ualRoot "ual1")
-Install-UalSubset $ual2Extract (Join-Path $ualRoot "ual2")
+
+if (-not $CombatRigOnly) {
+    $cityExtract = Expand-Pack ([string]$packs["City"]) "city"
+    $ual2Extract = Expand-Pack ([string]$packs["UAL2"]) "ual2"
+    Install-SceneTree $cityExtract (Join-Path $thirdPartyRoot "quaternius_city")
+    Install-UalSubset $ual2Extract (Join-Path $ualRoot "ual2")
+}
 
 $noticeRoot = Join-Path $projectRoot "third_party_runtime"
 New-Item -ItemType Directory -Path $noticeRoot -Force | Out-Null
+$installedPackNotice = if ($CombatRigOnly) {
+@"
+Quaternius visual assets used by Urban Brawl prototype
+- Universal Base Characters
+- Universal Animation Library
+License: CC0 1.0 / public domain dedication
+Official source: https://quaternius.com/
+Downloaded Standard/free editions are intentionally not committed to this repository.
+"@
+}
+else {
 @"
 Quaternius visual assets used by Urban Brawl prototype
 - Downtown City MegaKit
@@ -268,7 +296,9 @@ Quaternius visual assets used by Urban Brawl prototype
 License: CC0 1.0 / public domain dedication
 Official source: https://quaternius.com/
 Downloaded Standard/free editions are intentionally not committed to this repository.
-"@ | Set-Content -Path (Join-Path $noticeRoot "Quaternius-CC0-NOTICE.txt") -Encoding UTF8
+"@
+}
+$installedPackNotice | Set-Content -Path (Join-Path $noticeRoot "Quaternius-CC0-NOTICE.txt") -Encoding UTF8
 
 if (Test-Path -LiteralPath $cacheRoot) {
     Remove-Item -LiteralPath $cacheRoot -Recurse -Force
@@ -277,7 +307,12 @@ if (Test-Path -LiteralPath $cacheRoot) {
 Write-Host ""
 Write-Host "Visual packs installed successfully." -ForegroundColor Green
 Write-Host "Godot may spend a while importing the new glTF/GLB files on first reopen." -ForegroundColor Yellow
-Write-Host "PoliceBlockA and the player will automatically prefer the imported assets." -ForegroundColor Green
+if ($CombatRigOnly) {
+    Write-Host "Combat Lab V2 will automatically validate and activate the reference rig." -ForegroundColor Green
+}
+else {
+    Write-Host "PoliceBlockA and the player will automatically prefer the imported assets." -ForegroundColor Green
+}
 Write-Host "If import/retarget validation fails, Urban Brawl keeps the existing fallback visuals." -ForegroundColor DarkGray
 Write-Host ""
 Read-Host "Press Enter to close"

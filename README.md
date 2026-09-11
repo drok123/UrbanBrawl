@@ -37,15 +37,16 @@ Urban Brawl deliberately uses mature external systems for solved infrastructure 
    - `Oen44/Godot-Inventory @ v4.0.1a` for inventory/itemization/equipment/affixes.
    - `bitbrain/beehave @ v2.9.3` for behavior-tree AI.
    - `TheDuckCow/godot-road-generator @ 0.9.3` for authored road/intersection meshes, collision and AI road lanes.
-5. For the polished visual prototype, double-click **`INSTALL-VISUAL-PACKS.bat`**.
-6. The visual installer opens the official Quaternius pages if the Standard/free ZIPs are not already in your Windows Downloads folder. Download the free versions of:
+5. For the current Combat Lab V2 checkpoint, double-click **`INSTALL-COMBAT-RIG.bat`**. This installs only Universal Base Characters and Universal Animation Library 1.
+6. Use **`INSTALL-VISUAL-PACKS.bat`** later when the full city presentation is needed.
+7. The visual installer opens the official Quaternius pages if the Standard/free ZIPs are not already in your Windows Downloads folder. The full installer uses:
    - Downtown City MegaKit
    - Universal Base Characters
    - Universal Animation Library
    - Universal Animation Library 2
-7. Return to the installer and press Enter. It detects the ZIPs, installs the glTF city/character assets, and copies only a focused GLB animation subset from UAL 1 + 2.
-8. Restart/reopen Godot and allow the new 3D assets/addons to import.
-9. Open `project.godot` and press Play.
+8. Return to the installer and press Enter. It detects the ZIPs, installs the glTF assets, and copies only a focused GLB animation subset.
+9. Restart/reopen Godot and allow the new 3D assets/addons to import.
+10. Open `project.godot` and press Play.
 
 The Quaternius packs are CC0 and are intentionally installed locally rather than committed as large binary dependencies. If they are missing or fail validation, Urban Brawl keeps its procedural humanoid and graybox building fallbacks.
 

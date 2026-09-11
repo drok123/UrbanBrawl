@@ -52,7 +52,7 @@ func _update_rig_status() -> void:
 			rig_status_label.text = "REFERENCE RIG: READY\nQuaternius character + UAL clips active"
 			rig_status_label.add_theme_color_override("font_color", Color(0.36, 0.92, 0.58))
 		"MISSING_CHARACTER_PACK", "MISSING_ANIMATION_PACK":
-			rig_status_label.text = "REFERENCE RIG: PACKS REQUIRED\nRun INSTALL-VISUAL-PACKS.bat"
+			rig_status_label.text = "REFERENCE RIG: PACKS REQUIRED\nRun INSTALL-COMBAT-RIG.bat"
 			rig_status_label.add_theme_color_override("font_color", Color(1.0, 0.68, 0.25))
 		_:
 			rig_status_label.text = "REFERENCE RIG: %s\nSee Godot output for the failed gate" % rig_status
